@@ -1,0 +1,5 @@
+* search by BSSID or MAC
+* submit and parse captures
+* work with many dicts
+* rework help_crack
+* windows version of help_crack
