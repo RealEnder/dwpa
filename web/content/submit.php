@@ -23,11 +23,13 @@ $file = $_FILES['file']['tmp_name'];
 $filtercap = $file.'filter';
 
 // Clean and merge WPA captures
+require('common.php');
 $res = '';
 $rc = 0;
-exec("./wpaclean $filtercap wpa.cap $file", $res, $rc);
+exec(WPACLEAN." $filtercap ".WPA_CAP." $file", $res, $rc);
 if ($rc != 0) {
     echo 'Bad capture file';
+    unlink($filtercap);
     goto cleanup;
 }
 
@@ -53,14 +55,12 @@ foreach ($res as $net) {
         mysqli_stmt_bind_param($stmt, 'isi', $mac, $nname, $ip );
         mysqli_stmt_execute($stmt);
     }
-    
 }
 $stmt->close();
 $mysql->close();
-exec("mv $filtercap wpa.cap");
+rename($filtercap, WPA_CAP);
 
 endif;
 cleanup:
 unlink($file);
-unlink($filtercap);
 ?>
