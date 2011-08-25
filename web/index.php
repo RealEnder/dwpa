@@ -30,12 +30,13 @@ $cont = $content.$key.'.php';
 <div id="header">Free online WPA cracker</div>
 
 <ul id="navtop">
+<li style="float:right;"><form action="?" method="get">Search nets <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
 <li><a href="?">Home</a></li>
 <li><a href="?submit">Submit</a></li>
 <li><a href="?nets">Nets</a></li>
 <li><a href="?dicts">Dicts</a></li>
 <li><a href="?stats">Stats</a></li>
-<li style="float:right;"><form action="?" method="get">Search nets <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
+
 </ul>
 <div id="maincontainer">
 

@@ -68,13 +68,11 @@ div.hr hr {display: none;}
 
 .form {margin: 20px 0px 20px 0px;}
 
-.form p {width: 300px;clear: left;margin: 0;padding: 5px 0 8px 0;padding-left: 155px;height: 1%;}
+.form p {width: 300px;clear: left;margin: 0;padding: 5px 0 8px 0;padding-left: 50px;height: 1%;}
 
-.form label{font-weight: bold;float:left;margin-left: -155px;width: 150px;}
+.form label{font-weight: bold;float:left;margin-left: -155px;width: 300px;}
 
-.form .input {width: 275px;background-color: #f5f5dc;border: 1px solid #f5f5dc;letter-spacing: 1px;padding: 4px;}
-
-.form .search {width: 100px;background-color: #f5f5dc;border: 1px solid #f5f5dc;letter-spacing: 1px;padding: 4px;}
+.form .input {width: 200px;background-color: #f5f5dc;border: 1px solid #f5f5dc;letter-spacing: 1px;padding: 4px;}
 
 .form textarea {width: 275px;height: 150px;background-color: #f5f5dc;border: 1px solid #f5f5dc;font: 1em/160% verdana, arial, helvetica, sans-serif;letter-spacing: 1px;padding: 4px;}
 
@@ -86,4 +84,4 @@ div.hr hr {display: none;}
 
 /* search form */
 
-.searchinput {width: 100px;background-color: #f5f5dc;border: 1px solid #000000;letter-spacing: 1px;}
+.searchinput {width: 200px;background-color: #f5f5dc;border: 1px solid #000000;letter-spacing: 1px;}
