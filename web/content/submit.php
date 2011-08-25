@@ -19,48 +19,57 @@ function check_file() {
 </p>
 </form>
 <? else:
-$file = $_FILES['file']['tmp_name'];
-$filtercap = $file.'filter';
+    $file = $_FILES['file']['tmp_name'];
+    $filtercap = $file.'filter';
 
-// Clean and merge WPA captures
-require('common.php');
-$res = '';
-$rc = 0;
-exec(WPACLEAN." $filtercap ".WPA_CAP." $file", $res, $rc);
-if ($rc != 0) {
-    echo 'Bad capture file';
-    unlink($filtercap);
-    goto cleanup;
-}
+    // Clean and merge WPA captures
+    require('common.php');
+    $res = '';
+    $rc = 0;
+    exec(WPACLEAN." $filtercap ".WPA_CAP." $file", $res, $rc);
+    if ($rc == 0) {
+        // Check if we have any new networks
+        require('db.php');
+        $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip) VALUES(?, ?, ?)';
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
 
-// Check if we have any new networks
-require('db.php');
-$sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip) VALUES(?, ?, ?)';
-$stmt = mysqli_stmt_init($mysql);
-mysqli_stmt_prepare($stmt, $sql);
+        $newcap = false;
+        foreach ($res as $net) {
+            if (!$newcap)
+                if (strpos($net, $file) !== false) {
+                    $newcap = true;
+                    continue;
+                } else
+                    continue;
+            if (strlen($net) > 22) {
+                //check in db
+                $mac = mac2long(substr($net, 4, 17));
+                $nname = mysqli_real_escape_string($mysql, substr($net, 22));
+                $ip = ip2long($_SERVER['REMOTE_ADDR']);
+                $stmt->bind_param('isi', $mac, $nname, $ip );
+                $stmt->execute();
+            }
+        }
+        $stmt->close();
+        rename($filtercap, WPA_CAP);
+        rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
 
-$newcap = false;
-foreach ($res as $net) {
-    if (!$newcap)
-        if (strpos($net, $file) !== false) {
-            $newcap = true;
-            continue;
-        } else
-            continue;
-    if (strlen($net) > 22) {
-        //check in db
-        $mac = mac2long(substr($net, 4, 17));
-        $nname = mysqli_real_escape_string($mysql, substr($net, 22));
+        echo '<h1>Last 20 submitted networks from you</h1>';
+        $sql = 'SELECT * FROM nets WHERE ip=? ORDER BY ts DESC LIMIT 20';
         $ip = ip2long($_SERVER['REMOTE_ADDR']);
-        mysqli_stmt_bind_param($stmt, 'isi', $mac, $nname, $ip );
-        mysqli_stmt_execute($stmt);
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+        $stmt->bind_param('i', $ip);
+        $stmt->execute();
+        $data = array();
+        stmt_bind_assoc($stmt, $data);
+        write_nets($stmt, $data);
+        $stmt->close();
+        $mysql->close();
+    } else {
+        echo 'Bad capture file';
+        unlink($filtercap);
     }
-}
-$stmt->close();
-$mysql->close();
-rename($filtercap, WPA_CAP);
-rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
-
 endif;
-cleanup:
 ?>
