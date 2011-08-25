@@ -14,7 +14,10 @@ if (!empty($_POST)) {
     $ustmt = $mysql->stmt_init();
     $ustmt->prepare($usql);
 
+    $mcount = 0;
     foreach ($_POST as $bssid => $key) {
+        if ($mcount++ > 20)
+            break;
         if (valid_mac($bssid) && strlen($key) >= 8) {
             $ibssid = mac2long($bssid);
             $stmt->bind_param('i', $ibssid);
