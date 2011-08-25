@@ -1,4 +1,15 @@
 <?
+//Check for submission from besside-ng
+if ($_FILES['file']) {
+    require('db.php');
+    require('common.php');
+    if (submission($mysql, $_FILES['file']['tmp_name']))
+        echo 2;
+    else
+        echo 0;
+    $mysql->close();
+    exit;
+}
 $content = 'content/';
 $keys = array('home', 'submit', 'nets', 'dicts', 'stats', 'search');
 
@@ -8,7 +19,6 @@ if (!in_array($key,$keys))
 
 $cont = $content.$key.'.php';
 ?>
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>

@@ -23,6 +23,48 @@ function check_pass($bssid, $pass) {
     return ($p == $pass);
 }
 
+//Process submission
+function submission($mysql, $file) {
+    $filtercap = $file.'filter';
+
+    // Clean and merge WPA captures
+    $res = '';
+    $rc = 0;
+    exec(WPACLEAN." $filtercap ".WPA_CAP." $file", $res, $rc);
+    if ($rc == 0) {
+        // Check if we have any new networks
+        $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip) VALUES(?, ?, ?)';
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+
+        $newcap = false;
+        foreach ($res as $net) {
+            if (!$newcap)
+                if (strpos($net, $file) !== false) {
+                    $newcap = true;
+                    continue;
+                } else
+                    continue;
+            if (strlen($net) > 22) {
+                //check in db
+                $mac = mac2long(substr($net, 4, 17));
+                $nname = mysqli_real_escape_string($mysql, substr($net, 22));
+                $ip = ip2long($_SERVER['REMOTE_ADDR']);
+                $stmt->bind_param('isi', $mac, $nname, $ip );
+                $stmt->execute();
+            }
+        }
+        $stmt->close();
+        rename($filtercap, WPA_CAP);
+        rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
+    } else {
+        unlink($file);
+        return false;
+    }
+
+    return true;
+}
+
 //MAC conversions and checks
 function mac2long($mac) {
     return hexdec(str_replace(':', '', $mac));
