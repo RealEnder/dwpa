@@ -49,7 +49,7 @@ foreach ($res as $net) {
             continue;
     if (strlen($net) > 22) {
         //check in db
-        $mac = hexdec(str_replace(':', '', substr($net, 4, 17)));
+        $mac = mac2long(substr($net, 4, 17));
         $nname = mysqli_real_escape_string($mysql, substr($net, 22));
         $ip = ip2long($_SERVER['REMOTE_ADDR']);
         mysqli_stmt_bind_param($stmt, 'isi', $mac, $nname, $ip );
