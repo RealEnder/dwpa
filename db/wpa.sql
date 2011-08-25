@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Aug 24, 2011 at 11:20 PM
+-- Generation Time: Aug 25, 2011 at 04:19 PM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
@@ -26,12 +26,13 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 
 CREATE TABLE IF NOT EXISTS `dicts` (
-  `d_id` bigint(20) NOT NULL,
-  `dpath` varchar(256) CHARACTER SET latin1 NOT NULL,
-  `dname` int(128) NOT NULL,
+  `d_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `dpath` varchar(256) NOT NULL,
+  `dname` varchar(128) NOT NULL,
   `wcount` bigint(20) NOT NULL,
+  `hits` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
 -- --------------------------------------------------------
 
@@ -41,8 +42,8 @@ CREATE TABLE IF NOT EXISTS `dicts` (
 
 CREATE TABLE IF NOT EXISTS `nets` (
   `bssid` bigint(8) unsigned NOT NULL,
-  `ssid` varchar(32) CHARACTER SET latin1 NOT NULL,
-  `pass` varchar(64) CHARACTER SET latin1 DEFAULT NULL,
+  `ssid` varchar(32) NOT NULL,
+  `pass` varchar(64) DEFAULT NULL,
   `ip` int(10) NOT NULL,
   `sip` int(10) DEFAULT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
