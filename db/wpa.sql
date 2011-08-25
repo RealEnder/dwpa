@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Aug 25, 2011 at 04:19 PM
+-- Generation Time: Aug 25, 2011 at 06:00 PM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
@@ -44,12 +44,13 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `bssid` bigint(8) unsigned NOT NULL,
   `ssid` varchar(32) NOT NULL,
   `pass` varchar(64) DEFAULT NULL,
-  `ip` int(10) NOT NULL,
-  `sip` int(10) DEFAULT NULL,
+  `ip` int(10) unsigned NOT NULL,
+  `sip` int(10) unsigned DEFAULT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sts` timestamp NULL DEFAULT NULL,
   `n_state` tinyint(4) NOT NULL,
   `d_id` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`bssid`),
-  KEY `IDX_nets_ts` (`ts`)
+  KEY `IDX_nets_ts` (`ts`),
+  KEY `IDX_nets_ip` (`ip`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
