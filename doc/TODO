@@ -1,8 +1,12 @@
 * add critical sections
 * refactor functions
 * use shm insted of /tmp
-* search by BSSID or MAC
 * submit results
 * work with many dicts
+* get_work interface
+* put_work interface
 * rework help_crack
 * windows version of help_crack
+* show text stats
+* graf stats
+* prettify tables
