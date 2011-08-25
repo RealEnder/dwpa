@@ -7,9 +7,9 @@ if (empty($_POST)): ?>
 <tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Timestamp</th></tr>
 <?
     $sql = 'SELECT * FROM nets ORDER BY ts DESC LIMIT 20';
-    $stmt = mysqli_stmt_init($mysql);
-    mysqli_stmt_prepare($stmt, $sql);
-    mysqli_stmt_execute($stmt);
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    $stmt->execute();
     $data = array();
     stmt_bind_assoc($stmt, $data);
     while ($stmt->fetch()) {
