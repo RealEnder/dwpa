@@ -1,7 +1,8 @@
 <?
 define('AIRCRACK', 'aircrack-ng');
-define('WPACLEAN', '/var/www/dev/wpa/wpaclean');
-define('WPA_CAP', '/var/www/dev/wpa/wpa.cap');
+define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
+define('WPA_CAP', '/var/www/wpa-sec/cap/wpa.cap');
+define('CAP', '/var/www/wpa-sec/cap/');
 
 //Execute aircrack-ng and check for solved net
 function check_pass($bssid, $pass) {

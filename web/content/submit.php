@@ -59,8 +59,8 @@ foreach ($res as $net) {
 $stmt->close();
 $mysql->close();
 rename($filtercap, WPA_CAP);
+rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
 
 endif;
 cleanup:
-unlink($file);
 ?>

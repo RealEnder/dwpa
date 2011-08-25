@@ -36,7 +36,6 @@ $cont = $content.$key.'.php';
 <li><a href="?nets">Nets</a></li>
 <li><a href="?dicts">Dicts</a></li>
 <li><a href="?stats">Stats</a></li>
-
 </ul>
 <div id="maincontainer">
 
