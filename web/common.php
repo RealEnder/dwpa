@@ -126,7 +126,7 @@ function write_nets($stmt, $data) {
     echo '
 <form class="form" method="POST" action="?nets" enctype="multipart/form-data">
 <table style="border: 1;">
-<tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Timestamp</th></tr>';
+<tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
     while ($stmt->fetch()) {
         $bssid = long2mac($data['bssid']);
         $ssid = htmlspecialchars($data['ssid']);
@@ -135,8 +135,7 @@ function write_nets($stmt, $data) {
             $has_input = true;
         } else
             $pass = htmlspecialchars($data['pass']);
-        $ts = $data['ts'];
-        echo "<tr><td style=\"font:Courier;\">$bssid</td><td>$ssid</td><td>$pass</td><td>$ts</td></tr>\n";
+        echo "<tr><td style=\"font:Courier;\">$bssid</td><td>$ssid</td><td>$pass</td><td>{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
     }
     echo '</table>';
     if ($has_input)
