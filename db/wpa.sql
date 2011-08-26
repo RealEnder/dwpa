@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Aug 26, 2011 at 06:16 PM
+-- Generation Time: Aug 26, 2011 at 06:40 PM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
@@ -26,11 +26,11 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 
 CREATE TABLE IF NOT EXISTS `dicts` (
-  `d_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `dpath` varchar(256) NOT NULL,
   `dname` varchar(128) NOT NULL,
-  `wcount` bigint(20) NOT NULL,
-  `hits` int(11) NOT NULL DEFAULT '0',
+  `wcount` int(10) unsigned NOT NULL,
+  `hits` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`d_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
@@ -50,7 +50,7 @@ INSERT INTO `dicts` (`d_id`, `dpath`, `dname`, `wcount`, `hits`) VALUES
 -- Stand-in structure for view `get_dict`
 --
 CREATE TABLE IF NOT EXISTS `get_dict` (
-`d_id` bigint(20)
+`d_id` bigint(20) unsigned
 ,`dpath` varchar(256)
 );
 -- --------------------------------------------------------
@@ -98,10 +98,8 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `sip` int(10) unsigned DEFAULT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sts` timestamp NULL DEFAULT NULL,
-  `n_state` tinyint(4) NOT NULL,
-  `gw` int(11) NOT NULL DEFAULT '0',
-  `d_id` bigint(20) DEFAULT NULL,
-  `hits` int(11) NOT NULL,
+  `n_state` tinyint(1) unsigned NOT NULL,
+  `hits` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`bssid`),
   KEY `IDX_nets_ts` (`ts`),
   KEY `IDX_nets_ip` (`ip`)
