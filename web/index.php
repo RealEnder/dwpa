@@ -11,11 +11,17 @@ if ($_FILES['file']) {
     exit;
 }
 $content = 'content/';
-$keys = array('home', 'submit', 'nets', 'dicts', 'stats', 'search');
+$keys = array('home', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work');
+$keys_if = array('get_work');
 
 list($key) = each($_GET);
 if (!in_array($key,$keys))
 	$key = 'home';
+
+if (in_array($key, $keys_if)) {
+    require($content.$key.'.php');
+    exit;
+}
 
 $cont = $content.$key.'.php';
 ?>
