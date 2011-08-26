@@ -11,8 +11,8 @@ if ($_FILES['file']) {
     exit;
 }
 $content = 'content/';
-$keys = array('home', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work');
-$keys_if = array('get_work');
+$keys = array('home', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work');
+$keys_if = array('get_work', 'put_work');
 
 list($key) = each($_GET);
 if (!in_array($key,$keys))
