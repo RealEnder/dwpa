@@ -15,7 +15,7 @@ if ($stmt->fetch()) {
 
     if ($_GET['get_work'] == 'no_dict') {
         //Return net, to break with local dict
-        $usql = 'UPDATE nets SET hits=hist+1 WHERE bssid=?';
+        $usql = 'UPDATE nets SET hits=hits+1 WHERE bssid=?';
         $ustmt = $mysql->stmt_init();
         $ustmt->prepare($usql);
         $ustmt->bind_param('i', $data['bssid']);
