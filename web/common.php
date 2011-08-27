@@ -12,6 +12,10 @@ function check_pass($bssid, $pass) {
     if (strlen($pass) < 8)
         return false;
 
+    //start critical section
+    $sem = sem_get(666);
+    sem_acquire($sem);
+
     @unlink($kf);
     file_put_contents($wl, $pass."\n");
 
@@ -20,16 +24,23 @@ function check_pass($bssid, $pass) {
 
     $p = @file_get_contents($kf);
 
+    //end critical section
+    sem_release($sem);
+    sem_remove($sem);
+
     return ($p == $pass);
 }
 
 //Process submission
 function submission($mysql, $file) {
     $filtercap = $file.'filter';
-
-    // Clean and merge WPA captures
     $res = '';
     $rc = 0;
+
+    //start critical section
+    $sem = sem_get(777);
+    sem_acquire($sem);
+
     exec(WPACLEAN." $filtercap ".WPA_CAP." $file", $res, $rc);
     if ($rc == 0) {
         // Check if we have any new networks
@@ -64,6 +75,11 @@ function submission($mysql, $file) {
         fwrite($fp, $gzdata);
         fclose($fp);
         file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
+
+        //end critical section
+        sem_release($sem);
+        sem_remove($sem);
+
         //update net count stats
         $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets) WHERE pname='nets'";
         $stmt = $mysql->stmt_init();
