@@ -44,6 +44,7 @@ print 'import nets and pass from wpa.darkircop.org, v0.1'
 
 page = get_url(darkircop)
 doc = html.fromstring(page)
+i = 0
 for data in doc.xpath('//tr'):
     #print data
     key = data.xpath('.//td[4]/text()')
@@ -54,8 +55,10 @@ for data in doc.xpath('//tr'):
     bssid = bssid[0].replace('comment-', '')
     bssid = bssid.replace('-', ':')
     bssid = bssid.strip()
-
-    print 'Pair found: BSSID:'+bssid+' Key:'+ key
+    #if bssid[0] == '0' and bssid[1] == '0':
+    #    continue
+    i += 1
+    print i, 'Pair found: BSSID:'+bssid+' Key:'+ key
 
     if len(key) > 8 and valid_mac(bssid):
         if not put_work(bssid, key):
