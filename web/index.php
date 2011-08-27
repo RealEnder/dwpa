@@ -32,7 +32,6 @@ $cont = $content.$key.'.php';
 <meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
 <meta name="description" content="besside-ng wpa crack" />
 <meta name="keywords" content="besside-ng, wpa, crack, wordlist" />
-<meta name="author" content="Alex Stanev, http://sec.stanev.org" />
 
 <title>Free online WPA cracker with stats - besside-ng companion</title>
 
@@ -65,7 +64,7 @@ $cont = $content.$key.'.php';
 
 <div id="footer">
 <div class="hr"><hr /></div>
-Contact: sorbo at darkircop dot org, alex at stanev dot org
+Contact: sorbo at darkircop dot org
 </div>
 
 </div>
