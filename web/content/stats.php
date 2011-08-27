@@ -18,7 +18,7 @@ $mysql->close();
 echo "Total nets: {$stats['nets']}<br/>\n";
 echo "Cracked nets: {$stats['cracked']}<br/>\n";
 if ((int) $stats['nets'] > 0) {
-    $srate = (int) $stats['cracked'] / (int) $stats['nets'] * 100;
+    $srate = round((int) $stats['cracked'] / (int) $stats['nets'] * 100, 2);
     echo "Success rate: $srate %<br/>\n";
 }
 ?>
