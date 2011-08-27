@@ -164,16 +164,14 @@ def put_work(bssid, key):
 
     return True
 
-print '''
-help_crack, distributed WPA cracker, v0.1
-    Usage: ./help_crack : download wpa.cap and wordlist then start cracking, or
-           ./help_crack dictionary.txt : to use your own dictionary'''
+print 'help_crack, distributed WPA cracker, v0.1'
 
 #check if custom dictionary is passed
 wordlist = ''
 if len(sys.argv) == 2:
     if not os.path.exists(sys.argv[1]):
-        print 'Could not find custom dictionary'
+        print 'Usage: ./help_crack : download wpa.cap and wordlist then start cracking, or'
+        print '       ./help_crack dictionary.txt : to use your own dictionary'
         exit(1)
     else:
         wordlist = sys.argv[1]
