@@ -64,6 +64,12 @@ function submission($mysql, $file) {
         fwrite($fp, $gzdata);
         fclose($fp);
         file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
+        //update net count stats
+        $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets) WHERE pname='nets'";
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+        $stmt->execute();
+        $stmt->close();
     } else {
         unlink($file);
         return false;
@@ -74,7 +80,6 @@ function submission($mysql, $file) {
 
 // Put work
 function put_work($mysql) {
-    global $_POST;
     if (empty($_POST))
         return false;
 
@@ -109,6 +114,13 @@ function put_work($mysql) {
     }
     $stmt->close();
     $ustmt->close();
+
+    //Update cracked net stats
+    $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets WHERE n_state=1) WHERE pname='cracked'";
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    $stmt->execute();
+    $stmt->close();
 
     return true;
 }

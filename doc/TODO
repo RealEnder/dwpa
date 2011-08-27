@@ -1,6 +1,5 @@
 * add critical sections
 * use shm insted of /tmp
 * windows version of help_crack
-* show text stats
 * graf stats
 * prettify tables
