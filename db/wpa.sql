@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Aug 26, 2011 at 06:40 PM
+-- Generation Time: Aug 27, 2011 at 09:19 PM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
@@ -39,10 +39,10 @@ CREATE TABLE IF NOT EXISTS `dicts` (
 --
 
 INSERT INTO `dicts` (`d_id`, `dpath`, `dname`, `wcount`, `hits`) VALUES
-(1, 'dict/cow.txt.gz', 'CoW', 15555, 0),
-(2, 'dict/insidepro.txt.gz', 'InsidePro', 158142, 0),
-(3, 'dict/openwall.txt.gz', 'OpenWall', 37711, 0),
-(4, 'dict/os.txt.gz', 'Offensive Security', 435802, 0);
+(1, 'http://wpa-sec.stanev.org/dict/cow.txt.gz', 'CoW', 995759, 0),
+(2, 'http://wpa-sec.stanev.org/dict/insidepro.txt.gz', 'InsidePro', 11083928, 0),
+(3, 'http://wpa-sec.stanev.org/dict/openwall.txt.gz', 'OpenWall', 2834460, 0),
+(4, 'http://wpa-sec.stanev.org/dict/os.txt.gz', 'Offensive Security', 39777666, 0);
 
 -- --------------------------------------------------------
 
@@ -118,6 +118,25 @@ CREATE TABLE IF NOT EXISTS `nets` (
 CREATE TABLE IF NOT EXISTS `onets` (
 `bssid` bigint(8) unsigned
 );
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `stats`
+--
+
+CREATE TABLE IF NOT EXISTS `stats` (
+  `pname` varchar(20) CHARACTER SET utf8 NOT NULL,
+  `pvalue` varchar(20) CHARACTER SET utf8 DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `stats`
+--
+
+INSERT INTO `stats` (`pname`, `pvalue`) VALUES
+('nets', '0'),
+('cracked', '0');
+
 -- --------------------------------------------------------
 
 --
