@@ -57,6 +57,13 @@ function submission($mysql, $file) {
         $stmt->close();
         rename($filtercap, WPA_CAP);
         rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
+        //create gz and md5
+        $cap = implode('', file(WPA_CAP));
+        $gzdata = gzencode($cap, 9);
+        $fp = fopen(WPA_CAP.'.gz', 'w');
+        fwrite($fp, $gzdata);
+        fclose($fp);
+        file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
     } else {
         unlink($file);
         return false;
