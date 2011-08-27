@@ -6,15 +6,18 @@ import os.path
 import stat
 import urlparse
 import socket
-import urllib2
+import urllib
 import hashlib
 import gzip
+import re
+import time
 
-base_url   = 'http://wpa-sec.stanev.org/'
-help_crack = base_url + 'hc/help_crack.py'
-wpa_cap    = base_url + 'cap/wpa.cap.gz'
-get_work   = base_url + '?get_work'
-put_work   = base_url + '?put_work'
+base_url     = 'http://wpa-sec.stanev.org/'
+help_crack   = base_url + 'hc/help_crack.py'
+wpa_cap      = base_url + 'cap/wpa.cap.gz'
+get_work_url = base_url + '?get_work'
+put_work_url = base_url + '?put_work'
+key_temp     = 'key_temp.lst'
 
 def md5file(filename):
     md5 = hashlib.md5()
@@ -29,21 +32,14 @@ def md5file(filename):
 
 def download(url, filename):
     try:
-        response = urllib2.urlopen(url)
+        urllib.urlretrieve(url, filename)
     except Exception, e:
         return False
-
-    try:
-	    localfile = open(filename, 'wb')
-    except Exception, e:
-        return False
-    localfile.write(response.read())
-    localfile.close()
     return True
 
 def get_url(url):
     try:
-        response = urllib2.urlopen(url)
+        response = urllib.urlopen(url)
     except Exception, e:
         return False
     remote = response.read()
@@ -81,7 +77,7 @@ def which(program):
         if is_exe(program):
             return program
     else:
-        for path in os.environ["PATH"].split(os.pathsep):
+        for path in os.environ['PATH'].split(os.pathsep):
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return exe_file
@@ -99,11 +95,11 @@ def get_gz(gzurl):
     remotemd5 = get_url(gzurl+'.md5')
     if not remotemd5:
         print 'Can\'t download '+gzurl+'.md5'
-        return
+        exit(1)
     localmd5 = md5file(gzname)
     if remotemd5 != localmd5:
         print 'Downloading ' + gzname
-        if download(wpa_cap, gzname):
+        if download(gzurl, gzname):
             if md5file(gzname) == remotemd5:
                 try:
                     f = open(name, 'wb')
@@ -121,6 +117,52 @@ def get_gz(gzurl):
         else:
             print gzname + ' download failed'
             exit(1)
+    return name
+
+def valid_mac(mac):
+    if len(mac) != 17:
+        return False
+    if not re.match(r'([a-f0-9]{2}:?){6}', mac):
+        return False
+    return True
+
+def get_work(wordlist):
+    if wordlist == '':
+        work = get_url(get_work_url)
+        work = work.strip()
+        if work:
+            if work == 'No nets':
+                return (False, False)
+            bssid = work.split('-', 1)[0]
+            url_wordlist = work.split('-', 1)[1]
+        else:
+            return (False, False)
+    else:
+        bssid = get_url(get_work_url+'=no_dict')
+        bssid = bssid.strip()
+        url_wordlist = ''
+        if bssid == 'No nets':
+            return (False, False)
+
+    if not valid_mac(bssid):
+        return (False, False)
+
+    return (bssid, url_wordlist)
+
+def put_work(bssid, key):
+    data = urllib.urlencode({bssid: key})
+    try:
+        response = urllib.urlopen(put_work_url, data)
+    except:
+        return False
+
+    remote = response.read()
+    response.close()
+
+    if remote != 'OK':
+        return False
+
+    return True
 
 print '''
 help_crack, distributed WPA cracker, v0.1
@@ -128,14 +170,39 @@ help_crack, distributed WPA cracker, v0.1
            ./help_crack dictionary.txt : to use your own dictionary'''
 
 #check if custom dictionary is passed
-cust_dict = ''
+wordlist = ''
 if len(sys.argv) == 2:
     if not os.path.exists(sys.argv[1]):
         print 'Could not find custom dictionary'
         exit(1)
     else:
-        cust_dict = sys.argv[1]
+        wordlist = sys.argv[1]
 
 check_version()
 check_tools()
-get_gz(wpa_cap)
+while True:
+    get_gz(wpa_cap)
+    (bssid, url_wordlist) = get_work(wordlist)
+
+    if bssid == False:
+        print 'No suitable nets found, waiting...'
+        time.sleep(666)
+        continue
+    if url_wordlist != '':
+        wordlist = get_gz(url_wordlist)
+
+    if os.path.exists(key_temp):
+        os.unlink(key_temp)
+
+    os.system('aircrack-ng -w '+wordlist+' -l '+key_temp+' -b '+bssid+' wpa.cap')
+
+    if os.path.exists(key_temp):
+        ktf = open(key_temp, 'r')
+        key = ktf.readline()
+        ktf.close()
+        print 'Key for BSSID '+bssid+' is: '+key
+        while not put_work(bssid, key):
+            print 'Couldn\'t submit key, waiting...'
+            time.sleep(666)
+    else:
+        print 'Key for BSSID '+bssid+' not found.'
