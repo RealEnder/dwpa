@@ -16,6 +16,10 @@ get_work_url = base_url + '?get_work'
 put_work_url = base_url + '?put_work'
 key_temp     = 'key_temp.lst'
 
+def sleepy():
+    print 'Sleeping...'
+    time.sleep(666)
+
 def md5file(filename):
     md5s = md5.new()
     try:
@@ -57,16 +61,20 @@ def check_version():
         if user == 'y' or user == '':
             if download(help_crack, sys.argv[0]+'.new'):
                 if md5file(sys.argv[0]+'.new') == remotemd5:
-                    os.rename(sys.argv[0]+'.new', sys.argv[0])
-                    os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+                    try:
+                        os.rename(sys.argv[0]+'.new', sys.argv[0])
+                        os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+                    except Exception as e:
+                        print 'Exception: %s' % e
+                        print 'If run under win32, rename help_crack.py.new over help_crack.py'
                     print 'help_crack updated, run again'
                     exit(0)
                 else:
                     print 'help_crack remote md5 mismatch'
-                    exit(1)
+                    return
             else:
                 print 'help_crack update failed'
-                exit(1)
+                return
 
 def which(program):
     def is_exe(fpath):
@@ -95,7 +103,7 @@ def get_gz(gzurl):
     remotemd5 = get_url(gzurl+'.md5')
     if not remotemd5:
         print 'Can\'t download '+gzurl+'.md5'
-        exit(1)
+        return False
     localmd5 = md5file(gzname)
     if remotemd5 != localmd5:
         print 'Downloading ' + gzname
@@ -110,14 +118,14 @@ def get_gz(gzurl):
                 except Exception as e:
                     print gzname +' extraction failed'
                     print 'Exception: %s' % e
-                    exit(1)
+                    return False
                 print name + ' downloaded successfully'
             else:
                 print gzname + ' remote md5 mismatch'
-                exit(1)
+                return False
         else:
             print gzname + ' download failed'
-            exit(1)
+            return False
     return name
 
 def valid_mac(mac):
@@ -174,7 +182,7 @@ def put_work(pwbssid, pwkey):
 
     return True
 
-print 'help_crack, distributed WPA cracker, v0.1.2'
+print 'help_crack, distributed WPA cracker, v0.1.3'
 
 #check if custom dictionary is passed
 wordlist = ''
@@ -189,17 +197,24 @@ if len(sys.argv) > 1:
 check_version()
 check_tools()
 while True:
-    get_gz(wpa_cap)
+    if not get_gz(wpa_cap):
+        sleepy()
+        continue
 
-    if wordlist == '':    
+    if wordlist == '':
         (bssid, wl) = get_work_wl()
     else:
         bssid = get_work_bs()
         wl = wordlist
 
     if bssid == False:
-        print 'No suitable nets found, waiting...'
-        time.sleep(666)
+        print 'No suitable nets found'
+        sleepy()
+        continue
+
+    if wl == False:
+        print 'Coud not download wordlist'
+        sleepy()
         continue
 
     if os.path.exists(key_temp):
@@ -213,7 +228,7 @@ while True:
         ktf.close()
         print 'Key for BSSID '+bssid+' is: '+key
         while not put_work(bssid, key):
-            print 'Couldn\'t submit key, waiting...'
-            time.sleep(666)
+            print 'Couldn\'t submit key'
+            sleepy()
     else:
         print 'Key for BSSID '+bssid+' not found.'
