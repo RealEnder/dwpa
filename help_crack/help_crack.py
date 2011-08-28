@@ -4,7 +4,7 @@ import sys
 import os
 import stat
 import urllib
-import hashlib
+import md5
 import gzip
 import re
 import time
@@ -17,27 +17,30 @@ put_work_url = base_url + '?put_work'
 key_temp     = 'key_temp.lst'
 
 def md5file(filename):
-    md5 = hashlib.md5()
+    md5s = md5.new()
     try:
         with open(filename, 'rb') as f: 
-            for chunk in iter(lambda: f.read(8192), ''): 
-                 md5.update(chunk)
-    except Exception, e:
+            for chunk in iter(lambda: f.read(8192), ''):
+                md5s.update(chunk)
+    except Exception as e:
+        print 'Exception: %s' % e
         return False
     f.close()
-    return md5.hexdigest()
+    return md5s.hexdigest()
 
 def download(url, filename):
     try:
         urllib.urlretrieve(url, filename)
-    except Exception, e:
+    except Exception as e:
+        print 'Exception: %s' % e
         return False
     return True
 
 def get_url(url):
     try:
         response = urllib.urlopen(url)
-    except Exception, e:
+    except Exception as e:
+        print 'Exception: %s' % e
         return False
     remote = response.read()
     response.close()
@@ -104,8 +107,9 @@ def get_gz(gzurl):
                     f.write(fgz.read())
                     f.close()
                     fgz.close()
-                except Exception, e:
+                except Exception as e:
                     print gzname +' extraction failed'
+                    print 'Exception: %s' % e
                     exit(1)
                 print name + ' downloaded successfully'
             else:
@@ -129,58 +133,37 @@ def get_work_wl():
         if work == 'No nets':
             return (False, False)
 
-        bssid = work.split('-', 1)[0]
-        wordlist = work.split('-', 1)[1]
+        gwbssid = work.split('-', 1)[0]
+        gwwl = work.split('-', 1)[1]
 
-        if not valid_mac(bssid):
+        if not valid_mac(gwbssid):
             return (False, False)
 
-        wordlist = get_gz(wordlist)
+        gwwl = get_gz(gwwl)
 
-        return (bssid, wordlist)
+        return (gwbssid, gwwl)
     else:
         return (False, False)
 
 def get_work_bs():
-    bssid = get_url(get_work_url+'=no_dict')
-    bssid = bssid.strip()
-
-    if bssid == 'No nets':
+    gwbssid = get_url(get_work_url+'=no_dict')
+    if not gwbssid:
         return False
 
-    if not valid_mac(bssid):
+    if gwbssid == 'No nets':
         return False
 
-    return bssid
+    if not valid_mac(gwbssid):
+        return False
 
-def get_work(wordlist):
-    if wordlist == '':
-        work = get_url(get_work_url)
-        work = work.strip()
-        if work:
-            if work == 'No nets':
-                return (False, False)
-            bssid = work.split('-', 1)[0]
-            url_wordlist = work.split('-', 1)[1]
-        else:
-            return (False, False)
-    else:
-        bssid = get_url(get_work_url+'=no_dict')
-        bssid = bssid.strip()
-        url_wordlist = ''
-        if bssid == 'No nets':
-            return (False, False)
+    return gwbssid
 
-    if not valid_mac(bssid):
-        return (False, False)
-
-    return (bssid, url_wordlist)
-
-def put_work(bssid, key):
-    data = urllib.urlencode({bssid: key})
+def put_work(pwbssid, pwkey):
+    data = urllib.urlencode({pwbssid: pwkey})
     try:
         response = urllib.urlopen(put_work_url, data)
-    except:
+    except Exception as e:
+        print 'Exception: %s' % e
         return False
 
     remote = response.read()
@@ -191,7 +174,7 @@ def put_work(bssid, key):
 
     return True
 
-print 'help_crack, distributed WPA cracker, v0.1.1'
+print 'help_crack, distributed WPA cracker, v0.1.2'
 
 #check if custom dictionary is passed
 wordlist = ''
