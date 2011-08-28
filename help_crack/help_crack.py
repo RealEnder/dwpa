@@ -82,7 +82,7 @@ def which(program):
     return False
 
 def check_tools():
-    if not which('aircrack-ng'):
+    if (not which('aircrack-ng')) and (not which('aircrack-ng.exe')):
         print 'No aircrack-ng found'
         exit(1)
 
