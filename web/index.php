@@ -1,6 +1,6 @@
 <?
 //Check for submission from besside-ng
-if ($_FILES['file']) {
+if (isset($_FILES['file'])) {
     require('db.php');
     require('common.php');
     if (submission($mysql, $_FILES['file']['tmp_name']))
