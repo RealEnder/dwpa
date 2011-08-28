@@ -168,7 +168,7 @@ print 'help_crack, distributed WPA cracker, v0.1'
 
 #check if custom dictionary is passed
 wordlist = ''
-if len(sys.argv) == 2:
+if len(sys.argv) > 1:
     if not os.path.exists(sys.argv[1]):
         print 'Usage: ./help_crack : download wpa.cap and wordlist then start cracking, or'
         print '       ./help_crack dictionary.txt : to use your own dictionary'
