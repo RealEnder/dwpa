@@ -3,6 +3,7 @@ define('AIRCRACK', 'aircrack-ng');
 define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
 define('WPA_CAP', '/var/www/wpa-sec/cap/wpa.cap');
 define('CAP', '/var/www/wpa-sec/cap/');
+define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
 
 //Execute aircrack-ng and check for solved net
 function check_pass($bssid, $pass) {
@@ -69,11 +70,9 @@ function submission($mysql, $file) {
         rename($filtercap, WPA_CAP);
         rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
         //create gz and md5
-        $cap = implode('', file(WPA_CAP));
+        $cap = file_get_contents(WPA_CAP);
         $gzdata = gzencode($cap, 9);
-        $fp = fopen(WPA_CAP.'.gz', 'w');
-        fwrite($fp, $gzdata);
-        fclose($fp);
+        file_put_contents(WPA_CAP.'.gz', $gzdata);
         file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
 
         //end critical section
@@ -135,6 +134,39 @@ function put_work($mysql) {
     $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets WHERE n_state=1) WHERE pname='cracked'";
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
+    $stmt->execute();
+    $stmt->close();
+
+    //Create new cracked.txt.gz and update wcount
+    $sql = 'SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC';
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    $data = array();
+    stmt_bind_assoc($stmt, $data);
+    $stmt->execute();
+    $wl = '';
+    $i = 0;
+    while ($stmt->fetch()) {
+        $wl = "$wl{$data['pass']}\n";
+        $i += 1;
+    }
+    $stmt->close();
+
+    $gzdata = gzencode($wl, 9);
+    
+    $sem = sem_get(888);
+    sem_acquire($sem);
+    file_put_contents(CRACKED, $gzdata);
+    file_put_contents(CRACKED.'.md5', md5($wl));
+    sem_release($sem);
+    sem_remove($sem);
+
+    //update wcount for cracked dict
+    $cr = '%'.basename(CRACKED);
+    $sql = "UPDATE dicts SET wcount = ? WHERE dname LIKE ?";
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    $stmt->bind_param('is', $i, $cr);
     $stmt->execute();
     $stmt->close();
 
