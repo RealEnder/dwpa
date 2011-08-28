@@ -11,7 +11,7 @@ if (strlen($_GET['search']) >= 3) {
         $stmt->prepare($sql);
         $stmt->bind_param('i', $bssid);
     } else {
-        $ssid = '%'.mysqli_real_escape_string($mysql, $_GET['search']).'%';
+        $ssid = "%{$_GET['search']}%";
         $sql = 'SELECT * FROM nets WHERE ssid LIKE ? ORDER BY ts';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
