@@ -163,7 +163,7 @@ function put_work($mysql) {
 
     //update wcount for cracked dict
     $cr = '%'.basename(CRACKED);
-    $sql = "UPDATE dicts SET wcount = ? WHERE dname LIKE ?";
+    $sql = 'UPDATE dicts SET wcount = ? WHERE dpath LIKE ?';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
     $stmt->bind_param('is', $i, $cr);
