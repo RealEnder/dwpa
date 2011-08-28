@@ -1,4 +1,4 @@
-* create automaticly wordlist from cracked nets
+* clean n2d table when network is cracked
 * use shm insted of /tmp
 * windows version of help_crack
 * graf stats
