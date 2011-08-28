@@ -59,7 +59,7 @@ function submission($mysql, $file) {
             if (strlen($net) > 22) {
                 //check in db
                 $mac = mac2long(substr($net, 4, 17));
-                $nname = mysqli_real_escape_string($mysql, substr($net, 22));
+                $nname = substr($net, 22);
                 $ip = ip2long($_SERVER['REMOTE_ADDR']);
                 $stmt->bind_param('isi', $mac, $nname, $ip );
                 $stmt->execute();
@@ -123,7 +123,7 @@ function put_work($mysql) {
                 if (check_pass($bssid, $key)) {
                     $stmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $ustmt->bind_param('sii', mysqli_real_escape_string($mysql, $key), $iip, $ibssid);
+                    $ustmt->bind_param('sii', $key, $iip, $ibssid);
                     $ustmt->execute();
                 }
         }
