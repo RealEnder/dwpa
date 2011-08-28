@@ -157,7 +157,7 @@ function put_work($mysql) {
     $sem = sem_get(888);
     sem_acquire($sem);
     file_put_contents(CRACKED, $gzdata);
-    file_put_contents(CRACKED.'.md5', md5($wl));
+    file_put_contents(CRACKED.'.md5', md5($gzdata));
     sem_release($sem);
     sem_remove($sem);
 
