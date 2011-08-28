@@ -2,10 +2,7 @@
 # The source code is distributed under GPLv3+ license
 import sys
 import os
-import os.path
 import stat
-import urlparse
-import socket
 import urllib
 import hashlib
 import gzip
@@ -126,6 +123,36 @@ def valid_mac(mac):
         return False
     return True
 
+def get_work_wl():
+    work = get_url(get_work_url)
+    if work:
+        if work == 'No nets':
+            return (False, False)
+
+        bssid = work.split('-', 1)[0]
+        wordlist = work.split('-', 1)[1]
+
+        if not valid_mac(bssid):
+            return (False, False)
+
+        wordlist = get_gz(wordlist)
+
+        return (bssid, wordlist)
+    else:
+        return (False, False)
+
+def get_work_bs():
+    bssid = get_url(get_work_url+'=no_dict')
+    bssid = bssid.strip()
+
+    if bssid == 'No nets':
+        return False
+
+    if not valid_mac(bssid):
+        return False
+
+    return bssid
+
 def get_work(wordlist):
     if wordlist == '':
         work = get_url(get_work_url)
@@ -164,7 +191,7 @@ def put_work(bssid, key):
 
     return True
 
-print 'help_crack, distributed WPA cracker, v0.1'
+print 'help_crack, distributed WPA cracker, v0.1.1'
 
 #check if custom dictionary is passed
 wordlist = ''
@@ -180,19 +207,22 @@ check_version()
 check_tools()
 while True:
     get_gz(wpa_cap)
-    (bssid, url_wordlist) = get_work(wordlist)
+
+    if wordlist == '':    
+        (bssid, wl) = get_work_wl()
+    else:
+        bssid = get_work_bs()
+        wl = wordlist
 
     if bssid == False:
         print 'No suitable nets found, waiting...'
         time.sleep(666)
         continue
-    if url_wordlist != '':
-        wordlist = get_gz(url_wordlist)
 
     if os.path.exists(key_temp):
         os.unlink(key_temp)
 
-    os.system('aircrack-ng -w '+wordlist+' -l '+key_temp+' -b '+bssid+' wpa.cap')
+    os.system('aircrack-ng -w '+wl+' -l '+key_temp+' -b '+bssid+' wpa.cap')
 
     if os.path.exists(key_temp):
         ktf = open(key_temp, 'r')
