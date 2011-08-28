@@ -40,7 +40,7 @@ def put_work(bssid, key):
 
     return True
 
-print 'import nets and pass from wpa.darkircop.org, v0.1'
+print 'import nets and pass from wpa.darkircop.org, v0.1.1'
 
 page = get_url(darkircop)
 doc = html.fromstring(page)
@@ -55,11 +55,11 @@ for data in doc.xpath('//tr'):
     bssid = bssid[0].replace('comment-', '')
     bssid = bssid.replace('-', ':')
     bssid = bssid.strip()
-    #if bssid[0] == '0' and bssid[1] == '0':
-    #    continue
     i += 1
-    print i, 'Pair found: BSSID:'+bssid+' Key:'+ key
+    print i, 'Pair found: BSSID: '+bssid+' Key: '+ key
 
-    if len(key) > 8 and valid_mac(bssid):
+    if len(key) >= 8 and valid_mac(bssid):
         if not put_work(bssid, key):
             print 'Pair send failed'
+    else:
+        print 'Small len or not valid mac!'
