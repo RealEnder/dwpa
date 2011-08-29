@@ -82,6 +82,11 @@ def which(program):
     def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
+    if os.name == 'nt':
+        program += '.exe'
+        if os.path.exists(program):
+            return program
+
     fpath, fname = os.path.split(program)
     if fpath:
         if is_exe(program):
@@ -95,7 +100,7 @@ def which(program):
     return False
 
 def check_tools():
-    if (not which('aircrack-ng')) and (not which('aircrack-ng.exe')):
+    if not which('aircrack-ng'):
         print 'No aircrack-ng found'
         exit(1)
 
