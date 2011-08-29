@@ -134,11 +134,7 @@ function put_work($mysql) {
     $ustmt->close();
 
     //Update cracked net stats
-    $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets WHERE n_state=1) WHERE pname='cracked'";
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-    $stmt->execute();
-    $stmt->close();
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets WHERE n_state=1) WHERE pname='cracked'");
 
     //Create new cracked.txt.gz and update wcount
     $sql = 'SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC';
