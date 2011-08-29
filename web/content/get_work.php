@@ -3,7 +3,7 @@ require('db.php');
 require('common.php');
 
 //Get work
-$sql = 'SELECT * FROM onets, get_dict';
+$sql = 'SELECT * FROM onets, get_dict LIMIT 1';
 $stmt = $mysql->stmt_init();
 $stmt->prepare($sql);
 $data = array();

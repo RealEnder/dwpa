@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Aug 27, 2011 at 09:19 PM
+-- Generation Time: Aug 29, 2011 at 11:53 AM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `dicts` (
   `wcount` int(10) unsigned NOT NULL,
   `hits` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=6 ;
 
 --
 -- Dumping data for table `dicts`
@@ -42,7 +42,8 @@ INSERT INTO `dicts` (`d_id`, `dpath`, `dname`, `wcount`, `hits`) VALUES
 (1, 'http://wpa-sec.stanev.org/dict/cow.txt.gz', 'CoW', 995759, 0),
 (2, 'http://wpa-sec.stanev.org/dict/insidepro.txt.gz', 'InsidePro', 11083928, 0),
 (3, 'http://wpa-sec.stanev.org/dict/openwall.txt.gz', 'OpenWall', 2834460, 0),
-(4, 'http://wpa-sec.stanev.org/dict/os.txt.gz', 'Offensive Security', 39777666, 0);
+(4, 'http://wpa-sec.stanev.org/dict/os.txt.gz', 'Offensive Security', 39777666, 0),
+(5, 'http://wpa-sec.stanev.org/dict/cracked.txt.gz', 'Cracked nets', 513, 0);
 
 -- --------------------------------------------------------
 
@@ -60,16 +61,11 @@ CREATE TABLE IF NOT EXISTS `get_dict` (
 --
 
 CREATE TABLE IF NOT EXISTS `n2d` (
-  `bssid` bigint(8) NOT NULL,
+  `bssid` bigint(15) NOT NULL,
   `d_id` int(11) NOT NULL,
   `hits` int(11) NOT NULL DEFAULT '1',
   PRIMARY KEY (`bssid`,`d_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-
---
--- Dumping data for table `n2d`
---
-
 
 --
 -- Triggers `n2d`
@@ -91,7 +87,7 @@ DELIMITER ;
 --
 
 CREATE TABLE IF NOT EXISTS `nets` (
-  `bssid` bigint(8) unsigned NOT NULL,
+  `bssid` bigint(15) unsigned NOT NULL,
   `ssid` varchar(32) NOT NULL,
   `pass` varchar(64) DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
@@ -106,17 +102,20 @@ CREATE TABLE IF NOT EXISTS `nets` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 --
--- Dumping data for table `nets`
---
-
-
--- --------------------------------------------------------
-
---
 -- Stand-in structure for view `onets`
 --
 CREATE TABLE IF NOT EXISTS `onets` (
-`bssid` bigint(8) unsigned
+`bssid` bigint(15) unsigned
+);
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `onets_dicts`
+--
+CREATE TABLE IF NOT EXISTS `onets_dicts` (
+`bssid` bigint(15)
+,`d_id` int(11)
+,`hits` int(11)
 );
 -- --------------------------------------------------------
 
@@ -134,8 +133,8 @@ CREATE TABLE IF NOT EXISTS `stats` (
 --
 
 INSERT INTO `stats` (`pname`, `pvalue`) VALUES
-('nets', '0'),
-('cracked', '0');
+('nets', '6601'),
+('cracked', '647');
 
 -- --------------------------------------------------------
 
@@ -144,7 +143,7 @@ INSERT INTO `stats` (`pname`, `pvalue`) VALUES
 --
 DROP TABLE IF EXISTS `get_dict`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `get_dict` AS select `dicts`.`d_id` AS `d_id`,`dicts`.`dpath` AS `dpath` from ((`dicts` left join `n2d` on((`n2d`.`d_id` = `dicts`.`d_id`))) left join `onets` on((`n2d`.`bssid` = `onets`.`bssid`))) order by ifnull(`n2d`.`hits`,0),`dicts`.`wcount` limit 1;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `get_dict` AS select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount`;
 
 -- --------------------------------------------------------
 
@@ -154,3 +153,12 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 DROP TABLE IF EXISTS `onets`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `onets_dicts`
+--
+DROP TABLE IF EXISTS `onets_dicts`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`bssid` AS `bssid`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`bssid` = `o`.`bssid`);
