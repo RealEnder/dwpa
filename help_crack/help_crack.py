@@ -34,11 +34,10 @@ def md5file(filename):
 
 def download(url, filename):
     try:
-        response = urllib.urlretrieve(url, filename)
+        urllib.urlretrieve(url, filename)
     except Exception as e:
         print 'Exception: %s' % e
         return False
-    response.close()
 
     return True
 
