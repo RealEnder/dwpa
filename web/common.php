@@ -109,6 +109,11 @@ function put_work($mysql) {
     $ustmt = $mysql->stmt_init();
     $ustmt->prepare($usql);
 
+    //Delete from n2d when key found
+    $dsql = 'DELETE FROM n2d WHERE bssid=?';
+    $dstmt = $mysql->stmt_init();
+    $dstmt->prepare($dsql);
+
     $mcount = 0;
     foreach ($_POST as $bssid => $key) {
         if ($mcount++ > 20)
@@ -120,10 +125,15 @@ function put_work($mysql) {
 
             if ($stmt->fetch())
                 if (check_pass($bssid, $key)) {
+                    //put result in nets
                     $stmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
                     $ustmt->bind_param('sii', $key, $iip, $ibssid);
                     $ustmt->execute();
+                    //delete from n2d
+                    $ustmt->free_result();
+                    $dstmt->bind_param('i', $ibssid);
+                    $dstmt->execute();
                 }
         }
     }
