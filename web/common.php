@@ -109,11 +109,6 @@ function put_work($mysql) {
     $ustmt = $mysql->stmt_init();
     $ustmt->prepare($usql);
 
-    //Delete from n2d when key found
-    $dsql = 'DELETE FROM n2d WHERE bssid=?';
-    $dstmt = $mysql->stmt_init();
-    $dstmt->prepare($dsql);
-
     $mcount = 0;
     foreach ($_POST as $bssid => $key) {
         if ($mcount++ > 20)
@@ -131,9 +126,7 @@ function put_work($mysql) {
                     $ustmt->bind_param('sii', $key, $iip, $ibssid);
                     $ustmt->execute();
                     //delete from n2d
-                    $ustmt->free_result();
-                    $dstmt->bind_param('i', $ibssid);
-                    $dstmt->execute();
+                    $mysql->query("DELETE FROM n2d WHERE bssid=$ibssid");
                 }
         }
     }
