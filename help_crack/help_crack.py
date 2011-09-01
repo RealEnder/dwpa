@@ -4,7 +4,7 @@ import sys
 import os
 import stat
 import urllib
-import md5
+import hashlib
 import gzip
 import re
 import time
@@ -21,7 +21,7 @@ def sleepy():
     time.sleep(666)
 
 def md5file(filename):
-    md5s = md5.new()
+    md5s = hashlib.md5()
     try:
         with open(filename, 'rb') as f: 
             for chunk in iter(lambda: f.read(8192), ''):
@@ -29,7 +29,7 @@ def md5file(filename):
     except Exception as e:
         print 'Exception: %s' % e
         return False
-    f.close()
+
     return md5s.hexdigest()
 
 def download(url, filename):
@@ -68,7 +68,8 @@ def check_version():
                         os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                     except Exception as e:
                         print 'Exception: %s' % e
-                        print 'If run under win32, rename help_crack.py.new over help_crack.py'
+                        if os.name == 'nt':
+                            print 'You are running under win32, rename help_crack.py.new over help_crack.py'
                     print 'help_crack updated, run again'
                     exit(0)
                 else:
