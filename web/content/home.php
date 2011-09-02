@@ -9,7 +9,7 @@ To obtain the WPA handshake, use besside-ng (from <a href="http://www.aircrack-n
 
 <p>
 <h4>Distributed WPA cracking</h4>
-Contribute your CPU to the cracking process by running <a href="hc/help_crack.py">help_crack.py</a>, a script that will automatically fetch uncracked networks, try to crack them, and upload the results to this site. If you want to use your own wordlist, pass it as an argument. Prerequisite: you must have python(tested with 2.7) and aircrack-ng installed.
+Contribute your CPU to the cracking process by running <a href="hc/help_crack.py">help_crack.py</a>, a script that will automatically fetch uncracked networks, try to crack them, and upload the results to this site. If you want to use your own wordlist, pass it as an argument. Prerequisite: you must have python(tested with 2.7) pyrit or aircrack-ng installed. Default on posix platform is to use pyrit for cracking due to better performance and scalability.
 </p>
 <p>
 <h4>Cracking under Windows</h4>
