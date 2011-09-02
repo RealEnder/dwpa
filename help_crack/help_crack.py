@@ -101,9 +101,15 @@ def which(program):
     return False
 
 def check_tools():
-    if not which('aircrack-ng'):
-        print 'No aircrack-ng found'
-        exit(1)
+    if os.name == 'posix':
+        if which('pyrit'):
+            return 'pyrit'
+
+    if which('aircrack-ng'):
+        return 'aircrack-ng'
+
+    print 'No aircrack-ng or pyrit found'
+    exit(1)
 
 def get_gz(gzurl):
     gzname = gzurl.split('/')[-1]
@@ -190,7 +196,7 @@ def put_work(pwbssid, pwkey):
 
     return True
 
-print 'help_crack, distributed WPA cracker, v0.1.3'
+print 'help_crack, distributed WPA cracker, v0.2'
 
 #check if custom dictionary is passed
 wordlist = ''
@@ -203,7 +209,7 @@ if len(sys.argv) > 1:
         wordlist = sys.argv[1]
 
 check_version()
-check_tools()
+tool = check_tools()
 while True:
     if not get_gz(wpa_cap):
         sleepy()
@@ -228,7 +234,10 @@ while True:
     if os.path.exists(key_temp):
         os.unlink(key_temp)
 
-    os.system('aircrack-ng -w '+wl+' -l '+key_temp+' -b '+bssid+' wpa.cap')
+    if tool == 'pyrit':
+        os.system('pyrit -i '+wl+' -o '+key_temp+' -b '+bssid+' -r wpa.cap attack_passthrough')
+    else:
+        os.system('aircrack-ng -w '+wl+' -l '+key_temp+' -b '+bssid+' wpa.cap')
 
     if os.path.exists(key_temp):
         ktf = open(key_temp, 'r')
