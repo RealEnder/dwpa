@@ -8,7 +8,7 @@ do
         continue
     fi
     F2="$DICT"
-    echo "Sortand uniq $F1 and $F2"
+    echo "Sort and uniq $F1 and $F2"
     sort "$F1" | uniq > "$F1.sorted"
     sort "$F2" | uniq > "$F2.sorted"
     echo "Filter $F2"
