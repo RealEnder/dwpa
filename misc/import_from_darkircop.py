@@ -1,13 +1,18 @@
 #!/usr/bin/python
 # The source code is distributed under GPLv3+ license
 import urllib
+import urllib2
 import re
+import gzip
+import MultipartPostHandler
 from lxml import html
 
 # Full list url: http://wpa.darkircop.org/index.php?off=0&limit=-1
-darkircop    = 'http://wpa.darkircop.org/index.php?off=0&limit=-1'
-base_url     = 'http://wpa-sec.stanev.org/'
-put_work_url = base_url + '?put_work'
+darkircop     = 'http://wpa.darkircop.org/index.php?off=0&limit=-1'
+darkircop_cap = 'http://wpa.darkircop.org/cap/wpa.cap.gz'
+base_url      = 'http://wpa-sec.stanev.org/'
+put_work_url  = base_url + '?put_work'
+put_cap_url   = base_url + '?submit'
 
 def get_url(url):
     try:
@@ -17,6 +22,30 @@ def get_url(url):
     remote = response.read()
     response.close()
     return remote.strip()
+
+def download(url, filename):
+    try:
+        urllib.urlretrieve(url, filename)
+    except Exception as e:
+        print 'Exception: %s' % e
+        return False
+
+    return True
+
+def decomp(gzname):
+    name = gzname.rsplit('.', 1)[0]
+    try:
+        f = open(name, 'wb')
+        fgz = gzip.open(gzname, 'rb')
+        f.write(fgz.read())
+        f.close()
+        fgz.close()
+    except Exception as e:
+        print gzname +' extraction failed'
+        print 'Exception: %s' % e
+        return False
+
+    return name
 
 def valid_mac(mac):
     if len(mac) != 17:
@@ -40,9 +69,24 @@ def put_work(bssid, key):
 
     return True
 
-print 'import nets and pass from wpa.darkircop.org, v0.1.1'
+print 'Import nets and pass from wpa.darkircop.org, v0.2'
 
+print 'Downloading wpa.cap.gz...'
+download(darkircop_cap, 'wpa.cap.gz')
+if not decomp('wpa.cap.gz'):
+    exit(1)
+
+print 'Submitting wpa.cap...'
+params = {'webfile':open('wpa.cap', 'rb')}
+opener = urllib2.build_opener(MultipartPostHandler.MultipartPostHandler)
+urllib2.install_opener(opener)
+req = urllib2.Request(put_cap_url, params)
+response = urllib2.urlopen(req).read().strip()
+
+print 'Getting nets and keys...'
 page = get_url(darkircop)
+
+print 'Submitting nets and keys...'
 doc = html.fromstring(page)
 i = 0
 for data in doc.xpath('//tr'):
