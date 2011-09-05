@@ -1,19 +1,23 @@
 #!/bin/bash
-# Deduplicate *.txt in current dir
-F1=""
-for DICT in `ls -S *.txt | tac`
+# Deduplicate *.txt dicts in current dir
+for F1 in `ls -S *.txt | tac`
 do
-    if [[ "$F1" == "" ]]; then
-        F1="$DICT"
-        continue
-    fi
-    F2="$DICT"
-    echo "Sort and uniq $F1 and $F2"
+    echo "Sort and uniq $F1"
     sort "$F1" | uniq > "$F1.sorted"
-    sort "$F2" | uniq > "$F2.sorted"
-    echo "Filter $F2"
-    comm -13 "$F1.sorted" "$F2.sorted" > "$F2"
+    PASS=1
+    for F2 in `ls -S *.txt | tac`
+    do
+        if [[ PASS -eq 1 ]]; then
+            if [[ "$F1" == "$F2" ]]; then
+                PASS=0
+            fi
+            continue
+        fi
+        echo "Sort and uniq $F2"
+        sort "$F2" | uniq > "$F2.sorted"
+        echo "Filter $F1 and $F2"
+        comm -13 "$F1.sorted" "$F2.sorted" > "$F2"
+        rm "$F2.sorted"
+    done
     mv "$F1.sorted" "$F1"
-    rm "$F2.sorted"
-    F1="$DICT"
 done
