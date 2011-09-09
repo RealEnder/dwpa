@@ -1,9 +1,12 @@
 <?
 define('AIRCRACK', 'aircrack-ng');
+define('TSHARK', 'tshark');
 define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
 define('WPA_CAP', '/var/www/wpa-sec/cap/wpa.cap');
 define('CAP', '/var/www/wpa-sec/cap/');
+define('CAPS', '/var/www/wpa-sec/caps/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
+define('SHM', '/dev/shm/');
 
 //Execute aircrack-ng and check for solved net
 function check_pass($bssid, $pass) {
@@ -35,61 +38,92 @@ function check_pass($bssid, $pass) {
 //Process submission
 function submission($mysql, $file) {
     $filtercap = $file.'filter';
+    $bnfiltercap = basename($filtercap);
+    $cleancap = $file.'clean';
     $res = '';
-    $rc = 0;
+    $rc  = 0;
+
+    //clean uploaded capture
+    exec(WPACLEAN." $cleancap $file", $res, $rc);
+    if (($rc != 0) || (strpos(implode('',$res), 'Net ') === FALSE)) {
+        @unlink($cleancap);
+        @unlink($file);
+        return false;
+    }
+    $res = '';
+    $rc  = 0;
 
     //start critical section
     $sem = sem_get(777);
     sem_acquire($sem);
 
-    exec(WPACLEAN." $filtercap ".WPA_CAP." $file", $res, $rc);
-    if ($rc == 0) {
-        // Check if we have any new networks
-        $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip) VALUES(?, ?, ?)';
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare($sql);
+    //clean uploaded handshake and merge it with wpa.cap
+    exec(WPACLEAN." $filtercap ".WPA_CAP." $cleancap", $res, $rc);
+    if ($rc != 0) {
+        sem_release($sem);
+        sem_remove($sem);
+        @unlink($filtercap);
+        @unlink($cleancap);
+        @unlink($file);
+        return false;
+    }
 
-        $newcap = false;
-        foreach ($res as $net) {
-            if (!$newcap)
-                if (strpos($net, $file) !== false) {
-                    $newcap = true;
-                    continue;
-                } else
-                    continue;
-            if (strlen($net) > 22) {
-                //check in db
-                $mac = mac2long(substr($net, 4, 17));
+    // Check if we have any new networks
+    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip) VALUES(?, ?, ?)';
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+
+    $newcap = false;
+    foreach ($res as $net) {
+        if (!$newcap)
+            if (strpos($net, $cleancap) !== FALSE) {
+                $newcap = true;
+                continue;
+            } else
+                continue;
+        if (strlen($net) > 22) {
+            $dotmac = substr($net, 4, 17);
+            $maclast = substr($dotmac, -2);
+            @mkdir(CAPS.$maclast);
+            //strip only current handshake
+            $cut = '';
+            $rc  = 0;
+            exec(TSHARK." -r $cleancap -R \"wlan.sa == $dotmac || wlan.da == $dotmac\" -w ".SHM.$bnfiltercap, $cut, $rc);
+            if ($rc == 0) {
+                $cut = file_get_contents(SHM.$bnfiltercap);
+                $gzdata = gzencode($cut, 9);
+                file_put_contents(CAPS.$maclast.'/'.str_replace(':', '-', $dotmac).'.gz', $gzdata);
+                //put in db
+                $mac = mac2long($dotmac);
                 $nname = substr($net, 22);
                 $ip = ip2long($_SERVER['REMOTE_ADDR']);
                 $stmt->bind_param('isi', $mac, $nname, $ip );
                 $stmt->execute();
             }
         }
-        $stmt->close();
-        rename($filtercap, WPA_CAP);
-        rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
-        //create gz and md5
-        $cap = file_get_contents(WPA_CAP);
-        $gzdata = gzencode($cap, 9);
-        file_put_contents(WPA_CAP.'.gz', $gzdata);
-        file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
-
-        //end critical section
-        sem_release($sem);
-        sem_remove($sem);
-
-        //update net count stats
-        $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets) WHERE pname='nets'";
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare($sql);
-        $stmt->execute();
-        $stmt->close();
-    } else {
-        unlink($file);
-        return false;
     }
+    $stmt->close();
+    rename($filtercap, WPA_CAP);
+    rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
+    //create gz and md5
+    $cap = file_get_contents(WPA_CAP);
+    $gzdata = gzencode($cap, 9);
+    file_put_contents(WPA_CAP.'.gz', $gzdata);
+    file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
 
+    //end critical section
+    sem_release($sem);
+    sem_remove($sem);
+
+    //update net count stats
+    $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets) WHERE pname='nets'";
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    $stmt->execute();
+    $stmt->close();
+
+    @unlink(SHM.$bnfiltercap);
+    @unlink($cleancap);
     return true;
 }
 
