@@ -8,10 +8,11 @@ import hashlib
 import gzip
 import re
 import time
+import StringIO
 
 base_url     = 'http://wpa-sec.stanev.org/'
 help_crack   = base_url + 'hc/help_crack.py'
-wpa_cap      = base_url + 'cap/wpa.cap.gz'
+caps         = base_url + 'caps/'
 get_work_url = base_url + '?get_work'
 put_work_url = base_url + '?put_work'
 key_temp     = 'key_temp.lst'
@@ -50,7 +51,7 @@ def get_url(url):
     remote = response.read()
     response.close()
 
-    return remote.strip()
+    return remote
 
 def check_version():
     remotemd5 = get_url(help_crack+'.md5')
@@ -196,7 +197,7 @@ def put_work(pwbssid, pwkey):
 
     return True
 
-print 'help_crack, distributed WPA cracker, v0.2'
+print 'help_crack, distributed WPA cracker, v0.3'
 
 #check if custom dictionary is passed
 wordlist = ''
@@ -211,10 +212,6 @@ if len(sys.argv) > 1:
 check_version()
 tool = check_tools()
 while True:
-    if not get_gz(wpa_cap):
-        sleepy()
-        continue
-
     if wordlist == '':
         (bssid, wl) = get_work_wl()
     else:
@@ -228,6 +225,23 @@ while True:
 
     if wl == False:
         print 'Coud not download wordlist'
+        sleepy()
+        continue
+
+    #get capture and write to wpa.cap
+    gzcap = get_url(caps+bssid[-2:]+'/'+bssid.replace(':', '-')+'.gz')
+    if not gzcap:
+        sleepy()
+        continue
+    gzstream = StringIO.StringIO(gzcap)
+    try:
+        fgz = gzip.GzipFile(fileobj = gzstream)
+        f = open('wpa.cap', 'wb')
+        f.write(fgz.read())
+        f.close()
+        fgz.close()
+    except Exception as e:
+        print 'Exception: %s' % e
         sleepy()
         continue
 
