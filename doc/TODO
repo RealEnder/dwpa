@@ -1,7 +1,14 @@
+* split handshakes in different files
+* rework help_crack to work with single handshake files
+* add reCaptcha protected key issue
+* add key with submissions
+* keep key in cookie, add to interface
+* show passwords with key only
+* rewrite texts
 * use shm insted of /tmp
 * windows version of help_crack
 * graf stats
 * prettify tables
 * more stats
 * write INSTALL instructions
-* help_crack to support pyrit
+* write Android app with net scan and pass show from the site
