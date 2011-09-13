@@ -224,6 +224,9 @@ function valid_mac($mac) {
 function write_nets($stmt, $data) {
     $has_input = false;
     echo '
+<style>
+td {padding-left: 7px; padding-right: 7px}
+</style>
 <form class="form" method="POST" action="?nets" enctype="multipart/form-data">
 <table style="border: 1;">
 <tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
@@ -235,7 +238,7 @@ function write_nets($stmt, $data) {
             $has_input = true;
         } else
             $pass = htmlspecialchars($data['pass']);
-        echo "<tr><td style=\"font:Courier;\">$bssid</td><td>$ssid</td><td>$pass</td><td>{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
+        echo "<tr><td style=\"font-family:monospace; font-size: 12px;\">$bssid</td><td>$ssid</td><td>$pass</td><td align=\"right\">{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
     }
     echo '</table>';
     if ($has_input)
