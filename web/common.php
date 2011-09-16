@@ -1,13 +1,4 @@
 <?
-define('AIRCRACK', 'aircrack-ng');
-define('TSHARK', 'tshark');
-define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
-define('WPA_CAP', '/var/www/wpa-sec/cap/wpa.cap');
-define('CAP', '/var/www/wpa-sec/cap/');
-define('CAPS', '/var/www/wpa-sec/caps/');
-define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
-define('SHM', '/dev/shm/');
-
 //Execute aircrack-ng and check for solved net
 function check_pass($bssid, $pass) {
     $wl = '/tmp/wl';
@@ -106,10 +97,10 @@ function submission($mysql, $file) {
     rename($filtercap, WPA_CAP);
     rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
     //create gz and md5
-    $cap = file_get_contents(WPA_CAP);
-    $gzdata = gzencode($cap, 9);
-    file_put_contents(WPA_CAP.'.gz', $gzdata);
-    file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
+    //$cap = file_get_contents(WPA_CAP);
+    //$gzdata = gzencode($cap, 9);
+    //file_put_contents(WPA_CAP.'.gz', $gzdata);
+    //file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
 
     //end critical section
     sem_release($sem);
@@ -218,6 +209,64 @@ function long2mac($lmac) {
 
 function valid_mac($mac) {
     return preg_match('/([a-f0-9]{2}:?){6}/', strtolower($mac));
+}
+
+//Generate random key
+function gen_key() {
+    $fp = fopen('/dev/random','rb');
+    $rand = fread($fp, 32);
+    fclose($fp);
+    return md5($rand);
+}
+
+/*
+Validate an email address.
+Provide email address (raw input)
+Returns true if the email address has the email 
+address format and the domain exists.
+*/
+function validEmail($email)
+{
+	$isValid = true;
+	$atIndex = strrpos($email, "@");
+	if (is_bool($atIndex) && !$atIndex) {
+		$isValid = false; 
+	} else {
+		$domain = substr($email, $atIndex+1);
+		$local = substr($email, 0, $atIndex);
+		$localLen = strlen($local);
+		$domainLen = strlen($domain);
+		if ($localLen < 1 || $localLen > 64) {
+			// local part length exceeded
+			$isValid = false;
+		} else if ($domainLen < 1 || $domainLen > 255) {
+			// domain part length exceeded
+			$isValid = false;
+		} else if ($local[0] == '.' || $local[$localLen-1] == '.') {
+			// local part starts or ends with '.'
+			$isValid = false;
+		} else if (preg_match('/\\.\\./', $local)) {
+			// local part has two consecutive dots
+			$isValid = false;
+		} else if (!preg_match('/^[A-Za-z0-9\\-\\.]+$/', $domain)) {
+			// character not valid in domain part
+			$isValid = false;
+		} else if (preg_match('/\\.\\./', $domain)) {
+			// domain part has two consecutive dots
+			$isValid = false;
+		} else if (!preg_match('/^(\\\\.|[A-Za-z0-9!#%&`_=\\/$\'*+?^{}|~.-])+$/', str_replace("\\\\","",$local))) {
+			// character not valid in local part unless 
+			// local part is quoted
+			if (!preg_match('/^"(\\\\"|[^"])+"$/', str_replace("\\\\","",$local))) {
+				$isValid = false;
+			}
+		}
+		if ($isValid && !(checkdnsrr($domain,"MX") || checkdnsrr($domain,"A"))) {
+			// domain not found in DNS
+			$isValid = false;
+		}
+	}
+	return $isValid;
 }
 
 //Write nets table

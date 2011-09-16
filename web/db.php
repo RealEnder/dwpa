@@ -1,14 +1,11 @@
 <?php
-//DB Configuration
-$cfg_db_host='localhost';
-$cfg_db_user='wpa';
-$cfg_db_pass='';
-$cfg_db_name='wpa';
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
 
 $mysql = mysqli_init();
 $mysql->real_connect($cfg_db_host,$cfg_db_user,$cfg_db_pass);
 if (mysqli_connect_errno())
-	exit();
+	exit();	
 $mysql->select_db($cfg_db_name);
 $mysql->query("SET NAMES 'utf8'");
 

@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Aug 29, 2011 at 11:53 AM
+-- Generation Time: Sep 16, 2011 at 09:44 PM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
@@ -32,18 +32,7 @@ CREATE TABLE IF NOT EXISTS `dicts` (
   `wcount` int(10) unsigned NOT NULL,
   `hits` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=6 ;
-
---
--- Dumping data for table `dicts`
---
-
-INSERT INTO `dicts` (`d_id`, `dpath`, `dname`, `wcount`, `hits`) VALUES
-(1, 'http://wpa-sec.stanev.org/dict/cow.txt.gz', 'CoW', 995759, 0),
-(2, 'http://wpa-sec.stanev.org/dict/insidepro.txt.gz', 'InsidePro', 11083928, 0),
-(3, 'http://wpa-sec.stanev.org/dict/openwall.txt.gz', 'OpenWall', 2834460, 0),
-(4, 'http://wpa-sec.stanev.org/dict/os.txt.gz', 'Offensive Security', 39777666, 0),
-(5, 'http://wpa-sec.stanev.org/dict/cracked.txt.gz', 'Cracked nets', 513, 0);
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=14 ;
 
 -- --------------------------------------------------------
 
@@ -64,7 +53,10 @@ CREATE TABLE IF NOT EXISTS `n2d` (
   `bssid` bigint(15) NOT NULL,
   `d_id` int(11) NOT NULL,
   `hits` int(11) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`bssid`,`d_id`)
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`bssid`,`d_id`),
+  KEY `bssid` (`bssid`),
+  KEY `ts` (`ts`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -101,6 +93,8 @@ CREATE TABLE IF NOT EXISTS `nets` (
   KEY `IDX_nets_ip` (`ip`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
 --
 -- Stand-in structure for view `onets`
 --
@@ -128,13 +122,21 @@ CREATE TABLE IF NOT EXISTS `stats` (
   `pvalue` varchar(20) CHARACTER SET utf8 DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `stats`
+-- Table structure for table `users`
 --
 
-INSERT INTO `stats` (`pname`, `pvalue`) VALUES
-('nets', '6601'),
-('cracked', '647');
+CREATE TABLE IF NOT EXISTS `users` (
+  `u_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `ukey` char(32) CHARACTER SET utf8 NOT NULL,
+  `mail` varchar(500) CHARACTER SET utf8 DEFAULT NULL,
+  `ip` int(10) unsigned NOT NULL,
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`u_id`),
+  UNIQUE KEY `key` (`ukey`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=6 ;
 
 -- --------------------------------------------------------
 

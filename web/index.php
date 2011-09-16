@@ -1,4 +1,5 @@
 <?
+require('conf.php');
 //Check for submission from besside-ng
 if (isset($_FILES['file'])) {
     require('db.php');
@@ -10,8 +11,44 @@ if (isset($_FILES['file'])) {
     $mysql->close();
     exit;
 }
+
+//User key actions
+if ($_POST['recaptcha_response_field']) {
+    require('recaptchalib.php');
+    $recap_resp = recaptcha_check_answer ($privatekey,
+                                    $_SERVER['REMOTE_ADDR'],
+                                    $_POST['recaptcha_challenge_field'],
+                                    $_POST['recaptcha_response_field']);
+
+    if ($recap_resp->is_valid) {
+        require('db.php');
+        require('common.php');
+
+        //if we have email, validate it
+        $mail = Null;
+        if (isset($_POST['mail']))
+            if (validEmail($_POST['mail']))
+                $mail = trim($_POST['mail']);
+
+        //put new key in db
+        $sql = 'INSERT IGNORE INTO users(ukey, mail, ip) VALUES(?, ?, ?)';
+        $stmt = $mysql->stmt_init();
+        $ip = ip2long($_SERVER['REMOTE_ADDR']);
+        $ukey = gen_key();
+        $stmt->prepare($sql);
+        $stmt->bind_param('ssi', $ukey, $mail, $ip);
+        $stmt->execute();
+        $stmt->close();
+
+        //set cookie
+        setcookie('key', $ukey, 2147483647, '', '', false, true);
+        $_COOKIE['key'] = $ukey;
+    }
+}
+
+//CMS
 $content = 'content/';
-$keys = array('home', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work');
+$keys = array('home', 'get_key', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work');
 $keys_if = array('get_work', 'put_work');
 
 list($key) = each($_GET);
@@ -45,8 +82,17 @@ $cont = $content.$key.'.php';
 <div id="header">Free online WPA cracker</div>
 
 <ul id="navtop">
-<li style="float:right;"><form action="?" method="get">Search nets <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
+<li style="float:right;padding-right: 7px;"><form action="" method="get">Search <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
+<li style="float:right;padding-right: 7px;"><form action="" method="post">Key 
+<?
+if ($_COOKIE['key'])
+    echo htmlspecialchars($_COOKIE['key']);
+else
+    echo '<input class="searchinput" type="text" id="key" name="key" value="" />';
+?>
+</form></li>
 <li><a href="?">Home</a></li>
+<li><a href="?get_key">Get key</a></li>
 <li><a href="?submit">Submit</a></li>
 <li><a href="?nets">Nets</a></li>
 <li><a href="?dicts">Dicts</a></li>
