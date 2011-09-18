@@ -150,8 +150,6 @@ function put_work($mysql) {
 
     $mcount = 0;
     foreach ($_POST as $bssid => $key) {
-        if ($mcount++ > 20)
-            break;
         if (valid_mac($bssid) && strlen($key) >= 8) {
             $ibssid = mac2long($bssid);
             $stmt->bind_param('i', $ibssid);
@@ -167,6 +165,8 @@ function put_work($mysql) {
                     //delete from n2d
                     $mysql->query("DELETE FROM n2d WHERE bssid=$ibssid");
                 }
+            if ($mcount++ > 20)
+                break;
         }
     }
     $stmt->close();
