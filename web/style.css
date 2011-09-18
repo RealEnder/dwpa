@@ -1,6 +1,6 @@
 body {margin:0;padding:0;line-height: 1.5em;background: #fff;font: 76%/160% verdana, arial, helvetica, sans-serif;color: #000;letter-spacing: 1px;}
 
-#header {background-color: #f5f5dc;padding-top: 20px;font-size: 2.4em;font-weight: normal;letter-spacing: 20px;height: 40px;text-align: center;border-bottom: 1px solid #000;}
+#header {background-color: #f5f5dc;padding-top: 20px;font-size: 2.4em;font-weight: normal;letter-spacing: 10px;height: 40px;text-align: center;border-bottom: 1px solid #000;}
 
 ul#navtop {background-color: #f5f5dc;margin: 0; padding: 10px 0 10px 30px;white-space: nowrap;border-bottom: 1px solid #000;}
 
@@ -16,7 +16,7 @@ ul#navtop {background-color: #f5f5dc;margin: 0; padding: 10px 0 10px 30px;white-
 
 .navbottom {margin-left: 0;padding-left: 0;}
 
-#maincontainer {width: 80%;margin: 50px auto;}
+#maincontainer {width: 80%;margin: 20px auto;}
 
 #contentwrapper {float: left;width: 100%;}
 
@@ -36,7 +36,7 @@ h4,h5,h6 {font-size: 1.1em;margin: 0;color: #626258}
 
 #list li {padding-left: 10px;background: url(images/list.gif) no-repeat 0 7px;}
 
-div.hr {margin: 20px 0 20px 0;height: 10px;background: #fff url(images/hr.gif);}
+div.hr {margin: 10px 0 10px 0;height: 10px;background: #fff url(images/hr.gif);}
 
 div.hr hr {display: none;}
 
@@ -52,7 +52,7 @@ div.hr hr {display: none;}
 
 #rightcolumn li {padding-left: 15px;background: url(images/link.gif) no-repeat 0 5px;}
 
-#footer {clear: left;width: 100%;border-top: 40px solid #fff;border-bottom: 20px solid #fff;font-size: 0.9em;}
+#footer {clear: left;width: 100%;border-top: 10px solid #fff;border-bottom: 5px solid #fff;font-size: 0.9em;}
 
 /*Image and Gallery Styles*/
 

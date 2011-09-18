@@ -93,10 +93,10 @@ $cont = $content.$key.'.php';
 <head>
 
 <meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
-<meta name="description" content="besside-ng wpa crack" />
-<meta name="keywords" content="besside-ng, wpa, crack, wordlist" />
+<meta name="description" content="Distributed WPA PSK security audit environment" />
+<meta name="keywords" content="free, audit, security, online, besside-ng, aircrack-ng, pyrit, wpa, wpa2, crack, cracker, distributed, wordlist" />
 
-<title>Free online WPA cracker with stats - besside-ng companion</title>
+<title>Distributed WPA PSK strength auditor</title>
 
 <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
 
@@ -105,7 +105,7 @@ $cont = $content.$key.'.php';
 
 <a name="top"></a>
 
-<div id="header">Free online WPA cracker</div>
+<div id="header">Distributed WPA PSK auditor</div>
 
 <ul id="navtop">
 <li style="float:right;padding-right: 7px;"><form action="" method="get">Search <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
@@ -136,7 +136,7 @@ else
 
 <div id="footer">
 <div class="hr"><hr /></div>
-Contact: sorbo at darkircop dot org
+Contact: alex at stanev dot org
 </div>
 
 </div>

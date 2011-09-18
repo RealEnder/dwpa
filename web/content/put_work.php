@@ -1,4 +1,5 @@
 <?
+require_once('conf.php');
 require_once('db.php');
 require_once('common.php');
 

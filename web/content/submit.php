@@ -1,11 +1,14 @@
 <? if (!$_FILES['webfile']): ?>
 <h1>Submit WPA handshake captures</h1>
+<p>
+You must submit captures only from networks you have permission to audit.
+</p>
 <script type="text/javascript">
 function check_file() {
     str=document.getElementById('webfile').value.toUpperCase();
     suffix=".CAP";
     if(!(str.indexOf(suffix, str.length - suffix.length) !== -1)){
-        alert('File type not allowed\nAllowed file: *.cap');
+        alert('File type not allowed\nAllowed extension: *.cap');
         document.getElementById('webfile').value='';
     }
 }

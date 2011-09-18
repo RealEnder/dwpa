@@ -1,4 +1,7 @@
 <h1>Dictionaries</h1>
+<p>
+The wordlists are compilation from different sources and are stripped from duplicates. Created with <a href="http://sec.stanev.org/?download">wlc</a> tool.
+</p>
 <style>
 td {padding-left: 7px; padding-right: 7px}
 </style>

@@ -1,4 +1,5 @@
-<h1>Cracker statistics</h1>
+<h1>Statistics</h1>
+<p>
 <?
 require_once('db.php');
 require_once('common.php');
@@ -26,3 +27,4 @@ echo "Last day getworks: {$stats['24getwork']}<br/>\n";
 $perf = convert_num($stats['24psk']/(60*60*24));
 echo "Last day performance: $perf/s<br/>\n";
 ?>
+</p>
