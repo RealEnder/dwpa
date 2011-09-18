@@ -1,27 +1,29 @@
 <?
 //Execute aircrack-ng and check for solved net
 function check_pass($bssid, $pass) {
-    $wl = '/tmp/wl';
-    $kf = '/tmp/key';
-
     if (strlen($pass) < 8)
         return false;
 
+    $wl = tempnam(SHM, 'wl');
+    $kf = tempnam(SHM, 'key');
+
+    file_put_contents($wl, $pass."\n");
+    $x = AIRCRACK." -b $bssid -w $wl -l $kf ".WPA_CAP;
+
     //start critical section
-    $sem = sem_get(666);
+    $sem = sem_get(777);
     sem_acquire($sem);
 
-    @unlink($kf);
-    file_put_contents($wl, $pass."\n");
-
-    $x = AIRCRACK." -b $bssid -w $wl -l $kf ".WPA_CAP;
     exec($x);
-
-    $p = @file_get_contents($kf);
 
     //end critical section
     sem_release($sem);
     sem_remove($sem);
+
+    $p = @file_get_contents($kf);
+
+    @unlink($wl);
+    @unlink($kf);
 
     return ($p == $pass);
 }
@@ -109,16 +111,17 @@ function submission($mysql, $file) {
     }
     $stmt->close();
     rename($filtercap, WPA_CAP);
+
+    //end critical section
+    sem_release($sem);
+    sem_remove($sem);
+
     rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
     //create gz and md5
     //$cap = file_get_contents(WPA_CAP);
     //$gzdata = gzencode($cap, 9);
     //file_put_contents(WPA_CAP.'.gz', $gzdata);
     //file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
-
-    //end critical section
-    sem_release($sem);
-    sem_remove($sem);
 
     //update net count stats
     $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets) WHERE pname='nets'";

@@ -1,7 +1,4 @@
-* use stdout instead of writting temp file in tshark execution
-* relax critical section usage - check_pass and etc.
 * rewrite texts
-* use shm insted of /tmp
 * windows version of help_crack
 * graf stats
 * more stats - last 24h getworks and PSK/s
