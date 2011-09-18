@@ -1,5 +1,7 @@
 * rewrite texts
 * windows version of help_crack
+* add oclHashcat support in help_crack
+* add hashkill support in help_crack (when ready)
 * graf stats
 * write INSTALL instructions
 * write Android app with net scan and pass show from the site
