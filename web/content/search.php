@@ -1,8 +1,8 @@
 <h1>Search networks</h1>
 <?
 if (strlen($_GET['search']) >= 3) {
-    require('db.php');
-    require('common.php');
+    require_once('db.php');
+    require_once('common.php');
 
     $k = '';
     if (isset($_COOKIE['key']))

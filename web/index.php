@@ -14,15 +14,15 @@ if (isset($_FILES['file'])) {
 
 //User key actions
 if (isset($_POST['recaptcha_response_field'])) {
-    require('recaptchalib.php');
+    require_once('recaptchalib.php');
     $recap_resp = recaptcha_check_answer ($privatekey,
                                     $_SERVER['REMOTE_ADDR'],
                                     $_POST['recaptcha_challenge_field'],
                                     $_POST['recaptcha_response_field']);
 
     if ($recap_resp->is_valid) {
-        require('db.php');
-        require('common.php');
+        require_once('db.php');
+        require_once('common.php');
 
         //if we have email, validate it
         $mail = Null;
@@ -49,17 +49,19 @@ if (isset($_POST['recaptcha_response_field'])) {
 //Set key
 if (isset($_POST['key'])) {
     if (strlen($_POST['key']) == 32) {
-        require('db.php');
+        require_once('db.php');
         $sql = 'SELECT ukey FROM users WHERE ukey=?';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         $stmt->bind_param('s', $_POST['key']);
         $stmt->execute();
         $stmt->store_result();
+        
         if ($stmt->num_rows == 1) {
             setcookie('key', $_POST['key'], 2147483647, '', '', false, true);
             $_COOKIE['key'] = $_POST['key'];
-        }
+        } else
+            $_POST['remkey'] = '1';
         $stmt->close();
     }
 }

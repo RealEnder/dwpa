@@ -1,5 +1,4 @@
 * use stdout instead of writting temp file in tshark execution
-* use require_once
 * relax critical section usage - check_pass and etc.
 * rewrite texts
 * use shm insted of /tmp

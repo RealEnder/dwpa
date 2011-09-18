@@ -1,6 +1,6 @@
 <h1>Cracker statistics</h1>
 <?
-require('db.php');
+require_once('db.php');
 
 $stats = array();
 $sql = 'SELECT * FROM stats';

@@ -1,6 +1,6 @@
 <?
-require('db.php');
-require('common.php');
+require_once('db.php');
+require_once('common.php');
 
 if (put_work($mysql))
     echo 'OK';
