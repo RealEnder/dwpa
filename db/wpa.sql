@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 3.3.3
+-- version 3.4.5
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Sep 16, 2011 at 09:44 PM
+-- Generation Time: Sep 18, 2011 at 12:53 PM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -57,7 +58,7 @@ CREATE TABLE IF NOT EXISTS `n2d` (
   PRIMARY KEY (`bssid`,`d_id`),
   KEY `bssid` (`bssid`),
   KEY `ts` (`ts`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 --
 -- Triggers `n2d`
@@ -87,10 +88,12 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sts` timestamp NULL DEFAULT NULL,
   `n_state` tinyint(1) unsigned NOT NULL,
+  `u_id` bigint(20) DEFAULT NULL,
   `hits` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`bssid`),
   KEY `IDX_nets_ts` (`ts`),
-  KEY `IDX_nets_ip` (`ip`)
+  KEY `IDX_nets_ip` (`ip`),
+  KEY `u_id` (`u_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -118,9 +121,10 @@ CREATE TABLE IF NOT EXISTS `onets_dicts` (
 --
 
 CREATE TABLE IF NOT EXISTS `stats` (
-  `pname` varchar(20) CHARACTER SET utf8 NOT NULL,
-  `pvalue` varchar(20) CHARACTER SET utf8 DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+  `pname` varchar(20) NOT NULL,
+  `pvalue` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`pname`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -130,13 +134,13 @@ CREATE TABLE IF NOT EXISTS `stats` (
 
 CREATE TABLE IF NOT EXISTS `users` (
   `u_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `ukey` char(32) CHARACTER SET utf8 NOT NULL,
-  `mail` varchar(500) CHARACTER SET utf8 DEFAULT NULL,
+  `ukey` char(32) NOT NULL,
+  `mail` varchar(500) DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
   UNIQUE KEY `key` (`ukey`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=6 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
 
 -- --------------------------------------------------------
 
@@ -164,3 +168,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 DROP TABLE IF EXISTS `onets_dicts`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`bssid` AS `bssid`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`bssid` = `o`.`bssid`);
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

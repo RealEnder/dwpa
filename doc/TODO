@@ -1,6 +1,5 @@
 * use stdout instead of writting temp file in tshark execution
 * use require_once
-* add key with submissions
 * show passwords with key only
 * relax critical section usage - check_pass and etc.
 * rewrite texts

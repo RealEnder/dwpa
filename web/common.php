@@ -44,6 +44,20 @@ function submission($mysql, $file) {
     $res = '';
     $rc  = 0;
 
+    //get u_id if we have key set
+    $u_id = Null;
+    if (isset($_COOKIE['key']))
+        if (strlen($_COOKIE['key']) == 32) {
+            $sql = 'SELECT u_id FROM users WHERE ukey=?';
+            $stmt = $mysql->stmt_init();
+            $stmt->prepare($sql);
+            $stmt->bind_param('s', $_COOKIE['key']);
+            $stmt->execute();
+            $stmt->bind_result($u_id);
+            $stmt->fetch();
+            $stmt->close();
+        }
+
     //start critical section
     $sem = sem_get(777);
     sem_acquire($sem);
@@ -60,7 +74,7 @@ function submission($mysql, $file) {
     }
 
     // Check if we have any new networks
-    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip) VALUES(?, ?, ?)';
+    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip, u_id) VALUES(?, ?, ?, ?)';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 
@@ -88,7 +102,7 @@ function submission($mysql, $file) {
                 $mac = mac2long($dotmac);
                 $nname = substr($net, 22);
                 $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                $stmt->bind_param('isi', $mac, $nname, $ip );
+                $stmt->bind_param('isii', $mac, $nname, $ip, $u_id);
                 $stmt->execute();
             }
         }
