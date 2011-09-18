@@ -286,6 +286,26 @@ function validEmail($email)
 	return $isValid;
 }
 
+//convert num
+function convert_num($num){
+    $num = (float) $num;
+    if ($num >= 1000000000000) {
+        $tera = $num / 1000000000000;
+        $size = sprintf('%.2fT', $tera);
+    } elseif ($num >= 1000000000) {
+        $giga = $num / 1000000000;
+        $size = sprintf('%.2fG', $giga);
+    } elseif ($num >= 1000000) {
+        $mega = $num / 1000000;
+        $size = sprintf('%.2fM', $mega);
+    } elseif ($num >= 1000) {
+        $kilo = $num / 1000;
+        $size = sprintf('%.2fK', $kilo);
+    } else
+        $size = sprintf('%.2f', $num);
+    return $size;
+}
+
 //Write nets table
 function write_nets($stmt, $data) {
     $has_input = false;
