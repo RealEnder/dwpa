@@ -24,7 +24,7 @@ if ($stmt->fetch()) {
         echo long2mac($data['bssid']);
     } else {
         //Return net+dict
-        $usql = 'INSERT INTO n2d(bssid, d_id) VALUES(?, ?) ON DUPLICATE KEY UPDATE Hits=Hits+1';
+        $usql = 'INSERT INTO n2d(bssid, d_id) VALUES(?, ?) ON DUPLICATE KEY UPDATE Hits=Hits+1, ts=NOW()';
         $ustmt = $mysql->stmt_init();
         $ustmt->prepare($usql);
         $ustmt->bind_param('ii', $data['bssid'], $data['d_id']);
