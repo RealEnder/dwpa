@@ -13,7 +13,7 @@ if (isset($_FILES['file'])) {
 }
 
 //User key actions
-if ($_POST['recaptcha_response_field']) {
+if (isset($_POST['recaptcha_response_field'])) {
     require('recaptchalib.php');
     $recap_resp = recaptcha_check_answer ($privatekey,
                                     $_SERVER['REMOTE_ADDR'],
@@ -44,6 +44,30 @@ if ($_POST['recaptcha_response_field']) {
         setcookie('key', $ukey, 2147483647, '', '', false, true);
         $_COOKIE['key'] = $ukey;
     }
+}
+
+//Set key
+if (isset($_POST['key'])) {
+    if (strlen($_POST['key']) == 32) {
+        require('db.php');
+        $sql = 'SELECT ukey FROM users WHERE ukey=?';
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+        $stmt->bind_param('s', $_POST['key']);
+        $stmt->execute();
+        $stmt->store_result();
+        if ($stmt->num_rows == 1) {
+            setcookie('key', $_POST['key'], 2147483647, '', '', false, true);
+            $_COOKIE['key'] = $_POST['key'];
+        }
+        $stmt->close();
+    }
+}
+
+//Remove key
+if (isset($_POST['remkey'])) {
+    setcookie('key', '', 1, '', '', false, true);
+    unset($_COOKIE['key']);
 }
 
 //CMS
@@ -85,8 +109,8 @@ $cont = $content.$key.'.php';
 <li style="float:right;padding-right: 7px;"><form action="" method="get">Search <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
 <li style="float:right;padding-right: 7px;"><form action="" method="post">Key 
 <?
-if ($_COOKIE['key'])
-    echo htmlspecialchars($_COOKIE['key']);
+if (isset($_COOKIE['key']))
+    echo htmlspecialchars($_COOKIE['key']).' <input type="hidden" id="remkey" name="remkey" value="1" /><input class="keybutton" type="submit" value="X" />';
 else
     echo '<input class="searchinput" type="text" id="key" name="key" value="" />';
 ?>

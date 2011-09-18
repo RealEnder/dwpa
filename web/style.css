@@ -83,5 +83,7 @@ div.hr hr {display: none;}
 .submitbutton {border: 1px solid #939384;background: #f5f5dc url(images/button.gif);letter-spacing: 1px;width: 140px;}
 
 /* search form */
-
 .searchinput {width: 200px;background-color: #f5f5dc;border: 1px solid #000000;letter-spacing: 1px;}
+
+/* key form */
+.keybutton {background-color: #f5f5dc;border: 1px solid #000000;}
