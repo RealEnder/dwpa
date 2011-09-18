@@ -1,4 +1,3 @@
-* add current round stats
 * use stdout instead of writting temp file in tshark execution
 * add key with submissions
 * keep key in cookie, add to interface
@@ -8,6 +7,6 @@
 * use shm insted of /tmp
 * windows version of help_crack
 * graf stats
-* more stats
+* more stats - last 24h getworks and PSK/s
 * write INSTALL instructions
 * write Android app with net scan and pass show from the site
