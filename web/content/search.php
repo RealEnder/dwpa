@@ -11,22 +11,34 @@ if (strlen($_GET['search']) >= 3) {
 
     if (valid_mac($_GET['search'])) {
         $bssid = mac2long($_GET['search']);
-        $sql = 'SELECT nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
+        if ($k == $bosskey)
+            $sql = 'SELECT * FROM nets WHERE bssid = ? ORDER BY ts DESC';
+        else
+            $sql = 'SELECT nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.ukey=?
 WHERE bssid = ?
 ORDER BY nets.ts DESC';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
-        $stmt->bind_param('si', $k, $bssid);
+        if ($k == $bosskey)
+            $stmt->bind_param('i', $bssid);
+        else
+            $stmt->bind_param('si', $k, $bssid);
     } else {
         $ssid = "%{$_GET['search']}%";
-        $sql = 'SELECT nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
+        if ($k == $bosskey)
+            $sql = 'SELECT * FROM nets WHERE ssid LIKE ? ORDER BY nets.ts DESC';
+        else
+            $sql = 'SELECT nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.ukey=?
 WHERE ssid LIKE ?
 ORDER BY nets.ts DESC';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
-        $stmt->bind_param('ss', $k, $ssid);
+        if ($k == $bosskey)
+            $stmt->bind_param('s', $ssid);
+        else
+            $stmt->bind_param('ss', $k, $ssid);
     }
     $stmt->execute();
     

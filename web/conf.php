@@ -9,6 +9,9 @@ $cfg_db_name='';
 $publickey = '';
 $privatekey = '';
 
+//bosskey
+$bosskey = '';
+
 //App specific defines
 define('AIRCRACK', 'aircrack-ng');
 define('TSHARK', 'tshark');
