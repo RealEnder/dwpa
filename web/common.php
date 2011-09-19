@@ -6,24 +6,22 @@ function check_pass($bssid, $pass) {
 
     $wl = tempnam(SHM, 'wl');
     $kf = tempnam(SHM, 'key');
+    $cf = tempnam(SHM, 'cap');
 
+    //put test pass as wordlist
     file_put_contents($wl, $pass."\n");
-    $x = AIRCRACK." -b $bssid -w $wl -l $kf ".WPA_CAP;
 
-    //start critical section
-    $sem = sem_get(777);
-    sem_acquire($sem);
+    //deflate and put capture in shm
+    //use gz compressed single captures - gzinflate fn -10 bytes
+    file_put_contents($cf, gzinflate(substr(file_get_contents(CAPS.substr($bssid, -2).'/'.str_replace(':', '-', $bssid).'.gz'), 10)));
 
-    exec($x);
-
-    //end critical section
-    sem_release($sem);
-    sem_remove($sem);
+    exec(AIRCRACK." -b $bssid -w $wl -l $kf $cf");
 
     $p = @file_get_contents($kf);
 
     @unlink($wl);
     @unlink($kf);
+    @unlink($cf);
 
     return ($p == $pass);
 }
