@@ -1,3 +1,4 @@
+* run again through C-nets, when added new key
 * windows version of help_crack
 * add oclHashcat support in help_crack
 * add hashkill support in help_crack (when ready)
