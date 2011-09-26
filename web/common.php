@@ -28,21 +28,42 @@ function check_pass($bssid, $pass) {
 
 //Process submission
 function submission($mysql, $file) {
-    $filtercap = $file.'filter';
-    $bnfiltercap = basename($filtercap);
-    $cleancap = $file.'clean';
-    $res = '';
-    $rc  = 0;
+    $bnfile = basename($file);
+    $cleancap = SHM.$bnfile.'clean';
 
     //clean uploaded capture
+    $res = '';
+    $rc  = 0;
     exec(WPACLEAN." $cleancap $file", $res, $rc);
     if (($rc != 0) || (strpos(implode('',$res), 'Net ') === FALSE)) {
         @unlink($cleancap);
         @unlink($file);
         return false;
     }
-    $res = '';
-    $rc  = 0;
+
+    //put all uploaded nets bssid in $incap
+    $incap = array();
+    $nname = array();
+    foreach ($res as $net)
+        if (strlen($net) > 22) {
+            $ibssid = mac2long(substr($net, 4, 17));
+            $nname[$ibssid] = substr($net, 22);
+            $incap[] = $ibssid;
+        }
+
+    //get all our bssids in $ourcap
+    $ourcap = array();
+    $res = $mysql->query('SELECT bssid FROM nets');
+    while ($bssid = $res->fetch_row())
+        $ourcap[] = $bssid[0];
+    $res->free();
+
+    //diff and cleanup
+    $newnets = array_diff($incap, $ourcap);
+    unset($incap);
+    unset($ourcap);
+    if (count($newnets) == 0)
+        return false;
 
     //get u_id if we have key set
     $u_id = Null;
@@ -58,68 +79,39 @@ function submission($mysql, $file) {
             $stmt->close();
         }
 
-    //start critical section
-    $sem = sem_get(777);
-    sem_acquire($sem);
-
-    //clean uploaded handshake and merge it with wpa.cap
-    exec(WPACLEAN." $filtercap ".WPA_CAP." $cleancap", $res, $rc);
-    if ($rc != 0) {
-        sem_release($sem);
-        sem_remove($sem);
-        @unlink($filtercap);
-        @unlink($cleancap);
-        @unlink($file);
-        return false;
-    }
-
-    // Check if we have any new networks
+    // Prepare nets for import
     $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip, u_id) VALUES(?, ?, ?, ?)';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 
-    $newcap = false;
-    foreach ($res as $net) {
-        if (!$newcap)
-            if (strpos($net, $cleancap) !== FALSE) {
-                $newcap = true;
-                continue;
-            } else
-                continue;
-        if (strlen($net) > 22) {
-            $dotmac = substr($net, 4, 17);
-            $maclast = substr($dotmac, -2);
-            @mkdir(CAPS.$maclast);
-            //strip only current handshake
+    foreach ($newnets as $net) {
+        $dotmac = long2mac($net);
+        $maclast = substr($dotmac, -2);
+        @mkdir(CAPS.$maclast);
+        $cut = '';
+        $rc  = 0;
+        //strip only current handshake
+        exec(TSHARK." -r $cleancap -R \"wlan.sa == $dotmac || wlan.da == $dotmac\" -w ".SHM.$bnfile, $cut, $rc);
+        if ($rc == 0) {
             $cut = '';
             $rc  = 0;
-            exec(TSHARK." -r $cleancap -R \"wlan.sa == $dotmac || wlan.da == $dotmac\" -w ".SHM.$bnfiltercap, $cut, $rc);
+            // run through pyrit analyze
+            exec(PYRIT.' -r '.SHM.$bnfile.' analyze', $cut, $rc);
             if ($rc == 0) {
-                $cut = file_get_contents(SHM.$bnfiltercap);
+                $cut = file_get_contents(SHM.$bnfile);
                 $gzdata = gzencode($cut, 9);
                 file_put_contents(CAPS.$maclast.'/'.str_replace(':', '-', $dotmac).'.gz', $gzdata);
                 //put in db
-                $mac = mac2long($dotmac);
-                $nname = substr($net, 22);
                 $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                $stmt->bind_param('isii', $mac, $nname, $ip, $u_id);
+                $stmt->bind_param('isii', $net, $nname[$net], $ip, $u_id);
                 $stmt->execute();
             }
         }
     }
     $stmt->close();
-    rename($filtercap, WPA_CAP);
-
-    //end critical section
-    sem_release($sem);
-    sem_remove($sem);
+    unset($nname);
 
     rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
-    //create gz and md5
-    //$cap = file_get_contents(WPA_CAP);
-    //$gzdata = gzencode($cap, 9);
-    //file_put_contents(WPA_CAP.'.gz', $gzdata);
-    //file_put_contents(WPA_CAP.'.gz.md5', md5_file(WPA_CAP.'.gz'));
 
     //update net count stats
     $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets) WHERE pname='nets'";
@@ -128,7 +120,7 @@ function submission($mysql, $file) {
     $stmt->execute();
     $stmt->close();
 
-    @unlink(SHM.$bnfiltercap);
+    @unlink(SHM.$bnfile);
     @unlink($cleancap);
     return true;
 }

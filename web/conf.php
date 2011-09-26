@@ -14,9 +14,10 @@ $bosskey = '';
 
 //App specific defines
 define('AIRCRACK', 'aircrack-ng');
+define('PYRIT', 'pyrit');
 define('TSHARK', 'tshark');
 define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
-define('WPA_CAP', '/var/www/wpa-sec/cap/wpa.cap');
+
 define('CAP', '/var/www/wpa-sec/cap/');
 define('CAPS', '/var/www/wpa-sec/caps/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
