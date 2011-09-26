@@ -91,7 +91,7 @@ function submission($mysql, $file) {
         $cut = '';
         $rc  = 0;
         //strip only current handshake
-        exec(TSHARK." -r $cleancap -R \"wlan.sa == $dotmac || wlan.da == $dotmac\" -w ".SHM.$bnfile, $cut, $rc);
+        exec(TCPDUMP." -r $cleancap -w ".SHM.$bnfile." \"wlan addr1 $dotmac || wlan addr2 $dotmac\"", $cut, $rc);
         if ($rc == 0) {
             $cut = '';
             $rc  = 0;

@@ -15,7 +15,7 @@ $bosskey = '';
 //App specific defines
 define('AIRCRACK', 'aircrack-ng');
 define('PYRIT', 'pyrit');
-define('TSHARK', 'tshark');
+define('TCPDUMP', '/usr/sbin/tcpdump');
 define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
 
 define('CAP', '/var/www/wpa-sec/cap/');
