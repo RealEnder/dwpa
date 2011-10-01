@@ -1,5 +1,4 @@
 * find better way to check if WPA handshakes are correct. Pyrit analyze (bad performance)?
-* add oclHashcat support in help_crack
 * add hashkill support in help_crack (when ready)
 * graf stats
 * write INSTALL instructions
