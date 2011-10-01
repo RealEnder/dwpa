@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Sep 18, 2011 at 05:46 PM
+-- Generation Time: Oct 01, 2011 at 03:52 PM
 -- Server version: 5.1.54
 -- PHP Version: 5.3.5-1ubuntu7.2
 
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
   UNIQUE KEY `key` (`ukey`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=29 ;
 
 -- --------------------------------------------------------
 
@@ -174,8 +174,8 @@ DELIMITER $$
 -- Events
 --
 CREATE EVENT `e_stats` ON SCHEDULE EVERY '0 2' DAY_HOUR STARTS '2011-09-18 17:31:07' ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats every 1h am' DO BEGIN
-        UPDATE stats SET pvalue=(SELECT count(*) FROM n2d WHERE date(ts) = curdate()-1) WHERE pname='24getwork';
-        UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE date(ts) = curdate()-1 AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
+        UPDATE stats SET pvalue=(SELECT count(*) FROM n2d WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)) WHERE pname='24getwork';
+        UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
       END$$
 
 DELIMITER ;
