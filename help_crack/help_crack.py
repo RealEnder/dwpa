@@ -1,7 +1,13 @@
 #!/usr/bin/python
 # The source code is distributed under GPLv3+ license
+# author: Alex Stanev, alex at stanev dot org
+# web: http://wpa-sec.stanev.org
+
 import sys
 import os
+import platform
+import subprocess
+import shlex
 import stat
 import urllib
 import hashlib
@@ -19,7 +25,7 @@ key_temp     = 'key_temp.lst'
 
 def sleepy():
     print 'Sleeping...'
-    time.sleep(666)
+    time.sleep(222)
 
 def md5file(filename):
     md5s = hashlib.md5()
@@ -98,19 +104,58 @@ def which(program):
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return exe_file
+        if os.name == 'posix' and is_exe(program):
+            return './' + program
 
     return False
 
 def check_tools():
+    tools = []
     if os.name == 'posix':
-        if which('pyrit'):
-            return 'pyrit'
+        t = which('pyrit')
+        if t:
+            tools.append(t)
 
-    if which('aircrack-ng'):
-        return 'aircrack-ng'
-
-    print 'No aircrack-ng or pyrit found'
-    exit(1)
+    t = which('aircrack-ng')
+    if t:
+        tools.append(t)
+        acp = subprocess.Popen([t, '--help'], stdout=subprocess.PIPE)
+        (output, oerr) = acp.communicate()
+        if output.find('Hashcat') != -1:
+            (bits, linkage) = platform.architecture()
+            if bits == '64bit':
+                t = which('oclHashcat-plus64')
+                if t:
+                    tools.append(t);
+                t = which('cudaHashcat-plus64')
+                if t:
+                    tools.append(t);
+            else:
+                t = which('oclHashcat-plus32') 
+                if t:
+                    tools.append(t);
+                t = which('cudaHashcat-plus64') 
+                if t:
+                    tools.append(t);
+                    
+    if len(tools) == 0:
+        print 'No aircrack-ng, pyrit or oclHashcat-plus found'
+        exit(1)
+    if len(tools) == 1:
+        return tools[0]
+    
+    print 'Choose the tool for cracking:'
+    for index, tool in enumerate(tools):
+        print '%i: %s' % (index, tool)
+    print '9: Quit'
+    while 1:
+        user = raw_input('Index:')
+        if user == '9':
+            exit(0)
+        try:
+            return tools[int(user)]
+        except:
+            print 'Wrong index'
 
 def get_gz(gzurl):
     gzname = gzurl.split('/')[-1]
@@ -197,20 +242,26 @@ def put_work(pwbssid, pwkey):
 
     return True
 
-print 'help_crack, distributed WPA cracker, v0.3'
+print 'help_crack, distributed WPA cracker, v0.4'
+print 'site: ' + base_url
 
 #check if custom dictionary is passed
 wordlist = ''
 if len(sys.argv) > 1:
     if not os.path.exists(sys.argv[1]):
-        print 'Usage: ./help_crack : download wpa.cap and wordlist then start cracking, or'
-        print '       ./help_crack dictionary.txt : to use your own dictionary'
+        print 'Usage: ./help_crack.py : download wpa.cap and wordlist then start cracking, or'
+        print '       ./help_crack.py dictionary.txt : to use your own dictionary'
         exit(1)
     else:
         wordlist = sys.argv[1]
 
 check_version()
 tool = check_tools()
+rule = ''
+if tool.find('Hashcat') != -1:
+    if os.path.exists('rules/best64.rule'):
+        rule = '-rrules/best64.rule'
+
 while True:
     if wordlist == '':
         (bssid, wl) = get_work_wl()
@@ -248,15 +299,35 @@ while True:
     if os.path.exists(key_temp):
         os.unlink(key_temp)
 
-    if tool == 'pyrit':
-        os.system('pyrit -i '+wl+' -o '+key_temp+' -b '+bssid+' -r wpa.cap attack_passthrough')
-    else:
-        os.system('aircrack-ng -w '+wl+' -l '+key_temp+' -b '+bssid+' wpa.cap')
+    try:
+        if tool.find('pyrit') != -1:
+            cracker = '%s -i%s -o%s -b%s -rwpa.cap attack_passthrough' % (tool, wl, key_temp, bssid)
+            subprocess.call(shlex.split(cracker))
+        if tool.find('aircrack-ng') != -1:
+            cracker = '%s -w%s -l%s -b%s wpa.cap' % (tool, wl, key_temp, bssid)
+            subprocess.call(shlex.split(cracker))
+        if tool.find('Hashcat') != -1:
+            subprocess.call(['aircrack-ng', '-Jwpa', 'wpa.cap'])
+            if not os.path.exists('wpa.hccap'):
+                print 'Could not create hccap file with aircrack-ng'
+                exit(1)
+            try:
+                cracker = '%s -m2500 -o%s %s wpa.hccap %s' % (tool, key_temp, rule, wl)
+                subprocess.check_call(shlex.split(cracker))
+            except subprocess.CalledProcessError as e:
+                print 'Cracker %s died with code %i' % (tool, e.returncode)
+                print 'Check you have CUDA/OpenCL support'
+                exit(1)
+    except KeyboardInterrupt as e:
+        print 'Keyboard interrupt'
+        exit(1)
 
     if os.path.exists(key_temp):
         ktf = open(key_temp, 'r')
         key = ktf.readline()
         ktf.close()
+        if tool.find('Hashcat') != -1:
+            key = key[key.find(':'):]
         print 'Key for BSSID '+bssid+' is: '+key
         while not put_work(bssid, key):
             print 'Couldn\'t submit key'
