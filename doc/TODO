@@ -1,5 +1,12 @@
-* find better way to check if WPA handshakes are correct. Pyrit analyze (bad performance)?
-* add hashkill support in help_crack (when ready)
-* graf stats
+* implement simple proof of work for distributed cracker clients
+* do heavy work in external process for submissions
+* low priority on CPU crackers in help_crack.py
+* write and show CHANGELOG on help_crack.py update
+* restructure home with folding text sections
+* add My nets section to show only nets, associated with given key
 * write INSTALL instructions
+* implement possibility to have several captures for given net, ie changed PSK
+* stats for current dict round
+* graf stats
+* add hashkill support in help_crack (when ready)
 * write Android app with net scan and pass show from the site
