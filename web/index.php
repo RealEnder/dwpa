@@ -112,7 +112,7 @@ $cont = $content.$key.'.php';
 <li style="float:right;padding-right: 7px;"><form action="" method="post">Key 
 <?
 if (isset($_COOKIE['key']))
-    echo htmlspecialchars($_COOKIE['key']).' <input type="hidden" id="remkey" name="remkey" value="1" /><input class="keybutton" type="submit" value="X" />';
+    echo htmlspecialchars($_COOKIE['key']).' <input type="hidden" id="remkey" name="remkey" value="1" /><input class="keybutton" type="submit" value="X" onclick=\'return confirm("Are you sure you want to dispose the key?")\'/>';
 else
     echo '<input class="searchinput" type="text" id="key" name="key" value="" />';
 ?>
