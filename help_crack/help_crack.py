@@ -126,17 +126,17 @@ def check_tools():
             if bits == '64bit':
                 t = which('oclHashcat-plus64')
                 if t:
-                    tools.append(t);
+                    tools.append(t)
                 t = which('cudaHashcat-plus64')
                 if t:
-                    tools.append(t);
+                    tools.append(t)
             else:
-                t = which('oclHashcat-plus32') 
+                t = which('oclHashcat-plus32')
                 if t:
-                    tools.append(t);
-                t = which('cudaHashcat-plus64') 
+                    tools.append(t)
+                t = which('cudaHashcat-plus32')
                 if t:
-                    tools.append(t);
+                    tools.append(t)
                     
     if len(tools) == 0:
         print 'No aircrack-ng, pyrit or oclHashcat-plus found'
