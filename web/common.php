@@ -309,7 +309,7 @@ function goWigle(bssid) {
     document.getElementById("wigle").submit();
 }
 </script>
-<form method="POST" action="https://www.wigle.net/gps/gps/main/confirmlocquery" target="_blank" id="wigle" >
+<form method="POST" action="https://www.wigle.net/gps/gps/main/confirmquery" target="_blank" id="wigle" >
 <input type="hidden" name="netid" id="netid" />
 </form>
 <form class="form" method="POST" action="?nets" enctype="multipart/form-data">
