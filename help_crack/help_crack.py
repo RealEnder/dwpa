@@ -22,11 +22,20 @@ help_crack   = base_url + 'hc/help_crack.py'
 caps         = base_url + 'caps/'
 get_work_url = base_url + '?get_work'
 put_work_url = base_url + '?put_work'
-key_temp     = 'key_temp.lst'
 
 def sleepy():
     print 'Sleeping...'
     time.sleep(222)
+
+#make temp filename
+def mk_temp():
+    md5s = hashlib.md5()
+    while True:
+        md5s.update(os.urandom(16))
+        md5h = md5s.hexdigest()
+        if not os.path.exists(md5h):
+            break
+    return md5h
 
 #get md5 from local file
 def md5file(filename):
@@ -319,9 +328,10 @@ while True:
         sleepy()
         continue
     gzstream = StringIO.StringIO(gzcap)
+    cap_temp = mk_temp()
     try:
         fgz = gzip.GzipFile(fileobj = gzstream)
-        f = open('wpa.cap', 'wb')
+        f = open(cap_temp, 'wb')
         f.write(fgz.read())
         f.close()
         fgz.close()
@@ -330,19 +340,18 @@ while True:
         sleepy()
         continue
 
-    if os.path.exists(key_temp):
-        os.unlink(key_temp)
+    key_temp = mk_temp()
 
     #run cracker
     try:
         if tool.find('pyrit') != -1:
-            cracker = '%s -i%s -o%s -b%s -rwpa.cap attack_passthrough' % (tool, wl, key_temp, bssid)
+            cracker = '%s -i%s -o%s -b%s -r%s attack_passthrough' % (tool, wl, key_temp, bssid, cap_temp)
             subprocess.call(shlex.split(cracker))
         if tool.find('aircrack-ng') != -1:
-            cracker = '%s -w%s -l%s -b%s wpa.cap' % (tool, wl, key_temp, bssid)
+            cracker = '%s -w%s -l%s -b%s %s' % (tool, wl, key_temp, bssid, cap_temp)
             subprocess.call(shlex.split(cracker))
         if tool.find('Hashcat') != -1:
-            subprocess.call(['aircrack-ng', '-Jwpa', 'wpa.cap'])
+            subprocess.call(['aircrack-ng', '-Jwpa', cap_temp])
             if not os.path.exists('wpa.hccap'):
                 print 'Could not create hccap file with aircrack-ng'
                 exit(1)
@@ -355,7 +364,14 @@ while True:
                 exit(1)
     except KeyboardInterrupt as e:
         print 'Keyboard interrupt'
+        if os.path.exists(key_temp):
+            os.unlink(key_temp)
+        if os.path.exists(cap_temp):
+            os.unlink(cap_temp)
         exit(1)
+
+    if os.path.exists(cap_temp):
+        os.unlink(cap_temp)
 
     #if we have key, submit it
     if os.path.exists(key_temp):
@@ -368,5 +384,6 @@ while True:
         while not put_work(bssid, key):
             print 'Couldn\'t submit key'
             sleepy()
+        os.unlink(key_temp)
     else:
         print 'Key for BSSID '+bssid+' not found.'
