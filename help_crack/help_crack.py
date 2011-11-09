@@ -242,6 +242,22 @@ def put_work(pwbssid, pwkey):
 
     return True
 
+#multiplatform lower priority
+def low_priority():
+    if os.name == 'posix':
+        os.nice(10)
+    else:
+        try:
+            import win32api,win32process,win32con
+
+            pid = win32api.GetCurrentProcessId()
+            handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
+            win32process.SetPriorityClass(handle, win32process.BELOW_NORMAL_PRIORITY_CLASS)
+        except Exception as e:
+            print 'Exception: %s' % e
+            print 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32'
+
+
 print 'help_crack, distributed WPA cracker, v0.4'
 print 'site: ' + base_url
 
@@ -257,6 +273,9 @@ if len(sys.argv) > 1:
 
 check_version()
 tool = check_tools()
+if tool.find('aircrack-ng') or tool.find('pyrit'):
+    low_priority()
+
 rule = ''
 if tool.find('Hashcat') != -1:
     if os.path.exists('rules/best64.rule'):

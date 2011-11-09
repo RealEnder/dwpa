@@ -1,6 +1,5 @@
 * implement simple proof of work for distributed cracker clients
 * do heavy work in external process for submissions
-* low priority on CPU crackers in help_crack.py
 * write and show CHANGELOG on help_crack.py update
 * restructure home with folding text sections
 * add My nets section to show only nets, associated with given key
