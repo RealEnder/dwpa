@@ -16,6 +16,7 @@ import re
 import time
 import StringIO
 
+#some base variables
 base_url     = 'http://wpa-sec.stanev.org/'
 help_crack   = base_url + 'hc/help_crack.py'
 caps         = base_url + 'caps/'
@@ -27,6 +28,7 @@ def sleepy():
     print 'Sleeping...'
     time.sleep(222)
 
+#get md5 from local file
 def md5file(filename):
     md5s = hashlib.md5()
     try:
@@ -39,6 +41,7 @@ def md5file(filename):
 
     return md5s.hexdigest()
 
+#download remote file
 def download(url, filename):
     try:
         urllib.urlretrieve(url, filename)
@@ -48,6 +51,7 @@ def download(url, filename):
 
     return True
 
+#get remote content and return it in var
 def get_url(url):
     try:
         response = urllib.urlopen(url)
@@ -59,6 +63,7 @@ def get_url(url):
 
     return remote
 
+#get md5 of current script, compare it with remote and initiate update
 def check_version():
     remotemd5 = get_url(help_crack+'.md5')
     if not remotemd5:
@@ -75,6 +80,7 @@ def check_version():
                         os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                     except Exception as e:
                         print 'Exception: %s' % e
+                        #TODO: think of workaround locking on win32
                         if os.name == 'nt':
                             print 'You are running under win32, rename help_crack.py.new over help_crack.py'
                     print 'help_crack updated, run again'
@@ -86,6 +92,7 @@ def check_version():
                 print 'help_crack update failed'
                 return
 
+#find executable in current dir or in PATH env var
 def which(program):
     def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
@@ -109,6 +116,7 @@ def which(program):
 
     return False
 
+#look for cracking tools, check for their capabilities, ask user
 def check_tools():
     tools = []
     if os.name == 'posix':
@@ -157,6 +165,7 @@ def check_tools():
         except:
             print 'Wrong index'
 
+#check remote md5 of gz, download it on mismatch, decompress
 def get_gz(gzurl):
     gzname = gzurl.split('/')[-1]
     name = gzname.rsplit('.', 1)[0]
@@ -195,6 +204,7 @@ def valid_mac(mac):
         return False
     return True
 
+#get work and remote dict
 def get_work_wl():
     work = get_url(get_work_url)
     if work:
@@ -213,6 +223,7 @@ def get_work_wl():
     else:
         return (False, False)
 
+#get work for local dict
 def get_work_bs():
     gwbssid = get_url(get_work_url+'=no_dict')
     if not gwbssid:
@@ -226,6 +237,7 @@ def get_work_bs():
 
     return gwbssid
 
+#return results to server
 def put_work(pwbssid, pwkey):
     data = urllib.urlencode({pwbssid: pwkey})
     try:
@@ -273,13 +285,16 @@ if len(sys.argv) > 1:
 
 check_version()
 tool = check_tools()
+#lower priority for CPU crackers. Pyrit goes here too
 if tool.find('aircrack-ng') or tool.find('pyrit'):
     low_priority()
 
 rule = ''
-if tool.find('Hashcat') != -1:
-    if os.path.exists('rules/best64.rule'):
-        rule = '-rrules/best64.rule'
+#use rules for oclHashcat-plus
+#disable it for now
+#if tool.find('Hashcat') != -1:
+#    if os.path.exists('rules/best64.rule'):
+#        rule = '-rrules/best64.rule'
 
 while True:
     if wordlist == '':
@@ -318,6 +333,7 @@ while True:
     if os.path.exists(key_temp):
         os.unlink(key_temp)
 
+    #run cracker
     try:
         if tool.find('pyrit') != -1:
             cracker = '%s -i%s -o%s -b%s -rwpa.cap attack_passthrough' % (tool, wl, key_temp, bssid)
@@ -341,6 +357,7 @@ while True:
         print 'Keyboard interrupt'
         exit(1)
 
+    #if we have key, submit it
     if os.path.exists(key_temp):
         ktf = open(key_temp, 'r')
         key = ktf.readline()
