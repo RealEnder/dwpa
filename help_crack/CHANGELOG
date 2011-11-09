@@ -1,0 +1,9 @@
+ help_crack CHANGELOG
+----------------------
+
+ver 0.5 / 9 Nov 2011
+ * fix oclHashcat-plus execution on 32bit win
+ * make possible to run multiple times
+   from the same dir with different crack tools
+ * renice(10) when using CPU crackers
+ * possibility to show changelog on update

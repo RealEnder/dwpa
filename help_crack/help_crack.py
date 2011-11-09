@@ -17,11 +17,12 @@ import time
 import StringIO
 
 #some base variables
-base_url     = 'http://wpa-sec.stanev.org/'
-help_crack   = base_url + 'hc/help_crack.py'
-caps         = base_url + 'caps/'
-get_work_url = base_url + '?get_work'
-put_work_url = base_url + '?put_work'
+base_url      = 'http://wpa-sec.stanev.org/'
+help_crack    = base_url + 'hc/help_crack.py'
+help_crack_cl = base_url + 'hc/CHANGELOG'
+caps          = base_url + 'caps/'
+get_work_url  = base_url + '?get_work'
+put_work_url  = base_url + '?put_work'
 
 def sleepy():
     print 'Sleeping...'
@@ -80,26 +81,31 @@ def check_version():
         return
 
     if remotemd5 != md5file(sys.argv[0]):
-        user = raw_input('New version of help_crack found. Update?[y]:')
-        if user == 'y' or user == '':
-            if download(help_crack, sys.argv[0]+'.new'):
-                if md5file(sys.argv[0]+'.new') == remotemd5:
-                    try:
-                        os.rename(sys.argv[0]+'.new', sys.argv[0])
-                        os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
-                    except Exception as e:
-                        print 'Exception: %s' % e
-                        #TODO: think of workaround locking on win32
-                        if os.name == 'nt':
-                            print 'You are running under win32, rename help_crack.py.new over help_crack.py'
-                    print 'help_crack updated, run again'
-                    exit(0)
+        while True:
+            user = raw_input('New version of help_crack found. Update[y] or Show changelog[c]:')
+            if user == 'c':
+                print get_url(help_crack_cl)
+                continue
+            if user == 'y' or user == '':
+                if download(help_crack, sys.argv[0]+'.new'):
+                    if md5file(sys.argv[0]+'.new') == remotemd5:
+                        try:
+                            os.rename(sys.argv[0]+'.new', sys.argv[0])
+                            os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+                        except Exception as e:
+                            print 'Exception: %s' % e
+                            #TODO: think of workaround locking on win32
+                            if os.name == 'nt':
+                                print 'You are running under win32, rename help_crack.py.new over help_crack.py'
+                        print 'help_crack updated, run again'
+                        exit(0)
+                    else:
+                        print 'help_crack remote md5 mismatch'
+                        return
                 else:
-                    print 'help_crack remote md5 mismatch'
+                    print 'help_crack update failed'
                     return
-            else:
-                print 'help_crack update failed'
-                return
+            return
 
 #find executable in current dir or in PATH env var
 def which(program):
@@ -279,7 +285,7 @@ def low_priority():
             print 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32'
 
 
-print 'help_crack, distributed WPA cracker, v0.4'
+print 'help_crack, distributed WPA cracker, v0.5'
 print 'site: ' + base_url
 
 #check if custom dictionary is passed
