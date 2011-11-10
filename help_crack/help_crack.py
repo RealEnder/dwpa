@@ -285,7 +285,7 @@ def low_priority():
             print 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32'
 
 
-print 'help_crack, distributed WPA cracker, v0.5'
+print 'help_crack, distributed WPA cracker, v0.5.1'
 print 'site: ' + base_url
 
 #check if custom dictionary is passed
@@ -301,7 +301,7 @@ if len(sys.argv) > 1:
 check_version()
 tool = check_tools()
 #lower priority for CPU crackers. Pyrit goes here too
-if tool.find('aircrack-ng') or tool.find('pyrit'):
+if tool.find('aircrack-ng') != -1 or tool.find('pyrit') != -1:
     low_priority()
 
 rule = ''

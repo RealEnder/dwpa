@@ -1,6 +1,9 @@
  help_crack CHANGELOG
 ----------------------
 
+ver 0.5.1 / 10 Nov 2011
+ * fix priority setting
+
 ver 0.5 / 9 Nov 2011
  * fix oclHashcat-plus execution on 32bit win
  * make possible to run multiple times
