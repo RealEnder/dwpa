@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deduplicate *.txt in current dir
+# Compress *.txt in current dir and create md5 checksum file
 gzip -9 *.txt
 for DICT in `ls *.gz`
 do
