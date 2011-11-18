@@ -1,6 +1,9 @@
  help_crack CHANGELOG
 ----------------------
 
+ver 0.5.2 / 18 Nov 2011
+ * fix oclHashcat-plus support. Thanks to Michael Sprecher
+
 ver 0.5.1 / 10 Nov 2011
  * fix priority setting
 

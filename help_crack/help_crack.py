@@ -285,7 +285,7 @@ def low_priority():
             print 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32'
 
 
-print 'help_crack, distributed WPA cracker, v0.5.1'
+print 'help_crack, distributed WPA cracker, v0.5.2'
 print 'site: ' + base_url
 
 #check if custom dictionary is passed
@@ -365,9 +365,10 @@ while True:
                 cracker = '%s -m2500 -o%s %s wpa.hccap %s' % (tool, key_temp, rule, wl)
                 subprocess.check_call(shlex.split(cracker))
             except subprocess.CalledProcessError as e:
-                print 'Cracker %s died with code %i' % (tool, e.returncode)
-                print 'Check you have CUDA/OpenCL support'
-                exit(1)
+                if e.returncode != 1:
+                    print 'Cracker %s died with code %i' % (tool, e.returncode)
+                    print 'Check you have CUDA/OpenCL support'
+                    exit(1)
     except KeyboardInterrupt as e:
         print 'Keyboard interrupt'
         if os.path.exists(key_temp):
@@ -385,7 +386,8 @@ while True:
         key = ktf.readline()
         ktf.close()
         if tool.find('Hashcat') != -1:
-            key = key[key.find(':'):]
+            key = key[key.find(':')+1:]
+        key = key.rstrip('\n')
         print 'Key for BSSID '+bssid+' is: '+key
         while not put_work(bssid, key):
             print 'Couldn\'t submit key'
