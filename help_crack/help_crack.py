@@ -324,7 +324,7 @@ while True:
         continue
 
     if wl == False:
-        print 'Coud not download wordlist'
+        print 'Couldn\'t download the wordlist'
         sleepy()
         continue
 
