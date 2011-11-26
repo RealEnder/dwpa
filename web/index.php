@@ -74,7 +74,7 @@ if (isset($_POST['remkey'])) {
 
 //CMS
 $content = 'content/';
-$keys = array('home', 'get_key', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work');
+$keys = array('home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work');
 $keys_if = array('get_work', 'put_work');
 
 list($key) = each($_GET);
@@ -118,7 +118,14 @@ else
 ?>
 </form></li>
 <li><a href="?">Home</a></li>
-<li><a href="?get_key">Get key</a></li>
+<li>
+<?
+if (isset($_COOKIE['key']))
+    echo '<a href="?my_nets">My nets</a>';
+else
+    echo '<a href="?get_key">Get key</a>';
+?>
+</li>
 <li><a href="?submit">Submit</a></li>
 <li><a href="?nets">Nets</a></li>
 <li><a href="?dicts">Dicts</a></li>
