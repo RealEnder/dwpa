@@ -80,14 +80,12 @@ function submission($mysql, $file) {
         }
 
     // Prepare nets for import
-    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip, u_id) VALUES(?, ?, ?, ?)';
+    $sql = 'INSERT IGNORE INTO nets(nhash, bssid, ssid, ip, u_id) VALUES(unhex(?), ?, ?, ?, ?)';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 
     foreach ($newnets as $net) {
         $dotmac = long2mac($net);
-        $maclast = substr($dotmac, -2);
-        @mkdir(CAPS.$maclast);
         $cut = '';
         $rc  = 0;
         //strip only current handshake
@@ -95,15 +93,21 @@ function submission($mysql, $file) {
         if ($rc == 0) {
             $cut = '';
             $rc  = 0;
-            // run through pyrit analyze
+            //run through pyrit analyze
             exec(PYRIT.' -r '.SHM.$bnfile.' analyze', $cut, $rc);
             if ($rc == 0) {
                 $cut = file_get_contents(SHM.$bnfile);
+                $md5cap = md5($cut);
                 $gzdata = gzencode($cut, 9);
-                file_put_contents(CAPS.$maclast.'/'.str_replace(':', '-', $dotmac).'.gz', $gzdata);
+                //create dirs
+                @mkdir(CAPS.substr($dotmac, -2));
+                @mkdir(MD5CAPS.substr($md5cap, 0, 3));
+                //write files
+                file_put_contents(CAPS.substr($dotmac, -2).'/'.str_replace(':', '-', $dotmac).'.gz', $gzdata);
+                file_put_contents(MD5CAPS.substr($md5cap, 0, 3)."/$md5cap.gz", $gzdata);
                 //put in db
                 $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                $stmt->bind_param('isii', $net, $nname[$net], $ip, $u_id);
+                $stmt->bind_param('sisii', $md5cap, $net, $nname[$net], $ip, $u_id);
                 $stmt->execute();
             }
         }

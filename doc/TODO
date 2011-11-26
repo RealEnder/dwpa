@@ -2,7 +2,7 @@
 * do heavy work in external process for submissions
 * restructure home with folding text sections
 * write INSTALL instructions
-* implement possibility to have several captures for given net, ie changed PSK
+* implement possibility to have several captures for given net, ie changed PSK (started)
 * create hccap file for oclHashcat-plus in help_crack
 * stats for current dict round
 * graf stats

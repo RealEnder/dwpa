@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Oct 01, 2011 at 03:52 PM
--- Server version: 5.1.54
--- PHP Version: 5.3.5-1ubuntu7.2
+-- Generation Time: Nov 26, 2011 at 01:44 PM
+-- Server version: 5.1.58
+-- PHP Version: 5.3.6-13ubuntu3.2
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `dicts` (
   `wcount` int(10) unsigned NOT NULL,
   `hits` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=14 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=16 ;
 
 -- --------------------------------------------------------
 
@@ -51,13 +51,15 @@ CREATE TABLE IF NOT EXISTS `get_dict` (
 --
 
 CREATE TABLE IF NOT EXISTS `n2d` (
+  `net_id` bigint(15) DEFAULT NULL,
   `bssid` bigint(15) NOT NULL,
   `d_id` int(11) NOT NULL,
   `hits` int(11) NOT NULL DEFAULT '1',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`bssid`,`d_id`),
   KEY `bssid` (`bssid`),
-  KEY `ts` (`ts`)
+  KEY `ts` (`ts`),
+  KEY `net_id` (`net_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 --
@@ -80,6 +82,8 @@ DELIMITER ;
 --
 
 CREATE TABLE IF NOT EXISTS `nets` (
+  `net_id` bigint(15) NOT NULL AUTO_INCREMENT,
+  `nhash` binary(16) DEFAULT NULL COMMENT 'Capture md5 hash',
   `bssid` bigint(15) unsigned NOT NULL,
   `ssid` varchar(32) NOT NULL,
   `pass` varchar(64) DEFAULT NULL,
@@ -90,11 +94,12 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `n_state` tinyint(1) unsigned NOT NULL,
   `u_id` bigint(20) DEFAULT NULL,
   `hits` int(11) unsigned NOT NULL DEFAULT '0',
-  PRIMARY KEY (`bssid`),
+  PRIMARY KEY (`net_id`),
+  UNIQUE KEY `IDX_nets_bssid` (`bssid`),
   KEY `IDX_nets_ts` (`ts`),
   KEY `IDX_nets_ip` (`ip`),
   KEY `u_id` (`u_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=13420 ;
 
 -- --------------------------------------------------------
 
@@ -140,7 +145,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
   UNIQUE KEY `key` (`ukey`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=29 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=126 ;
 
 -- --------------------------------------------------------
 
