@@ -20,9 +20,12 @@ import StringIO
 base_url      = 'http://wpa-sec.stanev.org/'
 help_crack    = base_url + 'hc/help_crack.py'
 help_crack_cl = base_url + 'hc/CHANGELOG'
-caps          = base_url + 'caps/'
+md5caps       = base_url + 'md5caps/'
 get_work_url  = base_url + '?get_work'
 put_work_url  = base_url + '?put_work'
+
+#version
+hc_ver = '0.6'
 
 def sleepy():
     print 'Sleeping...'
@@ -212,49 +215,32 @@ def get_gz(gzurl):
             return False
     return name
 
-def valid_mac(mac):
-    if len(mac) != 17:
-        return False
-    if not re.match(r'([a-f0-9]{2}:?){6}', mac):
-        return False
-    return True
-
 #get work and remote dict
 def get_work_wl():
-    work = get_url(get_work_url)
+    work = get_url(get_work_url+'='+hc_ver)
     if work:
         if work == 'No nets':
             return (False, False)
 
-        gwbssid = work.split('-', 1)[0]
+        if work == 'Version':
+            print 'Please update help_crack, the interface has changed'
+            exit(1);
+
+        gwhash = work.split('-', 1)[0]
         gwwl = work.split('-', 1)[1]
 
-        if not valid_mac(gwbssid):
+        if len(gwhash) != 32:
             return (False, False)
 
         gwwl = get_gz(gwwl)
 
-        return (gwbssid, gwwl)
+        return (gwhash, gwwl)
     else:
         return (False, False)
 
-#get work for local dict
-def get_work_bs():
-    gwbssid = get_url(get_work_url+'=no_dict')
-    if not gwbssid:
-        return False
-
-    if gwbssid == 'No nets':
-        return False
-
-    if not valid_mac(gwbssid):
-        return False
-
-    return gwbssid
-
 #return results to server
-def put_work(pwbssid, pwkey):
-    data = urllib.urlencode({pwbssid: pwkey})
+def put_work(pwhash, pwkey):
+    data = urllib.urlencode({pwhash: pwkey})
     try:
         response = urllib.urlopen(put_work_url, data)
     except Exception as e:
@@ -285,18 +271,14 @@ def low_priority():
             print 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32'
 
 
-print 'help_crack, distributed WPA cracker, v0.5.2'
+print 'help_crack, distributed WPA cracker, v' + hc_ver
 print 'site: ' + base_url
 
 #check if custom dictionary is passed
 wordlist = ''
 if len(sys.argv) > 1:
-    if not os.path.exists(sys.argv[1]):
-        print 'Usage: ./help_crack.py : download wpa.cap and wordlist then start cracking, or'
-        print '       ./help_crack.py dictionary.txt : to use your own dictionary'
-        exit(1)
-    else:
-        wordlist = sys.argv[1]
+    print 'Usage: ./help_crack.py : download capture and wordlist then start cracking'
+    exit(1)
 
 check_version()
 tool = check_tools()
@@ -312,13 +294,9 @@ rule = ''
 #        rule = '-rrules/best64.rule'
 
 while True:
-    if wordlist == '':
-        (bssid, wl) = get_work_wl()
-    else:
-        bssid = get_work_bs()
-        wl = wordlist
+    (nhash, wl) = get_work_wl()
 
-    if bssid == False:
+    if nhash == False:
         print 'No suitable nets found'
         sleepy()
         continue
@@ -328,8 +306,8 @@ while True:
         sleepy()
         continue
 
-    #get capture and write to wpa.cap
-    gzcap = get_url(caps+bssid[-2:]+'/'+bssid.replace(':', '-')+'.gz')
+    #get capture and write it in local file
+    gzcap = get_url(md5caps+nhash[0:3]+'/'+nhash+'.gz')
     if not gzcap:
         sleepy()
         continue
@@ -351,10 +329,10 @@ while True:
     #run cracker
     try:
         if tool.find('pyrit') != -1:
-            cracker = '%s -i%s -o%s -b%s -r%s attack_passthrough' % (tool, wl, key_temp, bssid, cap_temp)
+            cracker = '%s -i%s -o%s -r%s attack_passthrough' % (tool, wl, key_temp, cap_temp)
             subprocess.call(shlex.split(cracker))
         if tool.find('aircrack-ng') != -1:
-            cracker = '%s -w%s -l%s -b%s %s' % (tool, wl, key_temp, bssid, cap_temp)
+            cracker = '%s -w%s -l%s %s' % (tool, wl, key_temp, cap_temp)
             subprocess.call(shlex.split(cracker))
         if tool.find('Hashcat') != -1:
             subprocess.call(['aircrack-ng', '-Jwpa', cap_temp])
@@ -388,10 +366,10 @@ while True:
         if tool.find('Hashcat') != -1:
             key = key[key.find(':')+1:]
         key = key.rstrip('\n')
-        print 'Key for BSSID '+bssid+' is: '+key
-        while not put_work(bssid, key):
+        print 'Key for capture hash '+nhash+' is: '+key
+        while not put_work(nhash, key):
             print 'Couldn\'t submit key'
             sleepy()
         os.unlink(key_temp)
     else:
-        print 'Key for BSSID '+bssid+' not found.'
+        print 'Key for capture hash '+nhash+' not found.'

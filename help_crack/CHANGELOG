@@ -1,6 +1,11 @@
  help_crack CHANGELOG
 ----------------------
 
+ver 0.6 / 26 Nov 2011
+ * upgrade for the new API
+ * remove functionality to use your own dicts
+ * remove dead code
+
 ver 0.5.2 / 18 Nov 2011
  * fix oclHashcat-plus support. Thanks to Michael Sprecher
 
