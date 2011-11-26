@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Nov 26, 2011 at 01:44 PM
+-- Generation Time: Nov 26, 2011 at 08:35 PM
 -- Server version: 5.1.58
 -- PHP Version: 5.3.6-13ubuntu3.2
 
@@ -51,15 +51,13 @@ CREATE TABLE IF NOT EXISTS `get_dict` (
 --
 
 CREATE TABLE IF NOT EXISTS `n2d` (
-  `net_id` bigint(15) DEFAULT NULL,
-  `bssid` bigint(15) NOT NULL,
+  `net_id` bigint(15) NOT NULL,
   `d_id` int(11) NOT NULL,
   `hits` int(11) NOT NULL DEFAULT '1',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`bssid`,`d_id`),
-  KEY `bssid` (`bssid`),
-  KEY `ts` (`ts`),
-  KEY `net_id` (`net_id`)
+  PRIMARY KEY (`net_id`,`d_id`),
+  KEY `IDX_n2d_ts` (`ts`),
+  KEY `IDX_n2d_net_id` (`net_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 --
@@ -69,7 +67,7 @@ DROP TRIGGER IF EXISTS `TRG_n2d`;
 DELIMITER //
 CREATE TRIGGER `TRG_n2d` BEFORE INSERT ON `n2d`
  FOR EACH ROW BEGIN
-    UPDATE nets SET hits=hits+1 WHERE nets.bssid=NEW.bssid;
+    UPDATE nets SET hits=hits+1 WHERE nets.net_id=NEW.net_id;
     UPDATE dicts SET hits=hits+1 WHERE dicts.d_id=NEW.d_id;
 END
 //
@@ -83,7 +81,7 @@ DELIMITER ;
 
 CREATE TABLE IF NOT EXISTS `nets` (
   `net_id` bigint(15) NOT NULL AUTO_INCREMENT,
-  `nhash` binary(16) DEFAULT NULL COMMENT 'Capture md5 hash',
+  `nhash` binary(16) NOT NULL COMMENT 'Capture md5 hash',
   `bssid` bigint(15) unsigned NOT NULL,
   `ssid` varchar(32) NOT NULL,
   `pass` varchar(64) DEFAULT NULL,
@@ -95,11 +93,12 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `u_id` bigint(20) DEFAULT NULL,
   `hits` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`net_id`),
-  UNIQUE KEY `IDX_nets_bssid` (`bssid`),
+  UNIQUE KEY `IDX_nets_nhash` (`nhash`),
   KEY `IDX_nets_ts` (`ts`),
   KEY `IDX_nets_ip` (`ip`),
-  KEY `u_id` (`u_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=13420 ;
+  KEY `u_id` (`u_id`),
+  KEY `IDX_nets_bssid` (`bssid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=13458 ;
 
 -- --------------------------------------------------------
 
@@ -107,7 +106,8 @@ CREATE TABLE IF NOT EXISTS `nets` (
 -- Stand-in structure for view `onets`
 --
 CREATE TABLE IF NOT EXISTS `onets` (
-`bssid` bigint(15) unsigned
+`net_id` bigint(15)
+,`nhash` varchar(32)
 );
 -- --------------------------------------------------------
 
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `onets` (
 -- Stand-in structure for view `onets_dicts`
 --
 CREATE TABLE IF NOT EXISTS `onets_dicts` (
-`bssid` bigint(15)
+`net_id` bigint(15)
 ,`d_id` int(11)
 ,`hits` int(11)
 );
@@ -163,7 +163,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`nhash`) AS `nhash` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
 
 -- --------------------------------------------------------
 
@@ -172,7 +172,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `onets_dicts`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`bssid` AS `bssid`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`bssid` = `o`.`bssid`);
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`);
 
 DELIMITER $$
 --
