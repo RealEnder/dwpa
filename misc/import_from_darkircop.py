@@ -50,7 +50,7 @@ def decomp(gzname):
 def valid_mac(mac):
     if len(mac) != 17:
         return False
-    if not re.match(r'([a-f0-9]{2}:?){6}', mac):
+    if not re.match(r'^([a-f0-9]{2}\:?){6}$', mac):
         return False
     return True
 
@@ -69,7 +69,7 @@ def put_work(bssid, key):
 
     return True
 
-print 'Import nets and pass from wpa.darkircop.org, v0.2'
+print 'Import nets and pass from wpa.darkircop.org, v0.3'
 
 print 'Downloading wpa.cap.gz...'
 download(darkircop_cap, 'wpa.cap.gz')
@@ -99,10 +99,10 @@ for data in doc.xpath('//tr'):
     bssid = bssid[0].replace('comment-', '')
     bssid = bssid.replace('-', ':')
     bssid = bssid.strip()
-    i += 1
-    print i, 'Pair found: BSSID: '+bssid+' Key: '+ key
 
     if len(key) >= 8 and valid_mac(bssid):
+        i += 1
+        print i, 'Pair found: BSSID: '+bssid+' Key: '+ key
         if not put_work(bssid, key):
             print 'Pair send failed'
     else:
