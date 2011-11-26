@@ -19,8 +19,9 @@ define('TCPDUMP', '/usr/sbin/tcpdump');
 define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
 
 define('CAP', '/var/www/wpa-sec/cap/');
-define('CAPS', '/var/www/wpa-sec/caps/');
 define('MD5CAPS', '/var/www/wpa-sec/md5caps/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
 define('SHM', '/dev/shm/');
+
+define('MIN_HC_VER', '0.6');
 ?>

@@ -33,19 +33,9 @@ function check_key() {
     if ($_FILES['webfile']['tmp_name'] != '') {
         require_once('db.php');
         require_once('common.php');
-        if (submission($mysql, $_FILES['webfile']['tmp_name'])) {
-            echo '<h1>Last 20 submitted networks from you</h1>';
-            $sql = 'SELECT * FROM nets WHERE ip=? ORDER BY ts DESC LIMIT 20';
-            $ip = ip2long($_SERVER['REMOTE_ADDR']);
-            $stmt = $mysql->stmt_init();
-            $stmt->prepare($sql);
-            $stmt->bind_param('i', $ip);
-            $stmt->execute();
-            $data = array();
-            stmt_bind_assoc($stmt, $data);
-            write_nets($stmt, $data);
-            $stmt->close();    
-        } else
+        if (submission($mysql, $_FILES['webfile']['tmp_name']))
+            echo 'Capture submitted successfully';
+        else
             echo 'Bad capture file';
         $mysql->close();
     } else {

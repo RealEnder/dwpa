@@ -1,6 +1,6 @@
 <?
 //Execute aircrack-ng and check for solved net
-function check_pass($bssid, $pass) {
+function check_pass($nhash, $pass) {
     if (strlen($pass) < 8)
         return false;
 
@@ -13,9 +13,9 @@ function check_pass($bssid, $pass) {
 
     //deflate and put capture in shm
     //use gz compressed single captures - gzinflate fn -10 bytes
-    file_put_contents($cf, gzinflate(substr(file_get_contents(CAPS.substr($bssid, -2).'/'.str_replace(':', '-', $bssid).'.gz'), 10)));
+    file_put_contents($cf, gzinflate(substr(file_get_contents(MD5CAPS.substr($nhash, 0, 3)."/$nhash.gz"), 10)));
 
-    exec(AIRCRACK." -b $bssid -w $wl -l $kf $cf");
+    exec(AIRCRACK." -w $wl -l $kf $cf");
 
     $p = @file_get_contents($kf);
 
@@ -99,11 +99,9 @@ function submission($mysql, $file) {
                 $cut = file_get_contents(SHM.$bnfile);
                 $md5cap = md5($cut);
                 $gzdata = gzencode($cut, 9);
-                //create dirs
-                @mkdir(CAPS.substr($dotmac, -2));
+                //create dir
                 @mkdir(MD5CAPS.substr($md5cap, 0, 3));
-                //write files
-                file_put_contents(CAPS.substr($dotmac, -2).'/'.str_replace(':', '-', $dotmac).'.gz', $gzdata);
+                //write gz capture file
                 file_put_contents(MD5CAPS.substr($md5cap, 0, 3)."/$md5cap.gz", $gzdata);
                 //put in db
                 $ip = ip2long($_SERVER['REMOTE_ADDR']);
@@ -118,7 +116,7 @@ function submission($mysql, $file) {
     rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
 
     //update net count stats
-    $sql = "UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets) WHERE pname='nets'";
+    $sql = "UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'";
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
     $stmt->execute();
@@ -129,48 +127,78 @@ function submission($mysql, $file) {
     return true;
 }
 
-// Put work
+//Put work
 function put_work($mysql) {
     if (empty($_POST))
         return false;
 
-    $sql = 'SELECT * FROM nets WHERE bssid = ? AND n_state=0';
+    //get nets by bssid
+    $sql = 'SELECT net_id, hex(nhash) as nhash FROM nets WHERE bssid = ? AND n_state=0';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
     $data = array();
     stmt_bind_assoc($stmt, $data);
 
+    //get net by net_id
+    $nsql = 'SELECT * FROM nets WHERE nhash = unhex(?) AND n_state=0';
+    $nstmt = $mysql->stmt_init();
+    $nstmt->prepare($nsql);
+    $ndata = array();
+    stmt_bind_assoc($nstmt, $ndata);
+
     //Update key stmt
-    $usql = 'UPDATE nets SET pass=?, sip=?, n_state=1, sts=NOW() WHERE bssid=?';
+    $usql = 'UPDATE nets SET pass=?, sip=?, n_state=1, sts=NOW() WHERE net_id=?';
     $ustmt = $mysql->stmt_init();
     $ustmt->prepare($usql);
 
     $mcount = 0;
-    foreach ($_POST as $bssid => $key) {
-        if (valid_mac($bssid) && strlen($key) >= 8) {
-            $ibssid = mac2long($bssid);
+    foreach ($_POST as $bssid_or_hash => $key) {
+        if (valid_mac($bssid_or_hash) && strlen($key) >= 8) {
+            //old style submission with bssid
+            $ibssid = mac2long($bssid_or_hash);
             $stmt->bind_param('i', $ibssid);
             $stmt->execute();
 
-            if ($stmt->fetch())
-                if (check_pass($bssid, $key)) {
+            while ($stmt->fetch()) {
+                $nhash = strtolower($data['nhash']);
+                if (check_pass($nhash, $key)) {
                     //put result in nets
                     $stmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $ustmt->bind_param('sii', $key, $iip, $ibssid);
+                    $net_id = $data['net_id'];
+                    $ustmt->bind_param('sii', $key, $iip, $net_id);
                     $ustmt->execute();
                     //delete from n2d
-                    $mysql->query("DELETE FROM n2d WHERE bssid=$ibssid");
+                    $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
                 }
-            if ($mcount++ > 20)
-                break;
+            }
+        } elseif (strlen($bssid_or_hash) == 32 && strlen($key) >= 8) {
+            //hash submission
+            $nhash = strtolower($bssid_or_hash);
+            $nstmt->bind_param('s', $nhash);
+            $nstmt->execute();
+
+            if ($nstmt->fetch())
+                if (check_pass($nhash, $key)) {
+                    //put result in nets
+                    $nstmt->free_result();
+                    $iip = ip2long($_SERVER['REMOTE_ADDR']);
+                    $net_id = $ndata['net_id'];
+                    $ustmt->bind_param('sii', $key, $iip, $net_id);
+                    $ustmt->execute();
+                    //delete from n2d
+                    $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
+                }
         }
+        if ($mcount++ > 20)
+            break;
     }
     $stmt->close();
     $ustmt->close();
+    $nstmt->close();
 
     //Update cracked net stats
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(bssid) FROM nets WHERE n_state=1) WHERE pname='cracked'");
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
 
     //Create new cracked.txt.gz and update wcount
     $sql = 'SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC';
@@ -219,7 +247,7 @@ function long2mac($lmac) {
 }
 
 function valid_mac($mac) {
-    return preg_match('/([a-f0-9]{2}:?){6}/', strtolower($mac));
+    return preg_match('/^([a-f0-9]{2}\:?){6}$/', strtolower($mac));
 }
 
 //Generate random key
@@ -321,9 +349,10 @@ function goWigle(bssid) {
 <tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
     while ($stmt->fetch()) {
         $bssid = long2mac($data['bssid']);
+        $nhash = $data['nhash'];
         $ssid = htmlspecialchars($data['ssid']);
         if ($data['pass'] == '') {
-            $pass = '<input class="input" type="text" name="'.$bssid.'" size="20"/>';
+            $pass = '<input class="input" type="text" name="'.$nhash.'" size="20"/>';
             $has_input = true;
         } else
             $pass = htmlspecialchars($data['pass']);
