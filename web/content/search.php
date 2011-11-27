@@ -1,6 +1,6 @@
 <h1>Search networks</h1>
 <?
-if (strlen($_GET['search']) >= 3) {
+if (strlen($_GET['search']) >= 4) {
     require_once('db.php');
     require_once('common.php');
 
@@ -15,12 +15,12 @@ if (strlen($_GET['search']) >= 3) {
             $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
 WHERE bssid = ?
-ORDER BY ts DESC';
+ORDER BY net_id DESC';
         else
             $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.ukey=?
 WHERE bssid = ?
-ORDER BY nets.ts DESC';
+ORDER BY nets.net_id DESC';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         if ($k == $bosskey)
@@ -28,17 +28,17 @@ ORDER BY nets.ts DESC';
         else
             $stmt->bind_param('si', $k, $bssid);
     } else {
-        $ssid = "%{$_GET['search']}%";
+        $ssid = "{$_GET['search']}";
         if ($k == $bosskey)
             $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
-WHERE ssid LIKE ?
-ORDER BY nets.ts DESC';
+WHERE MATCH(ssid) AGAINST (?)
+ORDER BY nets.net_id DESC';
         else
             $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.ukey=?
-WHERE ssid LIKE ?
-ORDER BY nets.ts DESC';
+WHERE MATCH(ssid) AGAINST (?)
+ORDER BY nets.net_id DESC';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         if ($k == $bosskey)
@@ -55,6 +55,6 @@ ORDER BY nets.ts DESC';
     $stmt->close();
     $mysql->close();
 } else {
-    echo 'Search for at least 3 chars or BSSID';
+    echo 'Search for at least 4 chars or BSSID';
 }
 ?>
