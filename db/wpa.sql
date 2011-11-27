@@ -1,9 +1,9 @@
 -- phpMyAdmin SQL Dump
--- version 3.4.5
+-- version 3.4.7.1
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Nov 26, 2011 at 08:35 PM
+-- Generation Time: Nov 27, 2011 at 12:06 PM
 -- Server version: 5.1.58
 -- PHP Version: 5.3.6-13ubuntu3.2
 
@@ -94,10 +94,9 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `hits` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`net_id`),
   UNIQUE KEY `IDX_nets_nhash` (`nhash`),
-  KEY `IDX_nets_ts` (`ts`),
-  KEY `IDX_nets_ip` (`ip`),
   KEY `u_id` (`u_id`),
-  KEY `IDX_nets_bssid` (`bssid`)
+  KEY `IDX_nets_bssid` (`bssid`),
+  FULLTEXT KEY `IDX_nets_ssid` (`ssid`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=13458 ;
 
 -- --------------------------------------------------------
@@ -144,7 +143,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `ip` int(10) unsigned NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
-  UNIQUE KEY `key` (`ukey`)
+  UNIQUE KEY `IDX_users_ukey` (`ukey`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=126 ;
 
 -- --------------------------------------------------------
