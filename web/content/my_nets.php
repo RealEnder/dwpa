@@ -8,7 +8,7 @@ echo '<h1>My networks</h1>';
 
 $k = '';
 if (isset($_COOKIE['key']))
-    if (strlen($_COOKIE['key']) == 32)
+    if (valid_key($_COOKIE['key']))
         $k = $_COOKIE['key'];
 
 $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts

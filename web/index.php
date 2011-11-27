@@ -46,9 +46,14 @@ if (isset($_POST['recaptcha_response_field'])) {
     }
 }
 
+//validate 32 char key
+function valid_key($key) {
+    return preg_match('/^[a-f0-9]{32}$/', strtolower($key));
+}
+
 //Set key
 if (isset($_POST['key'])) {
-    if (strlen($_POST['key']) == 32) {
+    if (valid_key($_POST['key'])) {
         require_once('db.php');
         $sql = 'SELECT ukey FROM users WHERE ukey=?';
         $stmt = $mysql->stmt_init();

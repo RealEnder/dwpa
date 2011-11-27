@@ -8,7 +8,7 @@ echo '<h1>Last 20 submitted networks</h1>';
 
 $k = '';
 if (isset($_COOKIE['key']))
-    if (strlen($_COOKIE['key']) == 32)
+    if (valid_key($_COOKIE['key']))
         $k = $_COOKIE['key'];
 
 if ($k == $bosskey)

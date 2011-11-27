@@ -6,7 +6,7 @@ if (strlen($_GET['search']) >= 4) {
 
     $k = '';
     if (isset($_COOKIE['key']))
-        if (strlen($_COOKIE['key']) == 32)
+        if (valid_key($_COOKIE['key']))
             $k = $_COOKIE['key'];
 
     if (valid_mac($_GET['search'])) {

@@ -68,7 +68,7 @@ function submission($mysql, $file) {
     //get u_id if we have key set
     $u_id = Null;
     if (isset($_COOKIE['key']))
-        if (strlen($_COOKIE['key']) == 32) {
+        if (valid_key($_COOKIE['key'])) {
             $sql = 'SELECT u_id FROM users WHERE ukey=?';
             $stmt = $mysql->stmt_init();
             $stmt->prepare($sql);
@@ -172,7 +172,7 @@ function put_work($mysql) {
                     $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
                 }
             }
-        } elseif (strlen($bssid_or_hash) == 32 && strlen($key) >= 8) {
+        } elseif (valid_key($bssid_or_hash) && strlen($key) >= 8) {
             //hash submission
             $nhash = strtolower($bssid_or_hash);
             $nstmt->bind_param('s', $nhash);
