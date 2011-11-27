@@ -18,7 +18,7 @@ ORDER BY net_id DESC
 LIMIT 20';
 else
     $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
-FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.ukey=?
+FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.userkey=UNHEX(?)
 ORDER BY nets.net_id DESC
 LIMIT 20';
 

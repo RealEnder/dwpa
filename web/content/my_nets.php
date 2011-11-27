@@ -13,7 +13,7 @@ if (isset($_COOKIE['key']))
 
 $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets, users
-WHERE nets.u_id=users.u_id AND users.ukey=?
+WHERE nets.u_id=users.u_id AND users.userkey=UNHEX(?)
 ORDER BY nets.net_id DESC
 LIMIT 20';
 

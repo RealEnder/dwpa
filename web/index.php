@@ -31,18 +31,18 @@ if (isset($_POST['recaptcha_response_field'])) {
                 $mail = trim($_POST['mail']);
 
         //put new key in db
-        $sql = 'INSERT IGNORE INTO users(ukey, mail, ip) VALUES(?, ?, ?)';
+        $sql = 'INSERT IGNORE INTO users(userkey, mail, ip) VALUES(UNHEX(?), ?, ?)';
         $stmt = $mysql->stmt_init();
         $ip = ip2long($_SERVER['REMOTE_ADDR']);
-        $ukey = gen_key();
+        $userkey = gen_key();
         $stmt->prepare($sql);
-        $stmt->bind_param('ssi', $ukey, $mail, $ip);
+        $stmt->bind_param('ssi', $userkey, $mail, $ip);
         $stmt->execute();
         $stmt->close();
 
         //set cookie
-        setcookie('key', $ukey, 2147483647, '', '', false, true);
-        $_COOKIE['key'] = $ukey;
+        setcookie('key', $userkey, 2147483647, '', '', false, true);
+        $_COOKIE['key'] = $userkey;
     }
 }
 
@@ -55,7 +55,7 @@ function valid_key($key) {
 if (isset($_POST['key'])) {
     if (valid_key($_POST['key'])) {
         require_once('db.php');
-        $sql = 'SELECT ukey FROM users WHERE ukey=?';
+        $sql = 'SELECT HEX(userkey) FROM users WHERE userkey=UNHEX(?)';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         $stmt->bind_param('s', $_POST['key']);

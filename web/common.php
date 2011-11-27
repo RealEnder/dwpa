@@ -69,7 +69,7 @@ function submission($mysql, $file) {
     $u_id = Null;
     if (isset($_COOKIE['key']))
         if (valid_key($_COOKIE['key'])) {
-            $sql = 'SELECT u_id FROM users WHERE ukey=?';
+            $sql = 'SELECT u_id FROM users WHERE userkey=UNHEX(?)';
             $stmt = $mysql->stmt_init();
             $stmt->prepare($sql);
             $stmt->bind_param('s', $_COOKIE['key']);
@@ -80,7 +80,7 @@ function submission($mysql, $file) {
         }
 
     // Prepare nets for import
-    $sql = 'INSERT IGNORE INTO nets(nhash, bssid, ssid, ip, u_id) VALUES(unhex(?), ?, ?, ?, ?)';
+    $sql = 'INSERT IGNORE INTO nets(nhash, bssid, ssid, ip, u_id) VALUES(UNHEX(?), ?, ?, ?, ?)';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 

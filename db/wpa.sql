@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Nov 27, 2011 at 12:06 PM
+-- Generation Time: Nov 27, 2011 at 01:11 PM
 -- Server version: 5.1.58
 -- PHP Version: 5.3.6-13ubuntu3.2
 
@@ -138,13 +138,13 @@ CREATE TABLE IF NOT EXISTS `stats` (
 
 CREATE TABLE IF NOT EXISTS `users` (
   `u_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `ukey` char(32) NOT NULL,
+  `userkey` binary(16) NOT NULL,
   `mail` varchar(500) DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
-  UNIQUE KEY `IDX_users_ukey` (`ukey`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=126 ;
+  UNIQUE KEY `IDX_users_userkey` (`userkey`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=127 ;
 
 -- --------------------------------------------------------
 
