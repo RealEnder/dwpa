@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Nov 27, 2011 at 01:20 PM
+-- Generation Time: Dec 29, 2011 at 07:02 PM
 -- Server version: 5.1.58
--- PHP Version: 5.3.6-13ubuntu3.2
+-- PHP Version: 5.3.6-13ubuntu3.3
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
   UNIQUE KEY `IDX_nets_nhash` (`nhash`),
   KEY `u_id` (`u_id`),
   KEY `IDX_nets_bssid` (`bssid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=13458 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=16293 ;
 
 -- --------------------------------------------------------
 
@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
 CREATE TABLE IF NOT EXISTS `onets` (
 `net_id` bigint(15)
 ,`nhash` varchar(32)
+,`bssid` bigint(15) unsigned
 );
 -- --------------------------------------------------------
 
@@ -132,6 +133,24 @@ CREATE TABLE IF NOT EXISTS `stats` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `submissions`
+--
+
+CREATE TABLE IF NOT EXISTS `submissions` (
+  `s_id` bigint(15) NOT NULL AUTO_INCREMENT,
+  `s_name` binary(16) NOT NULL,
+  `userhash` binary(16) NOT NULL,
+  `info` text,
+  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0 - processing 1 - processed',
+  `ip` int(10) NOT NULL,
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`s_id`),
+  UNIQUE KEY `IDX_submissions_userhash` (`userhash`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Capture file submissions' AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -143,7 +162,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
   UNIQUE KEY `IDX_users_userkey` (`userkey`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=127 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=158 ;
 
 -- --------------------------------------------------------
 
@@ -161,7 +180,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`nhash`) AS `nhash` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`nhash`) AS `nhash`,`nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
 
 -- --------------------------------------------------------
 

@@ -23,5 +23,5 @@ define('MD5CAPS', '/var/www/wpa-sec/md5caps/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
 define('SHM', '/dev/shm/');
 
-define('MIN_HC_VER', '0.6');
+define('MIN_HC_VER', '0.7');
 ?>

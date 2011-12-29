@@ -25,11 +25,19 @@ get_work_url  = base_url + '?get_work'
 put_work_url  = base_url + '?put_work'
 
 #version
-hc_ver = '0.6'
+hc_ver = '0.7'
 
 def sleepy():
     print 'Sleeping...'
     time.sleep(222)
+
+#validate bssid/mac address
+def valid_mac(mac):
+    if len(mac) != 17:
+        return False
+    if not re.match(r'^([a-f0-9]{2}\:?){6}$', mac):
+        return False
+    return True
 
 #make temp filename
 def mk_temp():
@@ -180,7 +188,7 @@ def check_tools():
             exit(0)
         try:
             return tools[int(user)]
-        except:
+        except Exception:
             print 'Wrong index'
 
 #check remote md5 of gz, download it on mismatch, decompress
@@ -224,19 +232,28 @@ def get_work_wl():
 
         if work == 'Version':
             print 'Please update help_crack, the interface has changed'
-            exit(1);
+            exit(1)
 
-        gwhash = work.split('-', 1)[0]
-        gwwl = work.split('-', 1)[1]
+        gwr = work.split('\\')
+        if len(gwr) < 3:
+            print 'Server returned bad response. Check for help_crack update.'
+            exit(1)
+
+        gwhash = gwr[0]
+        gwbssid = gwr[1]
+        gwwl = gwr[2]
 
         if len(gwhash) != 32:
-            return (False, False)
+            return (False, False, False)
+
+        if not valid_mac(gwbssid):
+            return (False, False, False)
 
         gwwl = get_gz(gwwl)
 
-        return (gwhash, gwwl)
+        return (gwhash, gwbssid, gwwl)
     else:
-        return (False, False)
+        return (False, False, False)
 
 #return results to server
 def put_work(pwhash, pwkey):
@@ -261,7 +278,7 @@ def low_priority():
         os.nice(10)
     else:
         try:
-            import win32api,win32process,win32con
+            import win32api, win32process, win32con
 
             pid = win32api.GetCurrentProcessId()
             handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
@@ -294,7 +311,7 @@ rule = ''
 #        rule = '-rrules/best64.rule'
 
 while True:
-    (nhash, wl) = get_work_wl()
+    (nhash, bssid, wl) = get_work_wl()
 
     if nhash == False:
         print 'No suitable nets found'
@@ -315,12 +332,12 @@ while True:
     cap_temp = mk_temp()
     try:
         fgz = gzip.GzipFile(fileobj = gzstream)
-        f = open(cap_temp, 'wb')
-        f.write(fgz.read())
-        f.close()
+        fd = open(cap_temp, 'wb')
+        fd.write(fgz.read())
+        fd.close()
         fgz.close()
-    except Exception as e:
-        print 'Exception: %s' % e
+    except Exception as ex:
+        print 'Exception: %s' % ex
         sleepy()
         continue
 
@@ -329,10 +346,10 @@ while True:
     #run cracker
     try:
         if tool.find('pyrit') != -1:
-            cracker = '%s -i%s -o%s -r%s attack_passthrough' % (tool, wl, key_temp, cap_temp)
+            cracker = '%s -i%s -o%s -b%s -r%s attack_passthrough' % (tool, wl, key_temp, bssid, cap_temp)
             subprocess.call(shlex.split(cracker))
         if tool.find('aircrack-ng') != -1:
-            cracker = '%s -w%s -l%s %s' % (tool, wl, key_temp, cap_temp)
+            cracker = '%s -w%s -l%s -b%s %s' % (tool, wl, key_temp, bssid, cap_temp)
             subprocess.call(shlex.split(cracker))
         if tool.find('Hashcat') != -1:
             subprocess.call(['aircrack-ng', '-Jwpa', cap_temp])
@@ -342,12 +359,12 @@ while True:
             try:
                 cracker = '%s -m2500 -o%s %s wpa.hccap %s' % (tool, key_temp, rule, wl)
                 subprocess.check_call(shlex.split(cracker))
-            except subprocess.CalledProcessError as e:
-                if e.returncode != 1:
-                    print 'Cracker %s died with code %i' % (tool, e.returncode)
+            except subprocess.CalledProcessError as ex:
+                if ex.returncode != 1:
+                    print 'Cracker %s died with code %i' % (tool, ex.returncode)
                     print 'Check you have CUDA/OpenCL support'
                     exit(1)
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt as ex:
         print 'Keyboard interrupt'
         if os.path.exists(key_temp):
             os.unlink(key_temp)

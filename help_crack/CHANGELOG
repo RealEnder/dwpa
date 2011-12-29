@@ -1,6 +1,11 @@
  help_crack CHANGELOG
 ----------------------
 
+ver 0.7 / 29 Dec 2011
+ * upgrade for the new API (again)
+ * added bssid filter again
+ * some pylint fixes
+ 
 ver 0.6 / 26 Nov 2011
  * upgrade for the new API
  * remove functionality to use your own dicts
