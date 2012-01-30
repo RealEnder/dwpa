@@ -193,13 +193,15 @@ def check_tools():
 
 #check remote md5 of gz, download it on mismatch, decompress
 def get_gz(gzurl):
+    localmd5 = ''
     gzname = gzurl.split('/')[-1]
     name = gzname.rsplit('.', 1)[0]
     remotemd5 = get_url(gzurl+'.md5')
     if not remotemd5:
         print 'Can\'t download '+gzurl+'.md5'
         return False
-    localmd5 = md5file(gzname)
+    if os.path.exists(gzname):
+        localmd5 = md5file(gzname)
     if remotemd5 != localmd5:
         print 'Downloading ' + gzname
         if download(gzurl, gzname):
