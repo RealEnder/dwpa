@@ -49,7 +49,7 @@ def md5file(filename):
                 md5s.update(chunk)
     except Exception as e:
         print 'Exception: %s' % e
-        return False
+        return None
 
     return md5s.hexdigest()
 
@@ -69,7 +69,7 @@ def get_url(url):
         response = urllib.urlopen(url)
     except Exception as e:
         print 'Exception: %s' % e
-        return False
+        return None
     remote = response.read()
     response.close()
 
@@ -119,7 +119,7 @@ def which(program):
         if os.path.exists(program):
             return program
 
-    fpath, fname = os.path.split(program)
+    fpath = os.path.split(program)[0]
     if fpath:
         if is_exe(program):
             return program
@@ -145,9 +145,9 @@ def check_tools():
     if t:
         tools.append(t)
         acp = subprocess.Popen([t, '--help'], stdout=subprocess.PIPE)
-        (output, oerr) = acp.communicate()
+        output = acp.communicate()[0]
         if output.find('Hashcat') != -1:
-            (bits, linkage) = platform.architecture()
+            bits = platform.architecture()[0]
             if bits == '64bit':
                 t = which('oclHashcat-plus64')
                 if t:
@@ -170,8 +170,8 @@ def check_tools():
         return tools[0]
     
     print 'Choose the tool for cracking:'
-    for index, tool in enumerate(tools):
-        print '%i: %s' % (index, tool)
+    for index, ttool in enumerate(tools):
+        print '%i: %s' % (index, ttool)
     print '9: Quit'
     while 1:
         user = raw_input('Index:')
@@ -199,10 +199,10 @@ def get_gz(gzurl):
             if md5file(gzname) == remotemd5:
                 try:
                     f = open(name, 'wb')
-                    fgz = gzip.open(gzname, 'rb')
-                    f.write(fgz.read())
+                    ftgz = gzip.open(gzname, 'rb')
+                    f.write(ftgz.read())
                     f.close()
-                    fgz.close()
+                    ftgz.close()
                 except Exception as e:
                     print gzname +' extraction failed'
                     print 'Exception: %s' % e
@@ -219,7 +219,7 @@ def get_gz(gzurl):
 #get work and remote dict
 def get_work_wl():
     work = get_url(get_work_url+'='+hc_ver)
-    if work:
+    if work is not None:
         if work == 'No nets':
             return (False, False)
 
@@ -273,10 +273,10 @@ def create_resume(tnhash, tbssid, twl):
         md5h = md5s.hexdigest()
         if not os.path.exists(md5h+'.cap'):
             break
-    resc = [tnhash+"\n", tbssid+"\n", wl+"\n"]
-    fd = open(md5h+'.res','w')
-    fd.writelines(resc)
-    fd.close()
+    resc = [tnhash+"\n", tbssid+"\n", twl+"\n"]
+    rfd = open(md5h+'.res','w')
+    rfd.writelines(resc)
+    rfd.close()
 
     return md5h+'.cap'
 
@@ -300,9 +300,9 @@ def resume_check():
     for fname in os.listdir('.'):
         if fnmatch.fnmatch(fname, '*.res'):
             if os.path.exists(fname.replace('.res', '.cap')):
-                fd = open(fname, 'r')
-                resc = fd.readlines()
-                fd.close()
+                rfd = open(fname, 'r')
+                resc = rfd.readlines()
+                rfd.close()
                 if len(resc) >= 3:
                     print 'Resume file %s found' % fname
                     resc[0] = resc[0].replace("\n", '')
