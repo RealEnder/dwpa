@@ -5,6 +5,7 @@
 
 import sys
 import os
+import fnmatch
 import platform
 import subprocess
 import shlex
@@ -294,6 +295,30 @@ def low_priority():
             print 'Exception: %s' % e
             print 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32'
 
+#check for resume files
+def resume_check():
+    for fname in os.listdir('.'):
+        if fnmatch.fnmatch(fname, '*.res'):
+            if os.path.exists(fname.replace('.res', '.cap')):
+                fd = open(fname, 'r')
+                resc = fd.readlines()
+                fd.close()
+                if len(resc) >= 3:
+                    print 'Resume file %s found' % fname
+                    resc[0] = resc[0].replace("\n", '')
+                    resc[1] = resc[1].replace("\n", '')
+                    resc[2] = resc[2].replace("\n", '')
+                    get_gz(resc[2])
+                    resc[2] = resc[2].split('/')[-1]
+                    resc[2] = resc[2].rsplit('.', 1)[0]
+                    return (resc[0], resc[1], resc[2], fname.replace('.res', '.cap'))
+                else:
+                    print 'Bad resume file contents'            
+            else:
+                print 'Resume file found, but not capture'
+                os.unlink(fname)
+
+    return (None, None, None, None)
 
 print 'help_crack, distributed WPA cracker, v' + hc_ver
 print 'site: ' + base_url
@@ -318,40 +343,42 @@ rule = ''
 #        rule = '-rrules/best64.rule'
 
 while True:
-    (nhash, bssid, wl) = get_work_wl()
+    (nhash, bssid, wl, cap_temp) = resume_check()
+    if nhash is None:
+        (nhash, bssid, wl) = get_work_wl()
 
-    if nhash == False:
-        print 'No suitable nets found'
-        sleepy()
-        continue
+        if nhash == False:
+            print 'No suitable nets found'
+            sleepy()
+            continue
 
-    if wl == False:
-        print 'Couldn\'t download the wordlist'
-        sleepy()
-        continue
+        if wl == False:
+            print 'Couldn\'t download the wordlist'
+            sleepy()
+            continue
 
-    #get capture and write it in local file
-    gzcap = get_url(md5caps+nhash[0:3]+'/'+nhash+'.gz')
-    if not gzcap:
-        sleepy()
-        continue
-    gzstream = StringIO.StringIO(gzcap)
-    cap_temp = create_resume(nhash, bssid, wl)
-    #extract dict filename from url
-    wl = wl.split('/')[-1]
-    wl = wl.rsplit('.', 1)[0]
-    try:
-        fgz = gzip.GzipFile(fileobj = gzstream)
-        fd = open(cap_temp, 'wb')
-        fd.write(fgz.read())
-        fd.close()
-        fgz.close()
-    except Exception as ex:
-        print 'Exception: %s' % ex
-        sleepy()
-        continue
+        #get capture and write it in local file
+        gzcap = get_url(md5caps+nhash[0:3]+'/'+nhash+'.gz')
+        if not gzcap:
+            sleepy()
+            continue
+        gzstream = StringIO.StringIO(gzcap)
+        cap_temp = create_resume(nhash, bssid, wl)
+        #extract dict filename from url
+        wl = wl.split('/')[-1]
+        wl = wl.rsplit('.', 1)[0]
+        try:
+            fgz = gzip.GzipFile(fileobj = gzstream)
+            fd = open(cap_temp, 'wb')
+            fd.write(fgz.read())
+            fd.close()
+            fgz.close()
+        except Exception as ex:
+            print 'Exception: %s' % ex
+            sleepy()
+            continue
 
-    key_temp = mk_temp()
+    key_temp = cap_temp.replace('.cap', '.key')
 
     #run cracker
     try:
