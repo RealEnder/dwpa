@@ -39,16 +39,6 @@ def valid_mac(mac):
         return False
     return True
 
-#make temp filename
-def mk_temp():
-    md5s = hashlib.md5()
-    while True:
-        md5s.update(os.urandom(16))
-        md5h = md5s.hexdigest()
-        if not os.path.exists(md5h):
-            break
-    return md5h
-
 #get md5 from local file
 def md5file(filename):
     md5s = hashlib.md5()
@@ -251,7 +241,7 @@ def get_work_wl():
         if not valid_mac(gwbssid):
             return (False, False, False)
 
-        gwwl = get_gz(gwwl)
+        get_gz(gwwl)
 
         return (gwhash, gwbssid, gwwl)
     else:
@@ -273,6 +263,21 @@ def put_work(pwhash, pwkey):
         return False
 
     return True
+
+#create capture filename and resume file
+def create_resume(tnhash, tbssid, twl):
+    md5s = hashlib.md5()
+    while True:
+        md5s.update(os.urandom(16))
+        md5h = md5s.hexdigest()
+        if not os.path.exists(md5h+'.cap'):
+            break
+    resc = [tnhash+"\n", tbssid+"\n", wl+"\n"]
+    fd = open(md5h+'.res','w')
+    fd.writelines(resc)
+    fd.close()
+
+    return md5h+'.cap'
 
 #multiplatform lower priority
 def low_priority():
@@ -331,7 +336,10 @@ while True:
         sleepy()
         continue
     gzstream = StringIO.StringIO(gzcap)
-    cap_temp = mk_temp()
+    cap_temp = create_resume(nhash, bssid, wl)
+    #extract dict filename from url
+    wl = wl.split('/')[-1]
+    wl = wl.rsplit('.', 1)[0]
     try:
         fgz = gzip.GzipFile(fileobj = gzstream)
         fd = open(cap_temp, 'wb')
@@ -370,12 +378,7 @@ while True:
         print 'Keyboard interrupt'
         if os.path.exists(key_temp):
             os.unlink(key_temp)
-        if os.path.exists(cap_temp):
-            os.unlink(cap_temp)
         exit(1)
-
-    if os.path.exists(cap_temp):
-        os.unlink(cap_temp)
 
     #if we have key, submit it
     if os.path.exists(key_temp):
@@ -392,3 +395,8 @@ while True:
         os.unlink(key_temp)
     else:
         print 'Key for capture hash '+nhash+' not found.'
+
+    #cleanup
+    if os.path.exists(cap_temp):
+        os.unlink(cap_temp)
+        os.unlink(cap_temp.replace('.cap', '.res'))
