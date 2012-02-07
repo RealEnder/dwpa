@@ -34,7 +34,6 @@ VIAddVersionKey "FileDescription" "HelpCrack"
 !define PYWINCFG  "PyWin"
 !define HCCFG     "HelpCrack"
 !define ACCFG     "Aircrack-ng"
-!define ACBINPATH "aircrack-ng-1.1-win/bin/"
 
 ;--------------------------------
 ; Pages
@@ -93,7 +92,7 @@ FunctionEnd
 
 ; install sections
 Section "Python" SecPython
-  SectionIn RO
+  ;SectionIn RO
   ;download
   !insertmacro GetComponent $PythonUrl "${PYTHONCFG}.msi"
 
@@ -109,7 +108,7 @@ Section "Python" SecPython
 SectionEnd
 
 Section "PyWin" SecPyWin
-  SectionIn RO
+  ;SectionIn RO
   ;download
   !insertmacro GetComponent $PyWinUrl "${PYWINCFG}.exe"
 
@@ -125,28 +124,21 @@ Section "PyWin" SecPyWin
 SectionEnd
 
 Section "Aircrack-ng" SecAirCrack
-  SectionIn RO
+  ;SectionIn RO
   ;download
   !insertmacro GetComponent $AircrackUrl ${ACCFG}
 
   CreateDirectory $INSTDIR
   ;extract
   DetailPrint "extracting ${ACCFG}..."
-  nsisunz::UnzipToLog /noextractpath /file "${ACBINPATH}aircrack-ng.exe" "$HCTemp\${ACCFG}" "$INSTDIR"
-  nsisunz::UnzipToLog /noextractpath /file "${ACBINPATH}cygcrypto-0.9.8.dll" "$HCTemp\${ACCFG}" "$INSTDIR"
-  nsisunz::UnzipToLog /noextractpath /file "${ACBINPATH}cyggcc_s-1.dll" "$HCTemp\${ACCFG}" "$INSTDIR"
-  nsisunz::UnzipToLog /noextractpath /file "${ACBINPATH}cygwin1.dll" "$HCTemp\${ACCFG}" "$INSTDIR"
-  nsisunz::UnzipToLog /noextractpath /file "${ACBINPATH}cygz.dll" "$HCTemp\${ACCFG}" "$INSTDIR"
-
-;  nsisunz::Unzip "$HCTemp\${ACCFG}" $HCTemp
-;  CopyFiles /SILENT "$HCTemp\aircrack-ng-1.1-win\*.*" "$INSTDIR"
+  nsisunz::UnzipToLog "$HCTemp\${ACCFG}" "$INSTDIR"
 SectionEnd
 
 Section "HelpCrack" SecHC
-  ;SectionIn RO
+  SectionIn RO
   ;download
   !insertmacro GetComponent $HelpCrackUrl ${HCCFG}
   ;install
-  DetailPrint "${HCCFG}..."
+  DetailPrint "installing ${HCCFG}..."
   CopyFiles /SILENT "$HCTemp\${HCCFG}" "$INSTDIR\help_crack.py"
 SectionEnd
