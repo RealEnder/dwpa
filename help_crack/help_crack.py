@@ -26,7 +26,7 @@ get_work_url  = base_url + '?get_work'
 put_work_url  = base_url + '?put_work'
 
 #version
-hc_ver = '0.7.1'
+hc_ver = '0.7.2'
 
 def sleepy():
     print 'Sleeping...'
@@ -230,7 +230,7 @@ def get_work_wl():
         gwr = work.split('\\')
         if len(gwr) < 3:
             print 'Server returned bad response. Check for help_crack update.'
-            exit(1)
+            return (False, False)
 
         gwhash = gwr[0]
         gwbssid = gwr[1]
