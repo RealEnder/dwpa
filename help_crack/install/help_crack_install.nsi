@@ -2,10 +2,10 @@
 ;--------------------------------
 
 ; The name of the installer
-Name "hcinstall"
+Name "help_crack_install"
 
 ; The file to write
-OutFile "hcinstall.exe"
+OutFile "help_crack_.exe"
 
 ; The default installation directory
 InstallDir c:\wpa
@@ -18,9 +18,8 @@ ShowInstDetails show
 
 VIProductVersion "1.0.0.1"
 VIAddVersionKey "FileVersion" "1.0.0.1"
-VIAddVersionKey "ProductName" "HelpCrack"
-VIAddVersionKey "LegalCopyright" "© HelpCrack"
-VIAddVersionKey "FileDescription" "HelpCrack"
+VIAddVersionKey "ProductName" "help_crack"
+VIAddVersionKey "FileDescription" "http://wpa-sec.stanev.org"
 
 !include x64.nsh
 !include FileFunc.nsh
@@ -32,8 +31,9 @@ VIAddVersionKey "FileDescription" "HelpCrack"
 !define SOFTURL "URL"
 !define PYTHONCFG "Python"
 !define PYWINCFG  "PyWin"
-!define HCCFG     "HelpCrack"
+!define HCCFG     "help_crack"
 !define ACCFG     "Aircrack-ng"
+!define HCPCFG    "oclHashCat-plus"
 
 ;--------------------------------
 ; Pages
@@ -48,7 +48,8 @@ var HCTemp
 var PythonUrl
 var PyWinUrl
 var AircrackUrl
-var HelpCrackUrl
+var help_crackUrl
+var hcpUrl
 
 !macro GetConfig
   StrCpy $HCConfig "$PLUGINSDIR\${CONFIG_FILE}"
@@ -69,7 +70,8 @@ var HelpCrackUrl
   ReadINIStr $PythonUrl $HCConfig ${SOFTURL} "${PYTHONCFG}$x64p"
   ReadINIStr $PyWinUrl $HCConfig ${SOFTURL} "${PYWINCFG}$x64p"
   ReadINIStr $AircrackUrl $HCConfig ${SOFTURL} "${ACCFG}"
-  ReadINIStr $HelpCrackUrl $HCConfig ${SOFTURL} "${HCCFG}"
+  ReadINIStr $help_crackUrl $HCConfig ${SOFTURL} "${HCCFG}"
+  ReadINIStr $hcpUrl $HCConfig ${SOFTURL} "${HCPCFG}"
 !macroend
 
 !macro GetComponent SrcUrl SrcName
@@ -134,11 +136,13 @@ Section "Aircrack-ng" SecAirCrack
   nsisunz::UnzipToLog "$HCTemp\${ACCFG}" "$INSTDIR"
 SectionEnd
 
-Section "HelpCrack" SecHC
+Section "help_crack" SecHC
   SectionIn RO
   ;download
-  !insertmacro GetComponent $HelpCrackUrl ${HCCFG}
+  !insertmacro GetComponent $help_crackUrl ${HCCFG}
   ;install
   DetailPrint "installing ${HCCFG}..."
   CopyFiles /SILENT "$HCTemp\${HCCFG}" "$INSTDIR\help_crack.py"
 SectionEnd
+
+;TODO: download oclHashCat-plus
