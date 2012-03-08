@@ -152,14 +152,26 @@ def check_tools():
                 t = which('oclHashcat-plus64')
                 if t:
                     tools.append(t)
+                t = which('oclHashcat-plus64.bin')
+                if t:
+                    tools.append(t)
                 t = which('cudaHashcat-plus64')
+                if t:
+                    tools.append(t)
+                t = which('cudaHashcat-plus64.bin')
                 if t:
                     tools.append(t)
             else:
                 t = which('oclHashcat-plus32')
                 if t:
                     tools.append(t)
+                t = which('oclHashcat-plus32.bin')
+                if t:
+                    tools.append(t)
                 t = which('cudaHashcat-plus32')
+                if t:
+                    tools.append(t)
+                t = which('cudaHashcat-plus32.bin')
                 if t:
                     tools.append(t)
                     
