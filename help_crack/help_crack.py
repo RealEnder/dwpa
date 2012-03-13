@@ -26,7 +26,7 @@ get_work_url  = base_url + '?get_work'
 put_work_url  = base_url + '?put_work'
 
 #version
-hc_ver = '0.7.2'
+hc_ver = '0.7.3'
 
 def sleepy():
     print 'Sleeping...'

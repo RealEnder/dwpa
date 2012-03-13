@@ -29,7 +29,8 @@ ver 0.7.1 / 1 Feb 2012
  * general and pylint fixes
 
 ver 0.7.2 / 10 Feb 2012
- * do not exit on bad response, it may be temp problem
+ * do not exit on bad response, it may be a temp problem
 
-ver 
+ver 0.7.3 / 12 Mar 2012
  * fix search for oclHashcat-plus binaries on unix
+ * return right result when get_work_wl() fails
