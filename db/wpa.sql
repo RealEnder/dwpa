@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Dec 29, 2011 at 07:02 PM
--- Server version: 5.1.58
--- PHP Version: 5.3.6-13ubuntu3.3
+-- Generation Time: Mar 13, 2012 at 12:00 PM
+-- Server version: 5.1.61
+-- PHP Version: 5.3.6-13ubuntu3.6
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
   UNIQUE KEY `IDX_nets_nhash` (`nhash`),
   KEY `u_id` (`u_id`),
   KEY `IDX_nets_bssid` (`bssid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=16293 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=31440 ;
 
 -- --------------------------------------------------------
 
@@ -157,12 +157,13 @@ CREATE TABLE IF NOT EXISTS `submissions` (
 CREATE TABLE IF NOT EXISTS `users` (
   `u_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `userkey` binary(16) NOT NULL,
-  `mail` varchar(500) DEFAULT NULL,
+  `mail` varchar(500) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
-  UNIQUE KEY `IDX_users_userkey` (`userkey`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=158 ;
+  UNIQUE KEY `IDX_users_userkey` (`userkey`),
+  UNIQUE KEY `IDX_users_mail` (`mail`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=253 ;
 
 -- --------------------------------------------------------
 
