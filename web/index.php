@@ -31,18 +31,31 @@ if (isset($_POST['recaptcha_response_field'])) {
                 $mail = trim($_POST['mail']);
 
         //put new key in db
-        $sql = 'INSERT IGNORE INTO users(userkey, mail, ip) VALUES(UNHEX(?), ?, ?)';
+        $sql = 'INSERT INTO users(userkey, mail, ip) VALUES(UNHEX(?), ?, ?)
+                ON DUPLICATE KEY UPDATE userkey=UNHEX(?), ip=?, ts=CURRENT_TIMESTAMP()';
         $stmt = $mysql->stmt_init();
         $ip = ip2long($_SERVER['REMOTE_ADDR']);
         $userkey = gen_key();
         $stmt->prepare($sql);
-        $stmt->bind_param('ssi', $userkey, $mail, $ip);
+        $stmt->bind_param('ssisi', $userkey, $mail, $ip, $userkey, $ip);
         $stmt->execute();
         $stmt->close();
 
         //set cookie
         setcookie('key', $userkey, 2147483647, '', '', false, true);
         $_COOKIE['key'] = $userkey;
+        
+        //send mail with the key
+        if (isset($mail)) {
+            require_once('mail.php');
+            try {
+                $mailer->AddAddress($mail);
+		        $mailer->Subject = 'wpa-sec.stanev.org key';
+		        $mailer->Body    = "Key to access results is: $userkey";
+		        $mailer->Send();
+		        $mailer->SmtpClose();
+		    } catch (Exception $e) { }
+        }
     }
 }
 
