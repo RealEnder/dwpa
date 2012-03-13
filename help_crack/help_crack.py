@@ -233,7 +233,7 @@ def get_work_wl():
     work = get_url(get_work_url+'='+hc_ver)
     if work is not None:
         if work == 'No nets':
-            return (False, False)
+            return (False, False, False)
 
         if work == 'Version':
             print 'Please update help_crack, the interface has changed'
@@ -242,7 +242,7 @@ def get_work_wl():
         gwr = work.split('\\')
         if len(gwr) < 3:
             print 'Server returned bad response. Check for help_crack update.'
-            return (False, False)
+            return (False, False, False)
 
         gwhash = gwr[0]
         gwbssid = gwr[1]
