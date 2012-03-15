@@ -7,6 +7,12 @@ if (version_compare($_GET['get_work'], MIN_HC_VER) < 0 ) {
 require_once('db.php');
 require_once('common.php');
 
+//avoid race condition
+//add critical section for now
+//TODO: fix this in mysql
+$sem = sem_get(999);
+sem_acquire($sem);
+    
 //get work
 $sql = 'SELECT * FROM onets, get_dict LIMIT 1';
 $stmt = $mysql->stmt_init();
@@ -28,6 +34,10 @@ if ($stmt->fetch()) {
 } else {
     echo 'No nets';
 }
+
+//release critical section
+sem_release($sem);
+sem_remove($sem);
 
 $stmt->close();
 $mysql->close();
