@@ -95,7 +95,8 @@ function submission($mysql, $file) {
             $rc  = 0;
             //run through pyrit analyze
             exec(PYRIT.' -r '.SHM.$bnfile.' analyze', $cut, $rc);
-            if ($rc == 0) {
+            //check for correct errorcode and if we have only one AP
+            if (($rc == 0) && (strpos(implode("\n", $cut), 'got 1 AP(s)') !== FALSE)) {
                 $cut = file_get_contents(SHM.$bnfile);
                 $md5cap = md5($cut);
                 $gzdata = gzencode($cut, 9);
