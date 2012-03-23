@@ -30,7 +30,7 @@ if ($stmt->fetch()) {
     $ustmt->bind_param('ii', $data['net_id'], $data['d_id']);
     $ustmt->execute();
     $ustmt->close();
-    echo strtolower($data['nhash']).'\\'.long2mac($data['bssid']).'\\'.$data['dpath'];
+    echo strtolower($data['nhash']).'\\'.long2mac($data['bssid']).'\\'.$data['dpath'].'\\';
 } else {
     echo 'No nets';
 }
