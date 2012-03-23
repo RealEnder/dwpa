@@ -335,7 +335,6 @@ def resume_check():
 print 'help_crack, distributed WPA cracker, v' + hc_ver
 print 'site: ' + base_url
 
-#check if custom dictionary is passed
 wordlist = ''
 if len(sys.argv) > 1:
     print 'Usage: ./help_crack.py : download capture and wordlist then start cracking'
