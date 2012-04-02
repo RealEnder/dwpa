@@ -265,8 +265,7 @@ Provide email address (raw input)
 Returns true if the email address has the email 
 address format and the domain exists.
 */
-function validEmail($email)
-{
+function validEmail($email) {
 	$isValid = true;
 	$atIndex = strrpos($email, "@");
 	if (is_bool($atIndex) && !$atIndex) {
@@ -310,7 +309,7 @@ function validEmail($email)
 }
 
 //convert num
-function convert_num($num){
+function convert_num($num) {
     $num = (float) $num;
     if ($num >= 1000000000000) {
         $tera = $num / 1000000000000;
@@ -327,6 +326,27 @@ function convert_num($num){
     } else
         $size = sprintf('%.2f', $num);
     return $size;
+}
+
+//convert seconds to text
+function convert_sec($secs) {
+    $units = array (
+        'year'   => 29030400, // seconds in a year   (12 months)
+        'month'  => 2419200,  // seconds in a month  (4 weeks)
+        'day'    => 86400,    // seconds in a day    (24 hours)
+        'hour'   => 3600      // seconds in an hour  (60 minutes)
+    );
+    $output='';
+
+    foreach($units as $unit => $mult)
+        if($secs >= $mult) {
+            $and = (($mult != 1) ? ('') : ('and '));
+            $output .= ', '.$and.intval($secs / $mult).' '.$unit.((intval($secs / $mult) == 1) ? ('') : ('s'));
+            $secs -= intval($secs / $mult) * $mult;
+        }
+
+    //remove leading ,
+    return substr($output, 2);
 }
 
 //Write nets table
