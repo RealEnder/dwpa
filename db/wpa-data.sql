@@ -49,7 +49,8 @@ INSERT INTO `stats` (`pname`, `pvalue`) VALUES
 ('nets', '12761'),
 ('cracked', '1489'),
 ('24getwork', '13089'),
-('24psk', '3972098409');
+('24psk', '3972098409'),
+('24sub', '0');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

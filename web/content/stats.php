@@ -26,5 +26,6 @@ if ((int) $stats['nets'] > 0) {
 echo "Last day getworks: {$stats['24getwork']}<br/>\n";
 $perf = convert_num($stats['24psk']/(60*60*24));
 echo "Last day performance: $perf/s<br/>\n";
+echo "Last day submissions: {$stats['24sub']}<br/>\n";
 ?>
 </p>
