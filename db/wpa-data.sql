@@ -50,7 +50,9 @@ INSERT INTO `stats` (`pname`, `pvalue`) VALUES
 ('cracked', '1489'),
 ('24getwork', '13089'),
 ('24psk', '3972098409'),
-('24sub', '0');
+('24sub', '0'),
+('words', '0'),
+('triedwords', '0');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

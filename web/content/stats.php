@@ -28,4 +28,9 @@ $perf = convert_num($stats['24psk']/(60*60*24));
 echo "Last day performance: $perf/s<br/>\n";
 echo "Last day submissions: {$stats['24sub']}<br/>\n";
 ?>
+<br/>
+Current keyspace progress:
+<dl class="progress">
+    <dd class="done" style="width: <? echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100); ?>%"><? echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100, 2); ?>%</dd>
+</dl>
 </p>

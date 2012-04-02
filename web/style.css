@@ -87,3 +87,9 @@ div.hr hr {display: none;}
 
 /* key form */
 .keybutton {background-color: #f5f5dc;border: 1px solid #000000;}
+
+/* progress */
+dl.progress,
+dl.progress * {margin: 0; padding: 0;}
+dl.progress {padding: 1px; border: 1px solid #ddd; height: 20px; width: 300px;}
+.progress .done {background-color: #9db029;}
