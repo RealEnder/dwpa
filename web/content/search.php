@@ -38,7 +38,8 @@ ORDER BY nets.net_id DESC';
             $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.userkey=UNHEX(?)
 WHERE ssid LIKE ?
-ORDER BY nets.net_id DESC';
+ORDER BY nets.net_id DESC
+LIMIT 20';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         if ($k == $bosskey)
