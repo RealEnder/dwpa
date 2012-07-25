@@ -21,7 +21,12 @@ define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
 define('CAP', '/var/www/wpa-sec/cap/');
 define('MD5CAPS', '/var/www/wpa-sec/md5caps/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
-define('SHM', '/dev/shm/');
+if (is_dir('/run/shm'))
+    define('SHM', '/run/shm/');
+elseif (is_dir('/dev/shm'))
+    define('SHM', '/dev/shm/');
+else
+    die('Can not access SHM!');
 
 define('MIN_HC_VER', '0.7');
 ?>
