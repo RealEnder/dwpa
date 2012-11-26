@@ -28,7 +28,10 @@ $perf = convert_num($stats['24psk']/(60*60*24));
 echo "Last day performance: $perf/s<br/>\n";
 echo "Last day submissions: {$stats['24sub']}<br/>\n";
 echo "Current round ends in: ";
-echo convert_sec(round(((int) $stats['words'] - (int) $stats['triedwords']) / ((int) $stats['24psk']/(60*60*24))));
+if ((int) $stats['24psk'] > 0)
+    echo convert_sec(round(((int) $stats['words'] - (int) $stats['triedwords']) / ((int) $stats['24psk']/(60*60*24))));
+else
+    echo 'infinity';
 echo "<br/>\n";
 ?>
 <br/>
