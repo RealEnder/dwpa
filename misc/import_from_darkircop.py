@@ -8,7 +8,7 @@ import MultipartPostHandler
 from lxml import html
 
 # Full list url: http://wpa.darkircop.org/index.php?off=0&limit=-1
-darkircop     = 'http://wpa.darkircop.org/index.php?off=0&limit=-1'
+darkircop     = 'http://wpa.darkircop.org/index.php?off=0&limit=7500'
 darkircop_cap = 'http://wpa.darkircop.org/cap/wpa.cap.gz'
 base_url      = 'http://wpa-sec.stanev.org/'
 put_work_url  = base_url + '?put_work'
