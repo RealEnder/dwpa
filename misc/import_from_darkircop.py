@@ -106,4 +106,4 @@ for data in doc.xpath('//tr'):
         if not put_work(bssid, key):
             print 'Pair send failed'
     else:
-        print 'Small len or not valid mac!'
+        print 'Small len or not valid mac! BSSID: '+bssid+' Key: '+ key
