@@ -34,3 +34,6 @@ ver 0.7.2 / 10 Feb 2012
 ver 0.7.3 / 12 Mar 2012
  * fix search for oclHashcat-plus binaries on unix
  * return right result when get_work_wl() fails
+
+ver 
+ * better handling of return codes in oclHashcat-plus
