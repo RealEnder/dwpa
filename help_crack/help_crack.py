@@ -133,6 +133,18 @@ def which(program):
 
     return False
 
+#run external tool and check returncode
+def run_tool(tool):
+    if not isinstance(tool, basestring):
+        return False
+
+    try:
+        subprocess.check_call(tool, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as ex:
+        return False
+
+    return True
+
 #look for cracking tools, check for their capabilities, ask user
 def check_tools():
     tools = []
@@ -150,29 +162,29 @@ def check_tools():
             bits = platform.architecture()[0]
             if bits == '64bit':
                 t = which('oclHashcat-plus64')
-                if t:
+                if run_tool(t):
                     tools.append(t)
                 t = which('oclHashcat-plus64.bin')
-                if t:
+                if run_tool(t):
                     tools.append(t)
                 t = which('cudaHashcat-plus64')
-                if t:
+                if run_tool(t):
                     tools.append(t)
                 t = which('cudaHashcat-plus64.bin')
-                if t:
+                if run_tool(t):
                     tools.append(t)
             else:
                 t = which('oclHashcat-plus32')
-                if t:
+                if run_tool(t):
                     tools.append(t)
                 t = which('oclHashcat-plus32.bin')
-                if t:
+                if run_tool(t):
                     tools.append(t)
                 t = which('cudaHashcat-plus32')
-                if t:
+                if run_tool(t):
                     tools.append(t)
                 t = which('cudaHashcat-plus32.bin')
-                if t:
+                if run_tool(t):
                     tools.append(t)
                     
     if len(tools) == 0:
