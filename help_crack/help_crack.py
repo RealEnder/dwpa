@@ -427,14 +427,12 @@ while True:
                 if ex.returncode == -1:
                     print 'Internal error'
                     exit(1)
-                if ex.returncode == 0:
-                    print 'Cracked'
                 if ex.returncode == 1:
                     print 'Exausted'
                 if ex.returncode == 2:
                     print 'User abort'
                     exit(1)
-                if ex.returncode not in [-2, -1, 0, 1, 2]:
+                if ex.returncode not in [-2, -1, 1, 2]:
                     print 'Cracker %s died with code %i' % (tool, ex.returncode)
                     print 'Check you have CUDA/OpenCL support'
                     exit(1)
