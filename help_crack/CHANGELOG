@@ -36,5 +36,6 @@ ver 0.7.3 / 12 Mar 2012
  * return right result when get_work_wl() fails
 
 ver 
+ * add Hashcat support
  * better handling of return codes in oclHashcat-plus
  * try to run Hashcat* to check if they work (OpenCL/CUDA)

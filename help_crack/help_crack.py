@@ -145,6 +145,21 @@ def run_tool(tool):
 
     return True
 
+#Hashcat always returns returncode 255
+def run_hashcat(tool):
+    if not isinstance(tool, basestring):
+        return False
+
+    try:
+        acp = subprocess.Popen(tool, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = acp.communicate()[0]
+    except OSError as ex:
+        return False
+    if output.find('hashcat') != -1:
+        return True
+
+    return False
+
 #look for cracking tools, check for their capabilities, ask user
 def check_tools():
     tools = []
@@ -161,6 +176,29 @@ def check_tools():
         if output.find('Hashcat') != -1:
             bits = platform.architecture()[0]
             if bits == '64bit':
+                #this is for Hashcat
+                t = which('hashcat-cli64')
+                if run_hashcat(t):
+                    tools.append(t)
+                t = which('hashcat-cliAVX')
+                if run_hashcat(t):
+                    tools.append(t)
+                t = which('hashcat-cliXOP')
+                if run_hashcat(t):
+                    tools.append(t)
+                t = which('hashcat-cli64.bin')
+                if run_hashcat(t):
+                    tools.append(t)
+                t = which('hashcat-cliAVX.bin')
+                if run_hashcat(t):
+                    tools.append(t)
+                t = which('hashcat-cliXOP.bin')
+                if run_hashcat(t):
+                    tools.append(t)
+                t = which('hashcat-cli64.app')
+                if run_hashcat(t):
+                    tools.append(t)
+                #this is for oclHashcat-plus
                 t = which('oclHashcat-plus64')
                 if run_tool(t):
                     tools.append(t)
@@ -174,6 +212,14 @@ def check_tools():
                 if run_tool(t):
                     tools.append(t)
             else:
+                #this is for Hashcat
+                t = which('hashcat-cli')
+                if run_hashcat(t):
+                    tools.append(t)
+                t = which('hashcat-cli.bin')
+                if run_hashcat(t):
+                    tools.append(t)
+                #this is for oclHashcat-plus
                 t = which('oclHashcat-plus32')
                 if run_tool(t):
                     tools.append(t)
@@ -188,7 +234,7 @@ def check_tools():
                     tools.append(t)
                     
     if len(tools) == 0:
-        print 'No aircrack-ng, pyrit or oclHashcat-plus found'
+        print 'No aircrack-ng, pyrit, Hashcat or oclHashcat-plus found'
         exit(1)
     if len(tools) == 1:
         return tools[0]
@@ -436,6 +482,13 @@ while True:
                     print 'Cracker %s died with code %i' % (tool, ex.returncode)
                     print 'Check you have CUDA/OpenCL support'
                     exit(1)
+        if tool.find('hashcat-cli') != -1:
+            subprocess.call(['aircrack-ng', '-Jwpa', cap_temp])
+            if not os.path.exists('wpa.hccap'):
+                print 'Could not create hccap file with aircrack-ng'
+                exit(1)
+            cracker = '%s -m2500 -o%s %s wpa.hccap %s' % (tool, key_temp, rule, wl)
+            subprocess.call(shlex.split(cracker))
     except KeyboardInterrupt as ex:
         print 'Keyboard interrupt'
         if os.path.exists(key_temp):
@@ -447,7 +500,9 @@ while True:
         ktf = open(key_temp, 'r')
         key = ktf.readline()
         ktf.close()
-        if tool.find('Hashcat') != -1:
+        if tool.find('Hashcat-plus') != -1:
+            key = key[key.find(':')+1:]
+        if tool.find('hashcat-cli') != -1:
             key = key[key.find(':')+1:]
         key = key.rstrip('\n')
         print 'Key for capture hash '+nhash+' is: '+key
