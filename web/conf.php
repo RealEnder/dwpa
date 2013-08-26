@@ -17,6 +17,7 @@ define('AIRCRACK', 'aircrack-ng');
 define('PYRIT', 'pyrit');
 define('TCPDUMP', '/usr/sbin/tcpdump');
 define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
+define('CAP2HCCAP', '/var/www/wpa-sec/cap/cap2hccap');
 
 define('CAP', '/var/www/wpa-sec/cap/');
 define('MD5CAPS', '/var/www/wpa-sec/md5caps/');

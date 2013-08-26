@@ -104,10 +104,20 @@ function submission($mysql, $file) {
                 @mkdir(MD5CAPS.substr($md5cap, 0, 3));
                 //write gz capture file
                 file_put_contents(MD5CAPS.substr($md5cap, 0, 3)."/$md5cap.gz", $gzdata);
-                //put in db
-                $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                $stmt->bind_param('sisii', $md5cap, $net, $nname[$net], $ip, $u_id);
-                $stmt->execute();
+                //generate hccap
+                $cut = '';
+                exec(CAP2HCCAP.' '.SHM."$bnfile ".SHM."$bnfile.hccap", $cut, $rc);
+                if (($rc == 0) && filesize(SHM."$bnfile.hccap") == 392) {
+                    //write gz hccap file
+                    $cut = file_get_contents(SHM."$bnfile.hccap");
+                    $gzdata = gzencode($cut, 9);
+                    file_put_contents(MD5CAPS.substr($md5cap, 0, 3)."/$md5cap.hccap.gz", $gzdata);
+                    //put in db
+                    $ip = ip2long($_SERVER['REMOTE_ADDR']);
+                    $stmt->bind_param('sisii', $md5cap, $net, $nname[$net], $ip, $u_id);
+                    $stmt->execute();
+                }
+                @unlink(SHM."$bnfile.hccap");
             }
         }
     }
