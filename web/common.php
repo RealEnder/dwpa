@@ -1,4 +1,120 @@
 <?
+//php 5.5 has this one
+if (! function_exists('hash_pbkdf2')) {
+    // based on https://defuse.ca/php-pbkdf2.htm
+    function hash_pbkdf2($algorithm, $password, $salt, $count, $key_length, $raw_output = false)
+    {
+        $hash_length = array('sha1' => 20,
+                             'md5'  => 16,);
+
+        $block_count = ceil($key_length / $hash_length[$algorithm]);
+
+        $output = '';
+        for($i = 1; $i <= $block_count; $i++) {
+            // $i encoded as 4 bytes, big endian.
+            $last = $salt . pack("N", $i);
+            // first iteration
+            $last = $xorsum = hash_hmac($algorithm, $last, $password, true);
+            // perform the other $count - 1 iterations
+            for ($j = 1; $j < $count; $j++) {
+                $xorsum ^= ($last = hash_hmac($algorithm, $last, $password, true));
+            }
+            $output .= $xorsum;
+        }
+
+        if($raw_output)
+            return substr($output, 0, $key_length);
+        else
+            return bin2hex(substr($output, 0, $key_length));
+    }
+}
+
+/*
+    check_key(hccap contents, array of keys)
+    return:  False: bad format;
+             Null: not found
+             string: the key
+    hccap structure http://hashcat.net/wiki/doku.php?id=hccap
+
+    typedef struct
+    {
+        char          essid[36];
+
+        unsigned char mac1[6];
+        unsigned char mac2[6];
+        unsigned char nonce1[32];
+        unsigned char nonce2[32];
+
+        unsigned char eapol[256];
+        int           eapol_size;
+
+        int           keyver;
+        unsigned char keymic[16];
+
+    } hccap_t;
+*/
+function check_key($hccap, $keys) {
+    if (strlen($hccap) != 392)
+        return False;
+
+    $ahccap = array();
+    $ahccap['essid']      = unpack('a36', substr($hccap, 0x000, 36));
+    $ahccap['mac1']       =               substr($hccap, 0x024, 6);
+    $ahccap['mac2']       =               substr($hccap, 0x02a, 6);
+    $ahccap['nonce1']     =               substr($hccap, 0x030, 32);
+    $ahccap['nonce2']     =               substr($hccap, 0x050, 32);
+    $ahccap['eapol']      =               substr($hccap, 0x070, 256);
+    $ahccap['eapol_size'] = unpack('i',   substr($hccap, 0x170, 4));
+    $ahccap['keyver']     = unpack('i',   substr($hccap, 0x174, 4));
+    $ahccap['keymic']     =               substr($hccap, 0x178, 16);
+
+    // fixup unpack
+    $ahccap['essid']      = $ahccap['essid'][1];
+    $ahccap['eapol_size'] = $ahccap['eapol_size'][1];
+    $ahccap['keyver']     = $ahccap['keyver'][1];
+
+    // cut eapol to right size
+    $ahccap['eapol'] = substr($ahccap['eapol'], 0, $ahccap['eapol_size']);
+
+    // fix order
+    if (strncmp($ahccap['mac1'], $ahccap['mac2'], 6) < 0)
+        $m = $ahccap['mac1'].$ahccap['mac2'];
+    else
+        $m = $ahccap['mac2'].$ahccap['mac1'];
+
+    if (strncmp($ahccap['nonce1'], $ahccap['nonce2'], 6) < 0)
+        $n = $ahccap['nonce1'].$ahccap['nonce2'];
+    else
+        $n = $ahccap['nonce2'].$ahccap['nonce1'];
+
+    $block = "Pairwise key expansion\0".$m.$n."\0";
+
+    foreach ($keys as $key) {
+        $kl = strlen($key);
+        if (($kl < 8) || ($kl > 64))
+            continue;
+
+        $pmk = hash_pbkdf2('sha1', $key, $ahccap['essid'], 4096, 32, True);
+
+        $ptk = hash_hmac('sha1', $block, $pmk, True);
+
+        if ($ahccap['keyver'] == 1)
+            $testmic = hash_hmac('md5',  $ahccap['eapol'], substr($ptk, 0, 16), True);
+        else
+            $testmic = hash_hmac('sha1', $ahccap['eapol'], substr($ptk, 0, 16), True);
+
+        if (strncmp($testmic, $ahccap['keymic'], 16) == 0)
+            return $key;
+    }
+
+    return NULL;
+}
+
+function check_pass2($nhash, $pass) {
+    $hccap = gzinflate(substr(file_get_contents(MD5CAPS.substr($nhash, 0, 3)."/$nhash.hccap.gz"), 10));
+    return ($pass == check_key($hccap, array($pass)));
+}
+
 //Execute aircrack-ng and check for solved net
 function check_pass($nhash, $pass) {
     if (strlen($pass) < 8)
@@ -172,7 +288,7 @@ function put_work($mysql) {
 
             while ($stmt->fetch()) {
                 $nhash = strtolower($data['nhash']);
-                if (check_pass($nhash, $key)) {
+                if (check_pass2($nhash, $key)) {
                     //put result in nets
                     $stmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
@@ -190,7 +306,7 @@ function put_work($mysql) {
             $nstmt->execute();
 
             if ($nstmt->fetch())
-                if (check_pass($nhash, $key)) {
+                if (check_pass2($nhash, $key)) {
                     //put result in nets
                     $nstmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
