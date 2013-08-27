@@ -342,21 +342,22 @@ function put_work($mysql) {
     }
     $stmt->close();
 
-    $gzdata = gzencode($wl, 9);
+    $gzdata    = gzencode($wl, 9);
+    $md5gzdata = md5($gzdata);
     
     $sem = sem_get(888);
     sem_acquire($sem);
     file_put_contents(CRACKED, $gzdata);
-    file_put_contents(CRACKED.'.md5', md5($gzdata));
+    file_put_contents(CRACKED.'.md5', $md5gzdata);
     sem_release($sem);
     sem_remove($sem);
 
     //update wcount for cracked dict
     $cr = '%'.basename(CRACKED);
-    $sql = 'UPDATE dicts SET wcount = ? WHERE dpath LIKE ?';
+    $sql = 'UPDATE dicts SET wcount = ?, dhash = UNHEX(?) WHERE dpath LIKE ?';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
-    $stmt->bind_param('is', $i, $cr);
+    $stmt->bind_param('iss', $i, $md5gzdata, $cr);
     $stmt->execute();
     $stmt->close();
 

@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 3.4.7.1
+-- version 3.5.1
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Mar 13, 2012 at 12:00 PM
--- Server version: 5.1.61
--- PHP Version: 5.3.6-13ubuntu3.6
+-- Generation Time: Aug 27, 2013 at 11:40 AM
+-- Server version: 5.5.32-0ubuntu0.12.04.1
+-- PHP Version: 5.3.10-1ubuntu3.7
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -20,6 +20,18 @@ SET time_zone = "+00:00";
 -- Database: `wpa`
 --
 
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_work`()
+    MODIFIES SQL DATA
+    DETERMINISTIC
+    SQL SECURITY INVOKER
+SELECT * FROM onets, get_dict LIMIT 1$$
+
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -29,6 +41,7 @@ SET time_zone = "+00:00";
 CREATE TABLE IF NOT EXISTS `dicts` (
   `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `dpath` varchar(256) NOT NULL,
+  `dhash` binary(16) DEFAULT NULL,
   `dname` varchar(128) NOT NULL,
   `wcount` int(10) unsigned NOT NULL,
   `hits` int(10) unsigned NOT NULL DEFAULT '0',
@@ -43,6 +56,7 @@ CREATE TABLE IF NOT EXISTS `dicts` (
 CREATE TABLE IF NOT EXISTS `get_dict` (
 `d_id` bigint(20) unsigned
 ,`dpath` varchar(256)
+,`dhash` varchar(32)
 );
 -- --------------------------------------------------------
 
@@ -96,7 +110,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
   UNIQUE KEY `IDX_nets_nhash` (`nhash`),
   KEY `u_id` (`u_id`),
   KEY `IDX_nets_bssid` (`bssid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=31440 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=98409 ;
 
 -- --------------------------------------------------------
 
@@ -163,7 +177,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`u_id`),
   UNIQUE KEY `IDX_users_userkey` (`userkey`),
   UNIQUE KEY `IDX_users_mail` (`mail`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=253 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1586 ;
 
 -- --------------------------------------------------------
 
@@ -172,7 +186,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 DROP TABLE IF EXISTS `get_dict`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `get_dict` AS select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `get_dict` AS select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount`;
 
 -- --------------------------------------------------------
 
@@ -196,7 +210,7 @@ DELIMITER $$
 --
 -- Events
 --
-CREATE EVENT `e_stats` ON SCHEDULE EVERY '0 2' DAY_HOUR STARTS '2011-09-18 17:31:07' ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats every 1h am' DO BEGIN
+CREATE DEFINER=`root`@`localhost` EVENT `e_stats` ON SCHEDULE EVERY '0 2' DAY_HOUR STARTS '2011-09-18 17:31:07' ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats every 1h am' DO BEGIN
         UPDATE stats SET pvalue=(SELECT count(*) FROM n2d WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)) WHERE pname='24getwork';
         UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
         UPDATE stats SET pvalue=(SELECT count(*) FROM nets WHERE date( ts ) = DATE_SUB( CURDATE() , INTERVAL 1 DAY)) WHERE pname='24sub';
