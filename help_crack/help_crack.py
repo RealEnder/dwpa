@@ -22,7 +22,7 @@ base_url      = 'http://wpa-sec.stanev.org/'
 help_crack    = base_url + 'hc/help_crack.py'
 help_crack_cl = base_url + 'hc/CHANGELOG'
 md5caps       = base_url + 'md5caps/'
-get_work_url  = base_url + '?get_work'
+get_work_url  = base_url + '?get_work2'
 put_work_url  = base_url + '?put_work'
 
 #version
@@ -401,7 +401,7 @@ if len(sys.argv) > 1:
 check_version()
 tool = check_tools()
 #lower priority for CPU crackers. Pyrit goes here too
-if tool.find('aircrack-ng') != -1 or tool.find('pyrit') != -1:
+if tool.find('aircrack-ng') != -1 or tool.find('pyrit') != -1 or tool.find('hashcat-cli') != -1:
     low_priority()
 
 rule = ''
