@@ -1,8 +1,15 @@
 * implement simple proof of work for distributed cracker clients
 * do heavy work in external process for submissions
-* restructure home with folding text sections
+* restructure home with folding text sections/wizzards
 * write INSTALL instructions
 * implement possibility to have several captures for given net, ie changed PSK (started)
-* create hccap file for oclHashcat-plus in help_crack
-* add hashkill support in help_crack (when ready)
+* add hashkill support in help_crack
+* add JtR support in help_crack
 * write Android app with net scan and pass show from the site
+* rework dictionary download
+* add WPA key precalculation infrastructure
+* move captures and hccap files into the DB
+
+IMPLEMENTED
+===========
+* create hccap file for oclHashcat-plus in help_crack
