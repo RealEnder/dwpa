@@ -1,11 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 # The source code is distributed under GPLv3+ license
 # author: Alex Stanev, alex at stanev dot org
 # web: http://wpa-sec.stanev.org
 
 import sys
 import os
-import fnmatch
 import platform
 import subprocess
 import shlex
@@ -16,17 +15,22 @@ import gzip
 import re
 import time
 import StringIO
+import json
+import base64
+from distutils.version import StrictVersion
 
 #some base variables
 base_url      = 'http://wpa-sec.stanev.org/'
 help_crack    = base_url + 'hc/help_crack.py'
 help_crack_cl = base_url + 'hc/CHANGELOG'
-md5caps       = base_url + 'md5caps/'
-get_work_url  = base_url + '?get_work2'
+get_work_url  = base_url + '?get_work'
 put_work_url  = base_url + '?put_work'
+res_file      = 'help_crack.res'
+net_file      = 'help_crack.net'
+key_file      = 'help_crack.key'
 
 #version
-hc_ver = '0.7.3'
+hc_ver = '0.8'
 
 def sleepy():
     print 'Sleeping...'
@@ -64,9 +68,9 @@ def download(url, filename):
     return True
 
 #get remote content and return it in var
-def get_url(url):
+def get_url(url, options=None):
     try:
-        response = urllib.urlopen(url)
+        response = urllib.urlopen(url, urllib.urlencode({'options': options}))
     except Exception as e:
         print 'Exception: %s' % e
         return None
@@ -77,36 +81,33 @@ def get_url(url):
 
 #get md5 of current script, compare it with remote and initiate update
 def check_version():
-    remotemd5 = get_url(help_crack+'.md5')
-    if not remotemd5:
+    remoteversion = get_url(help_crack+'.version')
+    if not remoteversion:
         print 'Can\'t check for new version, continue...'
         return
 
-    if remotemd5 != md5file(sys.argv[0]):
+    if StrictVersion(remoteversion) > StrictVersion(hc_ver):
         while True:
-            user = raw_input('New version of help_crack found. Update[y] or Show changelog[c]:')
+            user = raw_input('New version '+remoteversion+' of help_crack found. Update[y] or Show changelog[c]:')
             if user == 'c':
                 print get_url(help_crack_cl)
                 continue
             if user == 'y' or user == '':
                 if download(help_crack, sys.argv[0]+'.new'):
-                    if md5file(sys.argv[0]+'.new') == remotemd5:
-                        try:
-                            os.rename(sys.argv[0]+'.new', sys.argv[0])
-                            os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
-                        except Exception as e:
-                            print 'Exception: %s' % e
-                            #TODO: think of workaround locking on win32
-                            if os.name == 'nt':
-                                print 'You are running under win32, rename help_crack.py.new over help_crack.py'
-                        print 'help_crack updated, run again'
-                        exit(0)
-                    else:
-                        print 'help_crack remote md5 mismatch'
-                        return
+                    try:
+                        os.rename(sys.argv[0]+'.new', sys.argv[0])
+                        os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+                    except Exception as e:
+                        print 'Exception: %s' % e
+                        #TODO: think of workaround locking on win32
+                        if os.name == 'nt':
+                            print 'You are running under win32, rename help_crack.py.new over help_crack.py'
+                    print 'help_crack updated, run again'
+                    exit(0)
                 else:
                     print 'help_crack update failed'
                     return
+
             return
 
 #find executable in current dir or in PATH env var
@@ -134,26 +135,26 @@ def which(program):
     return False
 
 #run external tool and check returncode
-def run_tool(tool):
-    if not isinstance(tool, basestring):
+def run_tool(xtool):
+    if not isinstance(xtool, basestring):
         return False
 
     try:
-        subprocess.check_call(tool, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as ex:
+        subprocess.check_call(shlex.split(xtool), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except (subprocess.CalledProcessError, OSError):
         return False
 
     return True
 
 #Hashcat always returns returncode 255
-def run_hashcat(tool):
-    if not isinstance(tool, basestring):
+def run_hashcat(tool_hashcat):
+    if not isinstance(tool_hashcat, basestring):
         return False
 
     try:
-        acp = subprocess.Popen(tool, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        acp = subprocess.Popen(tool_hashcat, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = acp.communicate()[0]
-    except OSError as ex:
+    except OSError:
         return False
     if output.find('hashcat') != -1:
         return True
@@ -163,82 +164,48 @@ def run_hashcat(tool):
 #look for cracking tools, check for their capabilities, ask user
 def check_tools():
     tools = []
-    if os.name == 'posix':
-        t = which('pyrit')
+
+    #search for general tools
+    tl = ['pyrit', 'aircrack-ng']
+    for xt in tl:
+        t = which(xt)
         if t:
             tools.append(t)
 
-    t = which('aircrack-ng')
-    if t:
-        tools.append(t)
-        acp = subprocess.Popen([t, '--help'], stdout=subprocess.PIPE)
-        output = acp.communicate()[0]
-        if output.find('Hashcat') != -1:
-            bits = platform.architecture()[0]
-            if bits == '64bit':
-                #this is for Hashcat
-                t = which('hashcat-cli64')
-                if run_hashcat(t):
-                    tools.append(t)
-                t = which('hashcat-cliAVX')
-                if run_hashcat(t):
-                    tools.append(t)
-                t = which('hashcat-cliXOP')
-                if run_hashcat(t):
-                    tools.append(t)
-                t = which('hashcat-cli64.bin')
-                if run_hashcat(t):
-                    tools.append(t)
-                t = which('hashcat-cliAVX.bin')
-                if run_hashcat(t):
-                    tools.append(t)
-                t = which('hashcat-cliXOP.bin')
-                if run_hashcat(t):
-                    tools.append(t)
-                t = which('hashcat-cli64.app')
-                if run_hashcat(t):
-                    tools.append(t)
-                #this is for oclHashcat-plus
-                t = which('oclHashcat-plus64')
-                if run_tool(t):
-                    tools.append(t)
-                t = which('oclHashcat-plus64.bin')
-                if run_tool(t):
-                    tools.append(t)
-                t = which('cudaHashcat-plus64')
-                if run_tool(t):
-                    tools.append(t)
-                t = which('cudaHashcat-plus64.bin')
-                if run_tool(t):
-                    tools.append(t)
-            else:
-                #this is for Hashcat
-                t = which('hashcat-cli')
-                if run_hashcat(t):
-                    tools.append(t)
-                t = which('hashcat-cli.bin')
-                if run_hashcat(t):
-                    tools.append(t)
-                #this is for oclHashcat-plus
-                t = which('oclHashcat-plus32')
-                if run_tool(t):
-                    tools.append(t)
-                t = which('oclHashcat-plus32.bin')
-                if run_tool(t):
-                    tools.append(t)
-                t = which('cudaHashcat-plus32')
-                if run_tool(t):
-                    tools.append(t)
-                t = which('cudaHashcat-plus32.bin')
-                if run_tool(t):
-                    tools.append(t)
+    bits = platform.architecture()[0]
+    if bits == '64bit':
+        #this is for Hashcat
+        tl = ['hashcat-cli64', 'hashcat-cliAVX', 'hashcat-cliXOP', 'hashcat-cli64.bin', 'hashcat-cliAVX.bin', 'hashcat-cliXOP.bin', 'hashcat-cli64.app']
+        for xt in tl:
+            t = which(xt)
+            if t and run_hashcat(t):
+                tools.append(t)
+        #this is for oclHashcat-plus
+        tl = ['oclHashcat-plus64', 'oclHashcat-plus64.bin', 'cudaHashcat-plus64', 'cudaHashcat-plus64.bin']
+        for xt in tl:
+            t = which(xt)
+            if t and run_tool(t+' -V'):
+                tools.append(t)
+    else:
+        #this is for Hashcat
+        tl = ['hashcat-cli', 'hashcat-cli.bin']
+        for xt in tl:
+            t = which(xt)
+            if t and run_hashcat(t):
+                tools.append(t)
+        #this is for oclHashcat-plus
+        tl = ['oclHashcat-plus32', 'oclHashcat-plus32.bin', 'cudaHashcat-plus32', 'cudaHashcat-plus32.bin']
+        for xt in tl:
+            t = which(xt)
+            if t and run_tool(t+' -V'):
+                tools.append(t)
                     
     if len(tools) == 0:
         print 'No aircrack-ng, pyrit, Hashcat or oclHashcat-plus found'
         exit(1)
     if len(tools) == 1:
         return tools[0]
-    
+
     print 'Choose the tool for cracking:'
     for index, ttool in enumerate(tools):
         print '%i: %s' % (index, ttool)
@@ -249,74 +216,86 @@ def check_tools():
             exit(0)
         try:
             return tools[int(user)]
-        except Exception:
+        except (ValueError, IndexError):
             print 'Wrong index'
 
-#check remote md5 of gz, download it on mismatch, decompress
-def get_gz(gzurl):
-    localmd5 = ''
-    gzname = gzurl.split('/')[-1]
-    name = gzname.rsplit('.', 1)[0]
-    remotemd5 = get_url(gzurl+'.md5')
-    if not remotemd5:
-        print 'Can\'t download '+gzurl+'.md5'
-        return False
-    if os.path.exists(gzname):
-        localmd5 = md5file(gzname)
-    if remotemd5 != localmd5:
-        print 'Downloading ' + gzname
-        if download(gzurl, gzname):
-            if md5file(gzname) == remotemd5:
-                try:
-                    f = open(name, 'wb')
-                    ftgz = gzip.open(gzname, 'rb')
-                    f.write(ftgz.read())
-                    f.close()
-                    ftgz.close()
-                except Exception as e:
-                    print gzname +' extraction failed'
-                    print 'Exception: %s' % e
-                    return False
-                print name + ' downloaded successfully'
-            else:
-                print gzname + ' remote md5 mismatch'
-                return False
-        else:
-            print gzname + ' download failed'
+#get work
+def get_work_wl(options):
+    work = get_url(get_work_url+'='+hc_ver, options)
+    try:
+        xnetdata = json.loads(work)
+        if len(xnetdata['nhash']) != 32:
             return False
-    return name
+        if len(xnetdata['dhash']) != 32:
+            return False
+        if not valid_mac(xnetdata['bssid']):
+            return False
 
-#get work and remote dict
-def get_work_wl():
-    work = get_url(get_work_url+'='+hc_ver)
-    if work is not None:
-        if work == 'No nets':
-            return (False, False, False)
-
+        return xnetdata
+    except (TypeError, ValueError, KeyError):
         if work == 'Version':
             print 'Please update help_crack, the interface has changed'
             exit(1)
+        if work == 'No nets':
+            print 'No suitable net found'
+            return False
 
-        gwr = work.split('\\')
-        if len(gwr) < 3:
-            print 'Server returned bad response. Check for help_crack update.'
-            return (False, False, False)
+        print 'Server response error'
 
-        gwhash = gwr[0]
-        gwbssid = gwr[1]
-        gwwl = gwr[2]
+    return False
 
-        if len(gwhash) != 32:
-            return (False, False, False)
+#prepare work based on netdata; returns dictname
+def prepare_work(xnetdata):
+    if xnetdata is None:
+        return False
 
-        if not valid_mac(gwbssid):
-            return (False, False, False)
+    try:
+        #write net
+        gznet = base64.b64decode(xnetdata['net'])
+        gzstream = StringIO.StringIO(gznet)
+        fgz = gzip.GzipFile(fileobj = gzstream)
+        fd = open(net_file, 'wb')
+        fd.write(fgz.read())
+        fd.close()
+        fgz.close()
+        #check for dict and download it
+        dictmd5    = ''
+        extract = False
+        gzdictname = xnetdata['dpath'].split('/')[-1]
+        xdictname   = gzdictname.rsplit('.', 1)[0]
+        if os.path.exists(gzdictname):
+            dictmd5 = md5file(gzdictname)
+        if xnetdata['dhash'] != dictmd5:
+            print 'Downloading ' + gzdictname
+            if not download(xnetdata['dpath'], gzdictname):
+                print 'Can\'t download dict ' + xnetdata['dpath']
+                return False
+            if md5file(gzdictname) != xnetdata['dhash']:
+                print 'Dict downloaded but hash mismatch ' + xnetdata['dpath'] + 'dhash:' + xnetdata['dhash']
+                return False
+            extract = True
 
-        get_gz(gwwl)
+        if not os.path.exists(xdictname):
+            extract = True
 
-        return (gwhash, gwbssid, gwwl)
-    else:
-        return (False, False, False)
+        if extract:
+            print 'Extracting ' + gzdictname
+            try:
+                f = open(xdictname, 'wb')
+                ftgz = gzip.open(gzdictname, 'rb')
+                f.write(ftgz.read())
+                f.close()
+                ftgz.close()
+            except Exception as e:
+                print gzdictname +' extraction failed'
+                print 'Exception: %s' % e
+                return False
+
+        return xdictname
+    except TypeError as e:
+        print 'Exception: %s' % e
+
+    return False
 
 #return results to server
 def put_work(pwhash, pwkey):
@@ -335,20 +314,10 @@ def put_work(pwhash, pwkey):
 
     return True
 
-#create capture filename and resume file
-def create_resume(tnhash, tbssid, twl):
-    md5s = hashlib.md5()
-    while True:
-        md5s.update(os.urandom(16))
-        md5h = md5s.hexdigest()
-        if not os.path.exists(md5h+'.cap'):
-            break
-    resc = [tnhash+"\n", tbssid+"\n", twl+"\n"]
-    rfd = open(md5h+'.res','w')
-    rfd.writelines(resc)
-    rfd.close()
-
-    return md5h+'.cap'
+#create resume file
+def create_resume(xnetdata):
+    with open(res_file, 'w') as outfile:
+        json.dump(xnetdata, outfile)
 
 #multiplatform lower priority
 def low_priority():
@@ -367,28 +336,18 @@ def low_priority():
 
 #check for resume files
 def resume_check():
-    for fname in os.listdir('.'):
-        if fnmatch.fnmatch(fname, '*.res'):
-            if os.path.exists(fname.replace('.res', '.cap')):
-                rfd = open(fname, 'r')
-                resc = rfd.readlines()
-                rfd.close()
-                if len(resc) >= 3:
-                    print 'Resume file %s found' % fname
-                    resc[0] = resc[0].replace("\n", '')
-                    resc[1] = resc[1].replace("\n", '')
-                    resc[2] = resc[2].replace("\n", '')
-                    get_gz(resc[2])
-                    resc[2] = resc[2].split('/')[-1]
-                    resc[2] = resc[2].rsplit('.', 1)[0]
-                    return (resc[0], resc[1], resc[2], fname.replace('.res', '.cap'))
-                else:
-                    print 'Bad resume file contents'            
-            else:
-                print 'Resume file found, but not capture'
-                os.unlink(fname)
+    if (os.path.exists(res_file)):
+        netdataf = open(res_file)
+        try:
+            xnetdata = json.load(netdataf)
+            xnetdata['nhash']
+            print 'Session resume'
+            return xnetdata
+        except (TypeError, ValueError, KeyError):
+            print 'Bad resume file contents'
+            os.unlink(res_file)
 
-    return (None, None, None, None)
+    return None
 
 print 'help_crack, distributed WPA cracker, v' + hc_ver
 print 'site: ' + base_url
@@ -404,6 +363,12 @@ tool = check_tools()
 if tool.find('aircrack-ng') != -1 or tool.find('pyrit') != -1 or tool.find('hashcat-cli') != -1:
     low_priority()
 
+#set format
+if tool.find('ashcat-') != -1:
+    fformat = 'hccap'
+else:
+    fformat = 'cap'
+
 rule = ''
 #use rules for oclHashcat-plus
 #disable it for now
@@ -412,58 +377,35 @@ rule = ''
 #        rule = '-rrules/best64.rule'
 
 while True:
-    (nhash, bssid, wl, cap_temp) = resume_check()
-    if nhash is None:
-        (nhash, bssid, wl) = get_work_wl()
+    netdata = resume_check()
+    #check if we use resume with right format
+    if netdata is not None and netdata['format'] != fformat:
+        print 'Resume file found but net is in wrong format for choosen tool. Skipping...'
+        os.unlink(res_file)
+        netdata = None
 
-        if nhash == False:
-            print 'No suitable nets found'
-            sleepy()
-            continue
+    if netdata is None:
+        netdata = get_work_wl(json.JSONEncoder().encode({'format': fformat}))
+        if netdata:
+            create_resume(netdata)
 
-        if wl == False:
-            print 'Couldn\'t download the wordlist'
-            sleepy()
-            continue
-
-        #get capture and write it in local file
-        gzcap = get_url(md5caps+nhash[0:3]+'/'+nhash+'.gz')
-        if not gzcap:
-            sleepy()
-            continue
-        gzstream = StringIO.StringIO(gzcap)
-        cap_temp = create_resume(nhash, bssid, wl)
-        #extract dict filename from url
-        wl = wl.split('/')[-1]
-        wl = wl.rsplit('.', 1)[0]
-        try:
-            fgz = gzip.GzipFile(fileobj = gzstream)
-            fd = open(cap_temp, 'wb')
-            fd.write(fgz.read())
-            fd.close()
-            fgz.close()
-        except Exception as ex:
-            print 'Exception: %s' % ex
-            sleepy()
-            continue
-
-    key_temp = cap_temp.replace('.cap', '.key')
+    dictname = prepare_work(netdata)
+    if not dictname:
+        print 'Couldn\'t prepare data'
+        sleepy()
+        continue
 
     #run cracker
     try:
         if tool.find('pyrit') != -1:
-            cracker = '%s -i%s -o%s -b%s -r%s attack_passthrough' % (tool, wl, key_temp, bssid, cap_temp)
+            cracker = '%s -i%s -o%s -b%s -r%s attack_passthrough' % (tool, dictname, key_file, netdata['bssid'], net_file)
             subprocess.call(shlex.split(cracker))
         if tool.find('aircrack-ng') != -1:
-            cracker = '%s -w%s -l%s -b%s %s' % (tool, wl, key_temp, bssid, cap_temp)
+            cracker = '%s -w%s -l%s -b%s %s' % (tool, dictname, key_file, netdata['bssid'], net_file)
             subprocess.call(shlex.split(cracker))
         if tool.find('Hashcat-plus') != -1:
-            subprocess.call(['aircrack-ng', '-Jwpa', cap_temp])
-            if not os.path.exists('wpa.hccap'):
-                print 'Could not create hccap file with aircrack-ng'
-                exit(1)
             try:
-                cracker = '%s -m2500 -o%s %s wpa.hccap %s' % (tool, key_temp, rule, wl)
+                cracker = '%s -m2500 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
                 subprocess.check_call(shlex.split(cracker))
             except subprocess.CalledProcessError as ex:
                 if ex.returncode == -2:
@@ -483,37 +425,32 @@ while True:
                     print 'Check you have CUDA/OpenCL support'
                     exit(1)
         if tool.find('hashcat-cli') != -1:
-            subprocess.call(['aircrack-ng', '-Jwpa', cap_temp])
-            if not os.path.exists('wpa.hccap'):
-                print 'Could not create hccap file with aircrack-ng'
-                exit(1)
-            cracker = '%s -m2500 -o%s %s wpa.hccap %s' % (tool, key_temp, rule, wl)
+            cracker = '%s -m2500 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
             subprocess.call(shlex.split(cracker))
     except KeyboardInterrupt as ex:
         print 'Keyboard interrupt'
-        if os.path.exists(key_temp):
-            os.unlink(key_temp)
+        if os.path.exists(key_file):
+            os.unlink(key_file)
         exit(1)
 
     #if we have key, submit it
-    if os.path.exists(key_temp):
-        ktf = open(key_temp, 'r')
+    if os.path.exists(key_file):
+        ktf = open(key_file, 'r')
         key = ktf.readline()
         ktf.close()
-        if tool.find('Hashcat-plus') != -1:
-            key = key[key.find(':')+1:]
-        if tool.find('hashcat-cli') != -1:
+        if tool.find('ashcat-') != -1:
             key = key[key.find(':')+1:]
         key = key.rstrip('\n')
-        print 'Key for capture hash '+nhash+' is: '+key
-        while not put_work(nhash, key):
+        print 'Key for capture hash '+netdata['nhash']+' is: '+key
+        while not put_work(netdata['nhash'], key):
             print 'Couldn\'t submit key'
             sleepy()
-        os.unlink(key_temp)
+        os.unlink(key_file)
     else:
-        print 'Key for capture hash '+nhash+' not found.'
+        print 'Key for capture hash '+netdata['nhash']+' not found.'
 
     #cleanup
-    if os.path.exists(cap_temp):
-        os.unlink(cap_temp)
-        os.unlink(cap_temp.replace('.cap', '.res'))
+    if os.path.exists(net_file):
+        os.unlink(net_file)
+    if os.path.exists(res_file):
+        os.unlink(res_file)

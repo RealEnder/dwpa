@@ -29,5 +29,5 @@ elseif (is_dir('/dev/shm'))
 else
     die('Can not access SHM!');
 
-define('MIN_HC_VER', '0.7');
+define('MIN_HC_VER', '0.8');
 ?>

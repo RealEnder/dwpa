@@ -35,7 +35,11 @@ ver 0.7.3 / 12 Mar 2012
  * fix search for oclHashcat-plus binaries on unix
  * return right result when get_work_wl() fails
 
-ver 
+ver 0.8 / 28 Aug 2013
+ * massive rewrite
+ * new API to DWPA
+ * reduced number of requests
  * add Hashcat support
  * better handling of return codes in oclHashcat-plus
  * try to run Hashcat* to check if they work (OpenCL/CUDA)
+ * no need for aircrack-ng to generate hccap files
