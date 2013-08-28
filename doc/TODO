@@ -6,10 +6,10 @@
 * add hashkill support in help_crack
 * add JtR support in help_crack
 * write Android app with net scan and pass show from the site
-* rework dictionary download
 * add WPA key precalculation infrastructure
 * move captures and hccap files into the DB
 
 IMPLEMENTED
 ===========
 * create hccap file for oclHashcat-plus in help_crack
+* rework dictionary download
