@@ -7,16 +7,16 @@
 * add JtR support in help_crack
 * write Android app with net scan and pass show from the site
 * add WPA key precalculation infrastructure
-* move captures and hccap files into the DB
-* Select net by 4-Way Handshake mac, not nhash(md5 of cap)
-* Return both cap and hccap formats
-* Implement json API for accessing own nets
-* Add example external dictionary crack based on json API
-* Rework net selection for less CPU
-* Implement js/asm.js based online crack vs random uncracked net
+* implement json API for accessing own nets
+* add example external dictionary crack based on json API
+* rework net selection for less CPU
+* implement js/asm.js based online crack vs random uncracked net
   and online generated, based on SSID wordlist
 
 IMPLEMENTED
 ===========
 * create hccap file for oclHashcat-plus in help_crack
 * rework dictionary download
+* return both cap and hccap formats
+* move captures and hccap files into the DB
+* select net by 4-Way Handshake mac, not nhash(md5 of cap)
