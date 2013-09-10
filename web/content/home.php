@@ -27,7 +27,7 @@ Prerequisite: you must have python(tested with 2.7),
 <h4>Cracking under Windows</h4>
 Install Python 2.7.5 or newer from <a href="http://python.org/download/">here</a> and
 Python for Windows extensions from <a href="http://sourceforge.net/projects/pywin32/files/pywin32">here</a>.
-You can download precompiled binary of aircrack-ng for windows <a href="hc/aircrack-ng-stripped-1.1r1975-win.zip">here</a>.
+You can download precompiled binary of aircrack-ng for windows <a href="hc/aircrack-ng-stripped-1.1r1975-win.zip">here</a>, or use <a href="http://hashcat.net/hashcat/">Hashcat</a> for Windows.
 If you have CUDA/OpenCL GPU, download <a href="http://hashcat.net/oclhashcat-plus">oclHashcat-plus</a>.<br/>
 Put executables and <a href="hc/help_crack.py">help_crack.py</a> in same directory and run help_crack.py from cmd shell.
 </p>
