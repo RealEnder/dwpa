@@ -2,12 +2,19 @@
 * do heavy work in external process for submissions
 * restructure home with folding text sections/wizzards
 * write INSTALL instructions
-* implement possibility to have several captures for given net, ie changed PSK (started)
+* implement possibility to have several captures for given net, ie changed PSK
 * add hashkill support in help_crack
 * add JtR support in help_crack
 * write Android app with net scan and pass show from the site
 * add WPA key precalculation infrastructure
 * move captures and hccap files into the DB
+* Select net by 4-Way Handshake mac, not nhash(md5 of cap)
+* Return both cap and hccap formats
+* Implement json API for accessing own nets
+* Add example external dictionary crack based on json API
+* Rework net selection for less CPU
+* Implement js/asm.js based online crack vs random uncracked net
+  and online generated, based on SSID wordlist
 
 IMPLEMENTED
 ===========
