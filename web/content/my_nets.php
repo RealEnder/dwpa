@@ -11,7 +11,7 @@ if (isset($_COOKIE['key']))
     if (valid_key($_COOKIE['key']))
         $k = $_COOKIE['key'];
 
-$sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
+$sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets, users
 WHERE nets.u_id=users.u_id AND users.userkey=UNHEX(?)
 ORDER BY nets.net_id DESC

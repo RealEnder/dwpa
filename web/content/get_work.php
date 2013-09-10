@@ -5,10 +5,6 @@ if (version_compare($_GET['get_work'], MIN_HC_VER) < 0 )
 //check and validate options
 if (! array_key_exists('options', $_POST))
     die('Options');
-$options = json_decode($_POST['options'], True);
-if (! array_key_exists('format', $options) || ! in_array($options['format'], array('cap', 'hccap')) )
-    die('Bad json/format');
-
 
 require_once('db.php');
 require_once('common.php');
@@ -16,8 +12,8 @@ require_once('common.php');
 //avoid race condition
 //add critical section for now
 //TODO: fix this in mysql
-$sem1 = sem_get(999);
-sem_acquire($sem1);
+//$sem1 = sem_get(999);
+//sem_acquire($sem1);
     
 //get work
 $sql = 'SELECT * FROM onets, get_dict LIMIT 1';
@@ -39,15 +35,12 @@ if ($stmt->fetch()) {
     $ustmt->close();
 
     $json = array();
-    $json['nhash']  = strtolower($data['nhash']);
+    $json['mic']  = strtolower($data['mic']);
     $json['bssid']  = long2mac($data['bssid']);
     $json['dpath']  = $data['dpath'];
     $json['dhash']  = strtolower($data['dhash']);
-    $json['format'] = $options['format'];
-    if ($options['format'] == 'cap')
-        $json['net'] = base64_encode(file_get_contents(MD5CAPS.substr($json['nhash'], 0, 3)."/{$json['nhash']}.gz"));
-    else
-        $json['net'] = base64_encode(file_get_contents(MD5CAPS.substr($json['nhash'], 0, 3)."/{$json['nhash']}.hccap.gz"));
+    $json['cap']  = base64_encode($data['cap']);
+    $json['hccap']  = base64_encode($data['hccap']);
 
     echo json_encode($json);
 } else {
@@ -55,8 +48,8 @@ if ($stmt->fetch()) {
 }
 
 //release critical section
-sem_release($sem1);
-sem_remove($sem1);
+//sem_release($sem1);
+//sem_remove($sem1);
 
 $stmt->close();
 $mysql->close();

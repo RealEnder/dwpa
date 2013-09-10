@@ -12,12 +12,12 @@ if (strlen($_GET['search']) >= 3) {
     if (valid_mac($_GET['search'])) {
         $bssid = mac2long($_GET['search']);
         if ($k == $bosskey)
-            $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
 WHERE bssid = ?
 ORDER BY net_id DESC';
         else
-            $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.userkey=UNHEX(?)
 WHERE bssid = ?
 ORDER BY nets.net_id DESC';
@@ -30,12 +30,12 @@ ORDER BY nets.net_id DESC';
     } else {
         $ssid = "%{$_GET['search']}%";
         if ($k == $bosskey)
-            $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
 WHERE ssid LIKE ?
 ORDER BY nets.net_id DESC';
         else
-            $sql = 'SELECT hex(nets.nhash) as nhash, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, IF(users.u_id IS NULL, IF(nets.pass IS NULL, NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM nets LEFT JOIN users ON nets.u_id=users.u_id AND users.userkey=UNHEX(?)
 WHERE ssid LIKE ?
 ORDER BY nets.net_id DESC

@@ -110,36 +110,9 @@ function check_key($hccap, $keys) {
     return NULL;
 }
 
-function check_pass2($nhash, $pass) {
-    $hccap = gzinflate(substr(file_get_contents(MD5CAPS.substr($nhash, 0, 3)."/$nhash.hccap.gz"), 10));
-    return ($pass == check_key($hccap, array($pass)));
-}
-
-//Execute aircrack-ng and check for solved net
-function check_pass($nhash, $pass) {
-    if (strlen($pass) < 8)
-        return false;
-
-    $wl = tempnam(SHM, 'wl');
-    $kf = tempnam(SHM, 'key');
-    $cf = tempnam(SHM, 'cap');
-
-    //put test pass as wordlist
-    file_put_contents($wl, $pass."\n");
-
-    //deflate and put capture in shm
-    //use gz compressed single captures - gzinflate fn -10 bytes
-    file_put_contents($cf, gzinflate(substr(file_get_contents(MD5CAPS.substr($nhash, 0, 3)."/$nhash.gz"), 10)));
-
-    exec(AIRCRACK." -w $wl -l $kf $cf");
-
-    $p = @file_get_contents($kf);
-
-    @unlink($wl);
-    @unlink($kf);
-    @unlink($cf);
-
-    return ($p == $pass);
+//Extract keymic
+function get_mic($hccap) {
+    return substr($hccap, 0x178, 16);
 }
 
 //Process submission
@@ -196,7 +169,7 @@ function submission($mysql, $file) {
         }
 
     // Prepare nets for import
-    $sql = 'INSERT IGNORE INTO nets(nhash, bssid, ssid, ip, u_id) VALUES(UNHEX(?), ?, ?, ?, ?)';
+    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip, mic, cap, hccap, u_id) VALUES(?, ?, ?, ?, ?, ?, ?)';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 
@@ -213,24 +186,20 @@ function submission($mysql, $file) {
             exec(PYRIT.' -r '.SHM.$bnfile.' analyze', $cut, $rc);
             //check for correct errorcode and if we have only one AP
             if (($rc == 0) && (strpos(implode("\n", $cut), 'got 1 AP(s)') !== FALSE)) {
-                $cut = file_get_contents(SHM.$bnfile);
-                $md5cap = md5($cut);
-                $gzdata = gzencode($cut, 9);
-                //create dir
-                @mkdir(MD5CAPS.substr($md5cap, 0, 3));
-                //write gz capture file
-                file_put_contents(MD5CAPS.substr($md5cap, 0, 3)."/$md5cap.gz", $gzdata);
                 //generate hccap
                 $cut = '';
                 exec(CAP2HCCAP.' '.SHM."$bnfile ".SHM."$bnfile.hccap", $cut, $rc);
                 if (($rc == 0) && filesize(SHM."$bnfile.hccap") == 392) {
-                    //write gz hccap file
-                    $cut = file_get_contents(SHM."$bnfile.hccap");
-                    $gzdata = gzencode($cut, 9);
-                    file_put_contents(MD5CAPS.substr($md5cap, 0, 3)."/$md5cap.hccap.gz", $gzdata);
+                    //we are OK, read data
+                    $cap = file_get_contents(SHM.$bnfile);
+                    $gzcap = gzencode($cap, 9);
+                    $hccap = file_get_contents(SHM."$bnfile.hccap");
+                    $gzhccap = gzencode($hccap, 9);
+                    //extract mic
+                    $mic = get_mic($hccap);
                     //put in db
                     $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $stmt->bind_param('sisii', $md5cap, $net, $nname[$net], $ip, $u_id);
+                    $stmt->bind_param('isisssi', $net, $nname[$net], $ip, $mic, $gzcap, $gzhccap, $u_id);
                     $stmt->execute();
                 }
                 @unlink(SHM."$bnfile.hccap");
@@ -260,14 +229,14 @@ function put_work($mysql) {
         return false;
 
     //get nets by bssid
-    $sql = 'SELECT net_id, hex(nhash) as nhash FROM nets WHERE bssid = ? AND n_state=0';
+    $sql = 'SELECT net_id, hccap FROM nets WHERE bssid = ? AND n_state=0';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
     $data = array();
     stmt_bind_assoc($stmt, $data);
 
-    //get net by net_id
-    $nsql = 'SELECT * FROM nets WHERE nhash = unhex(?) AND n_state=0';
+    //get net by nhash
+    $nsql = 'SELECT net_id, hccap FROM nets WHERE mic = unhex(?) AND n_state=0';
     $nstmt = $mysql->stmt_init();
     $nstmt->prepare($nsql);
     $ndata = array();
@@ -279,16 +248,18 @@ function put_work($mysql) {
     $ustmt->prepare($usql);
 
     $mcount = 0;
-    foreach ($_POST as $bssid_or_hash => $key) {
-        if (valid_mac($bssid_or_hash) && strlen($key) >= 8) {
+    foreach ($_POST as $bssid_or_mic => $key) {
+        if (strlen($key) < 8)
+            continue;
+        if (valid_mac($bssid_or_mic)) {
             //old style submission with bssid
-            $ibssid = mac2long($bssid_or_hash);
+            $ibssid = mac2long($bssid_or_mic);
             $stmt->bind_param('i', $ibssid);
             $stmt->execute();
 
             while ($stmt->fetch()) {
-                $nhash = strtolower($data['nhash']);
-                if (check_pass2($nhash, $key)) {
+                $hccap = gzinflate(substr($data['hccap'], 10));
+                if ($key == check_key($hccap, array($key))) {
                     //put result in nets
                     $stmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
@@ -299,14 +270,15 @@ function put_work($mysql) {
                     $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
                 }
             }
-        } elseif (valid_key($bssid_or_hash) && strlen($key) >= 8) {
+        } elseif (valid_key($bssid_or_mic)) {
             //hash submission
-            $nhash = strtolower($bssid_or_hash);
-            $nstmt->bind_param('s', $nhash);
+            $mic = strtolower($bssid_or_mic);
+            $nstmt->bind_param('s', $mic);
             $nstmt->execute();
 
-            if ($nstmt->fetch())
-                if (check_pass2($nhash, $key)) {
+            if ($nstmt->fetch()) {
+                $hccap = gzinflate(substr($ndata['hccap'], 10));
+                if ($key == check_key($hccap, array($key))) {
                     //put result in nets
                     $nstmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
@@ -316,6 +288,7 @@ function put_work($mysql) {
                     //delete from n2d
                     $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
                 }
+            }
         }
         if ($mcount++ > 20)
             break;
@@ -343,18 +316,17 @@ function put_work($mysql) {
     $stmt->close();
 
     $gzdata    = gzencode($wl, 9);
-    $md5gzdata = md5($gzdata);
+    $md5gzdata = md5($gzdata, True);
     
     $sem = sem_get(888);
     sem_acquire($sem);
     file_put_contents(CRACKED, $gzdata);
-    file_put_contents(CRACKED.'.md5', $md5gzdata);
     sem_release($sem);
     sem_remove($sem);
 
     //update wcount for cracked dict
     $cr = '%'.basename(CRACKED);
-    $sql = 'UPDATE dicts SET wcount = ?, dhash = UNHEX(?) WHERE dpath LIKE ?';
+    $sql = 'UPDATE dicts SET wcount = ?, dhash = ? WHERE dpath LIKE ?';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
     $stmt->bind_param('iss', $i, $md5gzdata, $cr);
@@ -497,10 +469,10 @@ function goWigle(bssid) {
 <tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
     while ($stmt->fetch()) {
         $bssid = long2mac($data['bssid']);
-        $nhash = $data['nhash'];
+        $mic = $data['mic'];
         $ssid = htmlspecialchars($data['ssid']);
         if ($data['pass'] == '') {
-            $pass = '<input class="input" type="text" name="'.$nhash.'" size="20"/>';
+            $pass = '<input class="input" type="text" name="'.$mic.'" size="20"/>';
             $has_input = true;
         } else
             $pass = htmlspecialchars($data['pass']);
