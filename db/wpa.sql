@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Aug 27, 2013 at 11:40 AM
+-- Generation Time: Sep 10, 2013 at 05:43 PM
 -- Server version: 5.5.32-0ubuntu0.12.04.1
--- PHP Version: 5.3.10-1ubuntu3.7
+-- PHP Version: 5.3.10-1ubuntu3.8
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -95,22 +95,24 @@ DELIMITER ;
 
 CREATE TABLE IF NOT EXISTS `nets` (
   `net_id` bigint(15) NOT NULL AUTO_INCREMENT,
-  `nhash` binary(16) NOT NULL COMMENT 'Capture md5 hash',
   `bssid` bigint(15) unsigned NOT NULL,
   `ssid` varchar(32) NOT NULL,
   `pass` varchar(64) DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
   `sip` int(10) unsigned DEFAULT NULL,
+  `mic` binary(16) NOT NULL,
+  `cap` varbinary(4096) NOT NULL,
+  `hccap` varbinary(512) NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sts` timestamp NULL DEFAULT NULL,
   `n_state` tinyint(1) unsigned NOT NULL,
   `u_id` bigint(20) DEFAULT NULL,
   `hits` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`net_id`),
-  UNIQUE KEY `IDX_nets_nhash` (`nhash`),
+  UNIQUE KEY `IDX_net_mic` (`mic`),
   KEY `u_id` (`u_id`),
   KEY `IDX_nets_bssid` (`bssid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=98409 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=163182 ;
 
 -- --------------------------------------------------------
 
@@ -119,7 +121,9 @@ CREATE TABLE IF NOT EXISTS `nets` (
 --
 CREATE TABLE IF NOT EXISTS `onets` (
 `net_id` bigint(15)
-,`nhash` varchar(32)
+,`mic` varchar(32)
+,`cap` varbinary(4096)
+,`hccap` varbinary(512)
 ,`bssid` bigint(15) unsigned
 );
 -- --------------------------------------------------------
@@ -177,7 +181,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`u_id`),
   UNIQUE KEY `IDX_users_userkey` (`userkey`),
   UNIQUE KEY `IDX_users_mail` (`mail`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1586 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1666 ;
 
 -- --------------------------------------------------------
 
@@ -195,7 +199,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`nhash`) AS `nhash`,`nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`mic`) AS `mic`,`nets`.`cap` AS `cap`,`nets`.`hccap` AS `hccap`,`nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
 
 -- --------------------------------------------------------
 
