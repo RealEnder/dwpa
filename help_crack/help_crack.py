@@ -30,7 +30,7 @@ net_file      = 'help_crack.net'
 key_file      = 'help_crack.key'
 
 #version
-hc_ver = '0.8'
+hc_ver = '0.8.1'
 
 def sleepy():
     print 'Sleeping...'
@@ -224,7 +224,7 @@ def get_work_wl(options):
     work = get_url(get_work_url+'='+hc_ver, options)
     try:
         xnetdata = json.loads(work)
-        if len(xnetdata['nhash']) != 32:
+        if len(xnetdata['mic']) != 32:
             return False
         if len(xnetdata['dhash']) != 32:
             return False
@@ -245,21 +245,27 @@ def get_work_wl(options):
     return False
 
 #prepare work based on netdata; returns dictname
-def prepare_work(xnetdata):
+def prepare_work(xnetdata, etype):
     if xnetdata is None:
         return False
 
     try:
         #write net
-        gznet = base64.b64decode(xnetdata['net'])
-        gzstream = StringIO.StringIO(gznet)
-        fgz = gzip.GzipFile(fileobj = gzstream)
-        fd = open(net_file, 'wb')
-        fd.write(fgz.read())
-        fd.close()
-        fgz.close()
+        try:
+            gznet = base64.b64decode(xnetdata[etype])
+            gzstream = StringIO.StringIO(gznet)
+            fgz = gzip.GzipFile(fileobj = gzstream)
+            fd = open(net_file, 'wb')
+            fd.write(fgz.read())
+            fd.close()
+            fgz.close()
+        except Exception as e:
+            print 'Net data extraction failed'
+            print 'Exception: %s' % e
+            return False
+
         #check for dict and download it
-        dictmd5    = ''
+        dictmd5 = ''
         extract = False
         gzdictname = xnetdata['dpath'].split('/')[-1]
         xdictname   = gzdictname.rsplit('.', 1)[0]
@@ -272,7 +278,7 @@ def prepare_work(xnetdata):
                 return False
             if md5file(gzdictname) != xnetdata['dhash']:
                 print 'Dict downloaded but hash mismatch ' + xnetdata['dpath'] + 'dhash:' + xnetdata['dhash']
-                return False
+
             extract = True
 
         if not os.path.exists(xdictname):
@@ -298,8 +304,8 @@ def prepare_work(xnetdata):
     return False
 
 #return results to server
-def put_work(pwhash, pwkey):
-    data = urllib.urlencode({pwhash: pwkey})
+def put_work(mic, pwkey):
+    data = urllib.urlencode({mic: pwkey})
     try:
         response = urllib.urlopen(put_work_url, data)
     except Exception as e:
@@ -340,7 +346,8 @@ def resume_check():
         netdataf = open(res_file)
         try:
             xnetdata = json.load(netdataf)
-            xnetdata['nhash']
+            if len(xnetdata['mic']) != 32:
+                raise ValueError
             print 'Session resume'
             return xnetdata
         except (TypeError, ValueError, KeyError):
@@ -376,20 +383,14 @@ rule = ''
 #    if os.path.exists('rules/best64.rule'):
 #        rule = '-rrules/best64.rule'
 
+netdata = resume_check()
 while True:
-    netdata = resume_check()
-    #check if we use resume with right format
-    if netdata is not None and netdata['format'] != fformat:
-        print 'Resume file found but net is in wrong format for choosen tool. Skipping...'
-        os.unlink(res_file)
-        netdata = None
-
     if netdata is None:
-        netdata = get_work_wl(json.JSONEncoder().encode({'format': fformat}))
+        netdata = get_work_wl(json.JSONEncoder().encode({'format': fformat, 'tool': os.path.basename(tool)}))
         if netdata:
             create_resume(netdata)
 
-    dictname = prepare_work(netdata)
+    dictname = prepare_work(netdata, fformat)
     if not dictname:
         print 'Couldn\'t prepare data'
         sleepy()
@@ -441,16 +442,17 @@ while True:
         if tool.find('ashcat-') != -1:
             key = key[key.find(':')+1:]
         key = key.rstrip('\n')
-        print 'Key for capture hash '+netdata['nhash']+' is: '+key
-        while not put_work(netdata['nhash'], key):
+        print 'Key for capture mic '+netdata['mic']+' is: '+key
+        while not put_work(netdata['mic'], key):
             print 'Couldn\'t submit key'
             sleepy()
         os.unlink(key_file)
     else:
-        print 'Key for capture hash '+netdata['nhash']+' not found.'
+        print 'Key for capture mic '+netdata['mic']+' not found.'
 
     #cleanup
     if os.path.exists(net_file):
         os.unlink(net_file)
     if os.path.exists(res_file):
         os.unlink(res_file)
+    netdata = None

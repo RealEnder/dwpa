@@ -43,3 +43,9 @@ ver 0.8 / 28 Aug 2013
  * better handling of return codes in oclHashcat-plus
  * try to run Hashcat* to check if they work (OpenCL/CUDA)
  * no need for aircrack-ng to generate hccap files
+
+ver 0.8.1 / 10 Sep 2013
+ * new API to DWPA (again)
+ * resume from cap to hccap and viceversa
+ * don't try to read resume 
+ * don't break on dict hash change
