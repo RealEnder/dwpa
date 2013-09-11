@@ -30,7 +30,7 @@ net_file      = 'help_crack.net'
 key_file      = 'help_crack.key'
 
 #version
-hc_ver = '0.8.1'
+hc_ver = '0.8.2'
 
 def sleepy():
     print 'Sleeping...'
@@ -376,13 +376,6 @@ if tool.find('ashcat-') != -1:
 else:
     fformat = 'cap'
 
-rule = ''
-#use rules for oclHashcat-plus
-#disable it for now
-#if tool.find('Hashcat') != -1:
-#    if os.path.exists('rules/best64.rule'):
-#        rule = '-rrules/best64.rule'
-
 netdata = resume_check()
 while True:
     if netdata is None:
@@ -393,8 +386,16 @@ while True:
     dictname = prepare_work(netdata, fformat)
     if not dictname:
         print 'Couldn\'t prepare data'
+        netdata = None
         sleepy()
         continue
+
+    #check if we will use rules
+    rule = ''
+    if 'rule' in netdata:
+        if tool.find('ashcat-') != -1:
+            if os.path.exists(netdata['rule']):
+                rule = '-r'+netdata['rule']
 
     #run cracker
     try:

@@ -49,3 +49,7 @@ ver 0.8.1 / 10 Sep 2013
  * resume from cap to hccap and viceversa
  * don't try to read resume 
  * don't break on dict hash change
+
+ver 0.8.2 / 11 Sep 2013
+ * avoid endless loop on DWPA/connection fails
+ * accept requests for rule engine usage
