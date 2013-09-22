@@ -10,10 +10,8 @@ require_once('db.php');
 require_once('common.php');
 
 //avoid race condition
-//add critical section for now
-//TODO: fix this in mysql
-//$sem1 = sem_get(999);
-//sem_acquire($sem1);
+$sem1 = sem_get(999);
+sem_acquire($sem1);
     
 //get work
 $sql = 'SELECT * FROM onets, get_dict LIMIT 1';
@@ -48,8 +46,7 @@ if ($stmt->fetch()) {
 }
 
 //release critical section
-//sem_release($sem1);
-//sem_remove($sem1);
+sem_release($sem1);
 
 $stmt->close();
 $mysql->close();

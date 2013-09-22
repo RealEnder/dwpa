@@ -322,7 +322,6 @@ function put_work($mysql) {
     sem_acquire($sem);
     file_put_contents(CRACKED, $gzdata);
     sem_release($sem);
-    sem_remove($sem);
 
     //update wcount for cracked dict
     $cr = '%'.basename(CRACKED);
