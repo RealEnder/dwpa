@@ -30,7 +30,7 @@ net_file      = 'help_crack.net'
 key_file      = 'help_crack.key'
 
 #version
-hc_ver = '0.8.2'
+hc_ver = '0.8.3'
 
 def sleepy():
     print 'Sleeping...'
@@ -186,6 +186,12 @@ def check_tools():
             t = which(xt)
             if t and run_tool(t+' -V'):
                 tools.append(t)
+        #this is for oclHashcat
+        tl = ['oclHashcat64', 'oclHashcat64.bin', 'cudaHashcat64', 'cudaHashcat64.bin']
+        for xt in tl:
+            t = which(xt)
+            if t and run_tool(t+' -V'):
+                tools.append(t)
     else:
         #this is for Hashcat
         tl = ['hashcat-cli', 'hashcat-cli.bin']
@@ -195,6 +201,12 @@ def check_tools():
                 tools.append(t)
         #this is for oclHashcat-plus
         tl = ['oclHashcat-plus32', 'oclHashcat-plus32.bin', 'cudaHashcat-plus32', 'cudaHashcat-plus32.bin']
+        for xt in tl:
+            t = which(xt)
+            if t and run_tool(t+' -V'):
+                tools.append(t)
+        #this is for oclHashcat
+        tl = ['oclHashcat32', 'oclHashcat32.bin', 'cudaHashcat32', 'cudaHashcat32.bin']
         for xt in tl:
             t = which(xt)
             if t and run_tool(t+' -V'):
@@ -371,7 +383,7 @@ if tool.find('aircrack-ng') != -1 or tool.find('pyrit') != -1 or tool.find('hash
     low_priority()
 
 #set format
-if tool.find('ashcat-') != -1:
+if tool.find('ashcat') != -1:
     fformat = 'hccap'
 else:
     fformat = 'cap'
@@ -393,7 +405,7 @@ while True:
     #check if we will use rules
     rule = ''
     if 'rule' in netdata:
-        if tool.find('ashcat-') != -1:
+        if tool.find('ashcat') != -1:
             if os.path.exists(netdata['rule']):
                 rule = '-r'+netdata['rule']
 
@@ -405,7 +417,7 @@ while True:
         if tool.find('aircrack-ng') != -1:
             cracker = '%s -w%s -l%s -b%s %s' % (tool, dictname, key_file, netdata['bssid'], net_file)
             subprocess.call(shlex.split(cracker))
-        if tool.find('Hashcat-plus') != -1:
+        if tool.find('Hashcat') != -1:
             try:
                 cracker = '%s -m2500 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
                 subprocess.check_call(shlex.split(cracker))

@@ -18,16 +18,16 @@ to the cracking process by running <a href="hc/help_crack.py">help_crack.py</a> 
 a script that will automatically fetch uncracked network, download wordlist, try to crack, and upload the results to this site.
 Prerequisite: you must have python(tested with 2.7),
 <a href="http://hashcat.net/hashcat/">Hashcat</a>,
-<a href="http://hashcat.net/oclhashcat-plus">oclHashcat-plus</a>,
+<a href="http://hashcat.net/oclhashcat">oclHashcat</a>,
 <a href="http://code.google.com/p/pyrit">pyrit</a> or
 <a href="http://www.aircrack-ng.org">aircrack-ng</a> installed.
 </p>
 
 <p>
 <h4>Cracking under Windows</h4>
-Install Python 2.7.5 or newer from <a href="http://python.org/download/">here</a> and
+Install Python 2.7.6 or newer from <a href="http://python.org/download/">here</a> and
 Python for Windows extensions from <a href="http://sourceforge.net/projects/pywin32/files/pywin32">here</a>.
 You can download precompiled binary of aircrack-ng for windows <a href="hc/aircrack-ng-stripped-1.1r1975-win.zip">here</a>, or use <a href="http://hashcat.net/hashcat/">Hashcat</a> for Windows.
-If you have CUDA/OpenCL GPU, download <a href="http://hashcat.net/oclhashcat-plus">oclHashcat-plus</a>.<br/>
+If you have CUDA/OpenCL GPU, download <a href="http://hashcat.net/oclhashcat">oclHashcat</a>.<br/>
 Put executables and <a href="hc/help_crack.py">help_crack.py</a> in same directory and run help_crack.py from cmd shell.
 </p>
