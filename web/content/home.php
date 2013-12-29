@@ -2,7 +2,7 @@
 This is a community effort to study and improve security of WPA protected WiFi networks.
 You can contribute to WPA security research - the more handshakes you upload, the more
 stats, and the more we'll understand how feasible WPA cracking is in practice.<br/>
-This site is based on sorbo's work on <a href="http://wpa.darkircop.org">wpa.darkircop.org</a>. Source code is freely available at <a href="http://sourceforge.net/projects/dwpa">SourceForge</a>.
+This site is based on sorbo's work on <a href="http://wpa.darkircop.org">wpa.darkircop.org</a>. Source code is freely available at <a href="https://github.com/RealEnder/dwpa">GitHub</a>.
 
 <p>
 <h4>Usage</h4>
