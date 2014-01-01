@@ -56,3 +56,6 @@ ver 0.8.2 / 11 Sep 2013
 
 ver 0.8.3 / 29 Dec 2013
  * added support for oclHashcat
+
+ver 0.8.4 / DD MMM 2014
+ * drop support for oclHashcat-plus

@@ -30,7 +30,7 @@ net_file      = 'help_crack.net'
 key_file      = 'help_crack.key'
 
 #version
-hc_ver = '0.8.3'
+hc_ver = '0.8.4'
 
 def sleepy():
     print 'Sleeping...'
@@ -180,12 +180,6 @@ def check_tools():
             t = which(xt)
             if t and run_hashcat(t):
                 tools.append(t)
-        #this is for oclHashcat-plus
-        tl = ['oclHashcat-plus64', 'oclHashcat-plus64.bin', 'cudaHashcat-plus64', 'cudaHashcat-plus64.bin']
-        for xt in tl:
-            t = which(xt)
-            if t and run_tool(t+' -V'):
-                tools.append(t)
         #this is for oclHashcat
         tl = ['oclHashcat64', 'oclHashcat64.bin', 'cudaHashcat64', 'cudaHashcat64.bin']
         for xt in tl:
@@ -199,12 +193,6 @@ def check_tools():
             t = which(xt)
             if t and run_hashcat(t):
                 tools.append(t)
-        #this is for oclHashcat-plus
-        tl = ['oclHashcat-plus32', 'oclHashcat-plus32.bin', 'cudaHashcat-plus32', 'cudaHashcat-plus32.bin']
-        for xt in tl:
-            t = which(xt)
-            if t and run_tool(t+' -V'):
-                tools.append(t)
         #this is for oclHashcat
         tl = ['oclHashcat32', 'oclHashcat32.bin', 'cudaHashcat32', 'cudaHashcat32.bin']
         for xt in tl:
@@ -213,7 +201,7 @@ def check_tools():
                 tools.append(t)
                     
     if len(tools) == 0:
-        print 'No aircrack-ng, pyrit, Hashcat or oclHashcat-plus found'
+        print 'No aircrack-ng, pyrit, Hashcat or oclHashcat found'
         exit(1)
     if len(tools) == 1:
         return tools[0]
