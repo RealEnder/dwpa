@@ -188,7 +188,7 @@ def check_tools():
                 tools.append(t)
     else:
         #this is for Hashcat
-        tl = ['hashcat-cli', 'hashcat-cli.bin']
+        tl = ['hashcat-cli32', 'hashcat-cli32.bin']
         for xt in tl:
             t = which(xt)
             if t and run_hashcat(t):
