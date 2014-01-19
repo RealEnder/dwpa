@@ -407,7 +407,7 @@ while True:
             subprocess.call(shlex.split(cracker))
         if tool.find('Hashcat') != -1:
             try:
-                cracker = '%s -m2500 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
+                cracker = '%s -m2500 --outfile-format=2 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
                 subprocess.check_call(shlex.split(cracker))
             except subprocess.CalledProcessError as ex:
                 if ex.returncode == -2:
@@ -427,7 +427,7 @@ while True:
                     print 'Check you have CUDA/OpenCL support'
                     exit(1)
         if tool.find('hashcat-cli') != -1:
-            cracker = '%s -m2500 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
+            cracker = '%s -m2500 --outfile-format=2 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
             subprocess.call(shlex.split(cracker))
     except KeyboardInterrupt as ex:
         print 'Keyboard interrupt'
@@ -440,8 +440,6 @@ while True:
         ktf = open(key_file, 'r')
         key = ktf.readline()
         ktf.close()
-        if tool.find('ashcat-') != -1:
-            key = key[key.find(':')+1:]
         key = key.rstrip('\n')
         print 'Key for capture mic '+netdata['mic']+' is: '+key
         while not put_work(netdata['mic'], key):
