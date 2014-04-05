@@ -19,5 +19,7 @@ do
         comm -13 "$F1.sorted" "$F2.sorted" > "$F2"
         rm "$F2.sorted"
     done
-    mv "$F1.sorted" "$F1"
+    echo "Sort $F1 by line length"
+    perl -e 'print sort { length $a <=> length $b } <>' "$F1.sorted" > "$F1"
+    rm "$F1.sorted"
 done
