@@ -1,13 +1,13 @@
 -- phpMyAdmin SQL Dump
--- version 3.5.1
+-- version 4.2.0-rc1
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Sep 10, 2013 at 05:43 PM
--- Server version: 5.5.32-0ubuntu0.12.04.1
--- PHP Version: 5.3.10-1ubuntu3.8
+-- Generation Time: May 05, 2014 at 09:23 PM
+-- Server version: 5.5.37-0ubuntu0.12.04.1-log
+-- PHP Version: 5.3.10-1ubuntu3.11
 
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
 
 
@@ -39,14 +39,13 @@ DELIMITER ;
 --
 
 CREATE TABLE IF NOT EXISTS `dicts` (
-  `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+`d_id` bigint(20) unsigned NOT NULL,
   `dpath` varchar(256) NOT NULL,
   `dhash` binary(16) DEFAULT NULL,
   `dname` varchar(128) NOT NULL,
   `wcount` int(10) unsigned NOT NULL,
-  `hits` int(10) unsigned NOT NULL DEFAULT '0',
-  PRIMARY KEY (`d_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=16 ;
+  `hits` int(10) unsigned NOT NULL DEFAULT '0'
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=16 ;
 
 -- --------------------------------------------------------
 
@@ -68,16 +67,12 @@ CREATE TABLE IF NOT EXISTS `n2d` (
   `net_id` bigint(15) NOT NULL,
   `d_id` int(11) NOT NULL,
   `hits` int(11) NOT NULL DEFAULT '1',
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`net_id`,`d_id`),
-  KEY `IDX_n2d_ts` (`ts`),
-  KEY `IDX_n2d_net_id` (`net_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- Triggers `n2d`
 --
-DROP TRIGGER IF EXISTS `TRG_n2d`;
 DELIMITER //
 CREATE TRIGGER `TRG_n2d` BEFORE INSERT ON `n2d`
  FOR EACH ROW BEGIN
@@ -90,11 +85,23 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `n2u`
+--
+
+CREATE TABLE IF NOT EXISTS `n2u` (
+  `net_id` bigint(20) NOT NULL,
+  `u_id` bigint(20) NOT NULL,
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='nets2users relation';
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `nets`
 --
 
 CREATE TABLE IF NOT EXISTS `nets` (
-  `net_id` bigint(15) NOT NULL AUTO_INCREMENT,
+`net_id` bigint(15) NOT NULL,
   `bssid` bigint(15) unsigned NOT NULL,
   `ssid` varchar(32) NOT NULL,
   `pass` varchar(64) DEFAULT NULL,
@@ -107,12 +114,8 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `sts` timestamp NULL DEFAULT NULL,
   `n_state` tinyint(1) unsigned NOT NULL,
   `u_id` bigint(20) DEFAULT NULL,
-  `hits` int(11) unsigned NOT NULL DEFAULT '0',
-  PRIMARY KEY (`net_id`),
-  UNIQUE KEY `IDX_net_mic` (`mic`),
-  KEY `u_id` (`u_id`),
-  KEY `IDX_nets_bssid` (`bssid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=163182 ;
+  `hits` int(11) unsigned NOT NULL DEFAULT '0'
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=187185 ;
 
 -- --------------------------------------------------------
 
@@ -144,9 +147,8 @@ CREATE TABLE IF NOT EXISTS `onets_dicts` (
 
 CREATE TABLE IF NOT EXISTS `stats` (
   `pname` varchar(20) NOT NULL,
-  `pvalue` varchar(20) DEFAULT NULL,
-  PRIMARY KEY (`pname`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  `pvalue` varchar(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -155,16 +157,14 @@ CREATE TABLE IF NOT EXISTS `stats` (
 --
 
 CREATE TABLE IF NOT EXISTS `submissions` (
-  `s_id` bigint(15) NOT NULL AUTO_INCREMENT,
+`s_id` bigint(15) NOT NULL,
   `s_name` binary(16) NOT NULL,
   `userhash` binary(16) NOT NULL,
   `info` text,
   `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0 - processing 1 - processed',
   `ip` int(10) NOT NULL,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`s_id`),
-  UNIQUE KEY `IDX_submissions_userhash` (`userhash`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Capture file submissions' AUTO_INCREMENT=1 ;
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Capture file submissions' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -173,15 +173,12 @@ CREATE TABLE IF NOT EXISTS `submissions` (
 --
 
 CREATE TABLE IF NOT EXISTS `users` (
-  `u_id` bigint(20) NOT NULL AUTO_INCREMENT,
+`u_id` bigint(20) NOT NULL,
   `userkey` binary(16) NOT NULL,
   `mail` varchar(500) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`u_id`),
-  UNIQUE KEY `IDX_users_userkey` (`userkey`),
-  UNIQUE KEY `IDX_users_mail` (`mail`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1666 ;
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3702 ;
 
 -- --------------------------------------------------------
 
@@ -210,6 +207,76 @@ DROP TABLE IF EXISTS `onets_dicts`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`);
 
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `dicts`
+--
+ALTER TABLE `dicts`
+ ADD PRIMARY KEY (`d_id`);
+
+--
+-- Indexes for table `n2d`
+--
+ALTER TABLE `n2d`
+ ADD PRIMARY KEY (`net_id`,`d_id`), ADD KEY `IDX_n2d_ts` (`ts`), ADD KEY `IDX_n2d_net_id` (`net_id`);
+
+--
+-- Indexes for table `n2u`
+--
+ALTER TABLE `n2u`
+ ADD UNIQUE KEY `UNC_n2u_net_id_u_id` (`net_id`,`u_id`), ADD KEY `IDX_n2u_u_id` (`u_id`);
+
+--
+-- Indexes for table `nets`
+--
+ALTER TABLE `nets`
+ ADD PRIMARY KEY (`net_id`), ADD UNIQUE KEY `IDX_net_mic` (`mic`), ADD KEY `u_id` (`u_id`), ADD KEY `IDX_nets_bssid` (`bssid`);
+
+--
+-- Indexes for table `stats`
+--
+ALTER TABLE `stats`
+ ADD PRIMARY KEY (`pname`);
+
+--
+-- Indexes for table `submissions`
+--
+ALTER TABLE `submissions`
+ ADD PRIMARY KEY (`s_id`), ADD UNIQUE KEY `IDX_submissions_userhash` (`userhash`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+ ADD PRIMARY KEY (`u_id`), ADD UNIQUE KEY `IDX_users_userkey` (`userkey`), ADD UNIQUE KEY `IDX_users_mail` (`mail`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `dicts`
+--
+ALTER TABLE `dicts`
+MODIFY `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=16;
+--
+-- AUTO_INCREMENT for table `nets`
+--
+ALTER TABLE `nets`
+MODIFY `net_id` bigint(15) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=187185;
+--
+-- AUTO_INCREMENT for table `submissions`
+--
+ALTER TABLE `submissions`
+MODIFY `s_id` bigint(15) NOT NULL AUTO_INCREMENT;
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+MODIFY `u_id` bigint(20) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=3702;
 DELIMITER $$
 --
 -- Events
