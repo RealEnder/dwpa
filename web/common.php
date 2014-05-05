@@ -169,9 +169,16 @@ function submission($mysql, $file) {
         }
 
     // Prepare nets for import
-    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip, mic, cap, hccap, u_id) VALUES(?, ?, ?, ?, ?, ?, ?)';
+    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip, mic, cap, hccap) VALUES(?, ?, ?, ?, ?, ?)';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
+
+    // Prepare n2u for insert
+    if ($u_id != Null) {
+        $n2usql = 'INSERT IGNORE INTO n2u(net_id, u_id) VALUES(?, ?)';
+        $n2ustmt = $mysql->stmt_init();
+        $n2ustmt->prepare($n2usql);
+    }
 
     foreach ($newnets as $net) {
         $dotmac = long2mac($net);
@@ -199,8 +206,13 @@ function submission($mysql, $file) {
                     $mic = get_mic($hccap);
                     //put in db
                     $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $stmt->bind_param('isisssi', $net, $nname[$net], $ip, $mic, $gzcap, $gzhccap, $u_id);
+                    $stmt->bind_param('isisss', $net, $nname[$net], $ip, $mic, $gzcap, $gzhccap);
                     $stmt->execute();
+                    if ($u_id != Null) {
+                        $net_id = $mysql->insert_id;
+                        $n2ustmt->bind_param('ii',$net_id ,$u_id);
+                        $n2ustmt->execute();
+                    }
                 }
                 @unlink(SHM."$bnfile.hccap");
             }
@@ -460,7 +472,7 @@ function goWigle(bssid) {
     document.getElementById("wigle").submit();
 }
 </script>
-<form method="POST" action="http://www.wigle.net/gps/gps/main/confirmquery" target="_blank" id="wigle" >
+<form method="POST" action="https://www.wigle.net/gps/gps/main/confirmquery" target="_blank" id="wigle" >
 <input type="hidden" name="netid" id="netid" />
 </form>
 <form class="form" method="POST" action="?nets" enctype="multipart/form-data">
