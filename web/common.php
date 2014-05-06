@@ -123,8 +123,8 @@ function submission($mysql, $file) {
     //clean uploaded capture
     $res = '';
     $rc  = 0;
-    exec(WPACLEAN." $cleancap $file", $res, $rc);
-    if (($rc != 0) || (strpos(implode('',$res), 'Net ') === FALSE)) {
+    exec(PYRIT." -r $file -o $cleancap strip", $res, $rc);
+    if ($rc != 0) {
         @unlink($cleancap);
         @unlink($file);
         return false;
@@ -133,12 +133,19 @@ function submission($mysql, $file) {
     //put all uploaded nets bssid in $incap
     $incap = array();
     $nname = array();
-    foreach ($res as $net)
-        if (strlen($net) > 22) {
-            $ibssid = mac2long(substr($net, 4, 17));
-            $nname[$ibssid] = substr($net, 22);
+    foreach ($res as $net) {
+        $pos = strpos($net, 'AccessPoint');
+        if ($pos !== false) {
+            $ibssid = mac2long(substr($net, $pos+12, 17));
+            $nname[$ibssid] = substr($net, strpos($net, "('")+2, -2);
             $incap[] = $ibssid;
         }
+    }
+    if (count($incap) == 0) {
+        @unlink($cleancap);
+        @unlink($file);
+        return false;
+    }
 
     //get all our bssids in $ourcap
     $ourcap = array();
