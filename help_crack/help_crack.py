@@ -441,7 +441,7 @@ while True:
         key = ktf.readline()
         ktf.close()
         key = key.rstrip('\n')
-        print 'Key for capture mic '+netdata['mic']+' is: '+key
+        print 'Key for capture mic '+netdata['mic']+' is: '+key.decode('utf8', 'ignore')
         while not put_work(netdata['mic'], key):
             print 'Couldn\'t submit key'
             sleepy()
