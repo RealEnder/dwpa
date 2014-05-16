@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: May 05, 2014 at 09:23 PM
+-- Generation Time: May 16, 2014 at 03:27 PM
 -- Server version: 5.5.37-0ubuntu0.12.04.1-log
 -- PHP Version: 5.3.10-1ubuntu3.11
 
@@ -108,14 +108,14 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `ip` int(10) unsigned NOT NULL,
   `sip` int(10) unsigned DEFAULT NULL,
   `mic` binary(16) NOT NULL,
-  `cap` varbinary(4096) NOT NULL,
+  `cap` varbinary(32768) NOT NULL,
   `hccap` varbinary(512) NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sts` timestamp NULL DEFAULT NULL,
   `n_state` tinyint(1) unsigned NOT NULL,
   `u_id` bigint(20) DEFAULT NULL,
   `hits` int(11) unsigned NOT NULL DEFAULT '0'
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=187185 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=187488 ;
 
 -- --------------------------------------------------------
 
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
 CREATE TABLE IF NOT EXISTS `onets` (
 `net_id` bigint(15)
 ,`mic` varchar(32)
-,`cap` varbinary(4096)
+,`cap` varbinary(32768)
 ,`hccap` varbinary(512)
 ,`bssid` bigint(15) unsigned
 );
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `mail` varchar(500) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3702 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3837 ;
 
 -- --------------------------------------------------------
 
@@ -266,7 +266,7 @@ MODIFY `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=16;
 -- AUTO_INCREMENT for table `nets`
 --
 ALTER TABLE `nets`
-MODIFY `net_id` bigint(15) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=187185;
+MODIFY `net_id` bigint(15) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=187488;
 --
 -- AUTO_INCREMENT for table `submissions`
 --
@@ -276,7 +276,7 @@ MODIFY `s_id` bigint(15) NOT NULL AUTO_INCREMENT;
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-MODIFY `u_id` bigint(20) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=3702;
+MODIFY `u_id` bigint(20) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=3837;
 DELIMITER $$
 --
 -- Events
