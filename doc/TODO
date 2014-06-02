@@ -1,17 +1,21 @@
-* implement simple proof of work for distributed cracker clients
-* do heavy work in external process for submissions
-* restructure home with folding text sections/wizzards
-* write INSTALL instructions
-* implement possibility to have several captures for given net, ie changed PSK
-* add hashkill support in help_crack
-* add JtR support in help_crack
-* write Android app with net scan and pass show from the site
-* add WPA key precalculation infrastructure
-* implement json API for accessing own nets
-* add example external dictionary crack based on json API
-* rework net selection for less CPU
+* implement simple proof of work for distributed cracker clients (not started)
+* do heavy work in external process for submissions (10%)
+* restructure home with folding text sections/wizzards (not started)
+* write INSTALL instructions (not started)
+* implement possibility to have several captures for given net, ie changed PSK (60%)
+* add hashkill support in help_crack (suspended)
+* add JtR support in help_crack (suspended)
+* add WPA key precalculation infrastructure (RouterKeygenPC, etc.) (10%)
+* Split cracked dictionary for precalculation PSKs and others (not started)
+* write Android app with net scan and pass show from the site (not started)
+* implement json API for accessing own nets (30%)
+* beautify and colorize help_crack output (not started)
+* refactore help_crack as library (not started)
+* add example external dictionary crack based on json API (20%)
+* rework net selection for less CPU (50%)
+* unify records in stats table (not started)
 * implement js/asm.js based online crack vs random uncracked net
-  and online generated, based on SSID wordlist
+  and online generated, based on SSID wordlist (not started)
 
 IMPLEMENTED
 ===========
@@ -19,4 +23,4 @@ IMPLEMENTED
 * rework dictionary download
 * return both cap and hccap formats
 * move captures and hccap files into the DB
-* select net by 4-Way Handshake mac, not nhash(md5 of cap)
+* select net by 4-Way Handshake mic, not nhash (md5 of cap)
