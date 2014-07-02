@@ -123,8 +123,8 @@ function submission($mysql, $file) {
     //clean uploaded capture
     $res = '';
     $rc  = 0;
-    exec(PYRIT." -r $file -o $cleancap strip", $res, $rc);
-    if ($rc != 0) {
+    exec(WPACLEAN." $cleancap $file", $res, $rc);
+    if (($rc != 0) || (strpos(implode('',$res), 'Net ') === FALSE)) {
         @unlink($cleancap);
         @unlink($file);
         return false;
@@ -133,19 +133,12 @@ function submission($mysql, $file) {
     //put all uploaded nets bssid in $incap
     $incap = array();
     $nname = array();
-    foreach ($res as $net) {
-        $pos = strpos($net, 'AccessPoint');
-        if ($pos !== false) {
-            $ibssid = mac2long(substr($net, $pos+12, 17));
-            $nname[$ibssid] = substr($net, strpos($net, "('")+2, -2);
+    foreach ($res as $net)
+        if (strlen($net) > 22) {
+            $ibssid = mac2long(substr($net, 4, 17));
+            $nname[$ibssid] = substr($net, 22);
             $incap[] = $ibssid;
         }
-    }
-    if (count($incap) == 0) {
-        @unlink($cleancap);
-        @unlink($file);
-        return false;
-    }
 
     //get all our bssids in $ourcap
     $ourcap = array();
@@ -194,28 +187,35 @@ function submission($mysql, $file) {
         //strip only current handshake
         exec(TCPDUMP." -r $cleancap -w ".SHM.$bnfile." \"wlan addr1 $dotmac || wlan addr2 $dotmac\"", $cut, $rc);
         if ($rc == 0) {
-            //generate hccap
             $cut = '';
-            exec(CAP2HCCAP.' '.SHM."$bnfile ".SHM."$bnfile.hccap", $cut, $rc);
-            if (($rc == 0) && filesize(SHM."$bnfile.hccap") == 392) {
-                //we are OK, read data
-                $cap = file_get_contents(SHM.$bnfile);
-                $gzcap = gzencode($cap, 9);
-                $hccap = file_get_contents(SHM."$bnfile.hccap");
-                $gzhccap = gzencode($hccap, 9);
-                //extract mic
-                $mic = get_mic($hccap);
-                //put in db
-                $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                $stmt->bind_param('isisss', $net, $nname[$net], $ip, $mic, $gzcap, $gzhccap);
-                $stmt->execute();
-                if ($u_id != Null) {
-                    $net_id = $mysql->insert_id;
-                    $n2ustmt->bind_param('ii',$net_id ,$u_id);
-                    $n2ustmt->execute();
+            $rc  = 0;
+            //run through pyrit analyze
+            exec(PYRIT.' -r '.SHM.$bnfile.' analyze', $cut, $rc);
+            //check for correct errorcode and if we have only one AP
+            if (($rc == 0) && (strpos(implode("\n", $cut), 'got 1 AP(s)') !== FALSE)) {
+                //generate hccap
+                $cut = '';
+                exec(CAP2HCCAP.' '.SHM."$bnfile ".SHM."$bnfile.hccap", $cut, $rc);
+                if (($rc == 0) && filesize(SHM."$bnfile.hccap") == 392) {
+                    //we are OK, read data
+                    $cap = file_get_contents(SHM.$bnfile);
+                    $gzcap = gzencode($cap, 9);
+                    $hccap = file_get_contents(SHM."$bnfile.hccap");
+                    $gzhccap = gzencode($hccap, 9);
+                    //extract mic
+                    $mic = get_mic($hccap);
+                    //put in db
+                    $ip = ip2long($_SERVER['REMOTE_ADDR']);
+                    $stmt->bind_param('isisss', $net, $nname[$net], $ip, $mic, $gzcap, $gzhccap);
+                    $stmt->execute();
+                    if ($u_id != Null) {
+                        $net_id = $mysql->insert_id;
+                        $n2ustmt->bind_param('ii',$net_id ,$u_id);
+                        $n2ustmt->execute();
+                    }
                 }
+                @unlink(SHM."$bnfile.hccap");
             }
-            @unlink(SHM."$bnfile.hccap");
         }
     }
     $stmt->close();
