@@ -16,6 +16,7 @@
 * unify records in stats table (not started)
 * implement js/asm.js based online crack vs random uncracked net
   and online generated, based on SSID wordlist (not started)
+* functionality to remove/hide network from the site (10%)
 
 IMPLEMENTED
 ===========
