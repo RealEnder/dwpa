@@ -1,0 +1,37 @@
+Just some maintenance scripts/SQL
+
+1. Revert bogus get_works after given date
+SELECT *
+FROM dicts, (SELECT d_id, COUNT(d_id) AS c
+             FROM n2d
+             WHERE ts >= '2014-09-14'
+             GROUP BY d_id) AS d
+WHERE dicts.d_id=d.d_id
+
+UPDATE dicts, (SELECT d_id, COUNT(d_id) AS c
+               FROM n2d
+               WHERE ts >= '2014-09-14' GROUP BY d_id) AS d
+SET hits=hits-c
+WHERE dicts.d_id=d.d_id
+
+
+SELECT nets.net_id
+FROM nets, (SELECT net_id, COUNT(net_id)
+            FROM n2d
+            WHERE ts >= '2014-09-14'
+            GROUP BY net_id) AS n
+WHERE nets.net_id=n.net_id
+
+UPDATE nets, (SELECT net_id,count(net_id) AS c
+              FROM n2d
+              WHERE ts >= '2014-09-14' GROUP BY net_id) AS n
+SET hits=hits-c
+WHERE nets.net_id=n.net_id
+
+2. Get rendom cracked net
+SELECT *
+FROM nets
+WHERE net_id >= (SELECT MAX(net_id)
+                 FROM nets)*RAND()-1
+      AND n_state=1
+LIMIT 1 
