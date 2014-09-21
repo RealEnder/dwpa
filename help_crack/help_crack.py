@@ -20,14 +20,14 @@ import base64
 from distutils.version import StrictVersion
 
 #some base variables
-base_url      = 'http://wpa-sec.stanev.org/'
-help_crack    = base_url + 'hc/help_crack.py'
+base_url = 'http://wpa-sec.stanev.org/'
+help_crack = base_url + 'hc/help_crack.py'
 help_crack_cl = base_url + 'hc/CHANGELOG'
-get_work_url  = base_url + '?get_work'
-put_work_url  = base_url + '?put_work'
-res_file      = 'help_crack.res'
-net_file      = 'help_crack.net'
-key_file      = 'help_crack.key'
+get_work_url = base_url + '?get_work'
+put_work_url = base_url + '?put_work'
+res_file = 'help_crack.res'
+net_file = 'help_crack.net'
+key_file = 'help_crack.key'
 
 #version
 hc_ver = '0.8.5'
@@ -48,7 +48,7 @@ def valid_mac(mac):
 def md5file(filename):
     md5s = hashlib.md5()
     try:
-        with open(filename, 'rb') as f: 
+        with open(filename, 'rb') as f:
             for chunk in iter(lambda: f.read(8192), ''):
                 md5s.update(chunk)
     except Exception as e:
@@ -199,7 +199,7 @@ def check_tools():
             t = which(xt)
             if t and run_tool(t+' -V'):
                 tools.append(t)
-                    
+
     if len(tools) == 0:
         print 'No aircrack-ng, pyrit, Hashcat or oclHashcat found'
         exit(1)
@@ -254,7 +254,7 @@ def prepare_work(xnetdata, etype):
         try:
             gznet = base64.b64decode(xnetdata[etype])
             gzstream = StringIO.StringIO(gznet)
-            fgz = gzip.GzipFile(fileobj = gzstream)
+            fgz = gzip.GzipFile(fileobj=gzstream)
             fd = open(net_file, 'wb')
             fd.write(fgz.read())
             fd.close()
@@ -268,7 +268,7 @@ def prepare_work(xnetdata, etype):
         dictmd5 = ''
         extract = False
         gzdictname = xnetdata['dpath'].split('/')[-1]
-        xdictname   = gzdictname.rsplit('.', 1)[0]
+        xdictname = gzdictname.rsplit('.', 1)[0]
         if os.path.exists(gzdictname):
             dictmd5 = md5file(gzdictname)
         if xnetdata['dhash'] != dictmd5:
@@ -325,7 +325,7 @@ def prepare_challenge(etype):
         try:
             gznet = base64.b64decode(xnetdata[etype])
             gzstream = StringIO.StringIO(gznet)
-            fgz = gzip.GzipFile(fileobj = gzstream)
+            fgz = gzip.GzipFile(fileobj=gzstream)
             fd = open(net_file, 'wb')
             fd.write(fgz.read())
             fd.close()
@@ -390,7 +390,7 @@ def low_priority():
 
 #check for resume files
 def resume_check():
-    if (os.path.exists(res_file)):
+    if os.path.exists(res_file):
         netdataf = open(res_file)
         try:
             xnetdata = json.load(netdataf)
@@ -508,7 +508,7 @@ while True:
             if netdata['key'] == key:
                 print 'Challenge solved successfully!'
                 challenge = True
-                netdata   = resnetdata
+                netdata = resnetdata
 
         os.unlink(key_file)
     else:
