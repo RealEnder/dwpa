@@ -30,7 +30,7 @@ net_file      = 'help_crack.net'
 key_file      = 'help_crack.key'
 
 #version
-hc_ver = '0.8.4'
+hc_ver = '0.8.5'
 
 def sleepy():
     print 'Sleeping...'
@@ -303,6 +303,54 @@ def prepare_work(xnetdata, etype):
 
     return False
 
+#prepare chalenge files
+def prepare_challenge(etype):
+    xnetdata = {'cap':"""H4sICMX/HVQCA0d1ZXN0LmNhcAC7cnjTQiYGFgYY+P+fgSGTAQFOQnEDWA4EGCQsN7G9hZABDkLC\
+                         dbpqQLkUBkEWBlb30tTiEkaOppbuaSoGHjnMjGysLAyMDAxajAz6jAwGEkAm/xomJhDJAmJB+AwM\
+                         Riw8QhIJdzkZBCSYmL4AjbsrxzDBx1hOQgrkHizgrhRQ3oSNlw2bnAxDwCdGoNEBn0BWBXxiAbEg\
+                         fISqmVDMwWXFyCKX4t3MgeKxm6tWMQNlO/qYmBlKmRi6GASg+pgcWX4zCD8+4HxdvbHeWIz1qojr\
+                         9xUryrOaRPbGzTTV9JvLQCoQuysCCo9lAWozJoq7qJ4R/FM588BSFwyHMloxQhyH7FyF1SgOZeRC\
+                         OPTsUeXVVntX39v7SjFY1D5CoJFZwOjn4tQzi43PHD9TfNyYkLtel7/+u/jBMXEvO651a0USwhnE\
+                         DEQgEQYmWSBsHgYArgaqj0MCAAA=""",
+                'hccap':"""H4sICMX/HVQCA0d1ZXN0LmhjY2FwAHMvTS0uYSAAJCw3sb1lkUvxbuY4e1R5tdXe1ff2vlIMFrWP\
+                           EGhkFjD6uTj1zGLjM8fPFB83dmT5zSD8+IDzdfXGemMx1qsirt9XrCjPahLZGzfTVNNvLhMzQykT\
+                           IxeDANRoJkIGMpAKxAxEGBkY+NcwgUkWCJuHYZCASpCf6xkYXpe//rv4wTFxLzuudWtFEsIBQ9x8\
+                           t4gBAAA=""",
+                'bssid': '00:18:39:b2:06:ed',
+                'mic': 'eb77ebfda3e0c6174a3e0aaead146057',
+                'key': 'password1234',
+                'dictname': 'challenge.txt'}
+    try:
+        #write net
+        try:
+            gznet = base64.b64decode(xnetdata[etype])
+            gzstream = StringIO.StringIO(gznet)
+            fgz = gzip.GzipFile(fileobj = gzstream)
+            fd = open(net_file, 'wb')
+            fd.write(fgz.read())
+            fd.close()
+            fgz.close()
+        except Exception as e:
+            print 'Net data extraction failed'
+            print 'Exception: %s' % e
+            return None
+
+        #create dict
+        try:
+            f = open(xnetdata['dictname'], 'wb')
+            f.write(xnetdata['key']+"\n")
+            f.close()
+        except Exception as e:
+            print xnetdata['dictname'] + ' creation failed'
+            print 'Exception: %s' % e
+            return None
+
+        return xnetdata
+    except TypeError as e:
+        print 'Exception: %s' % e
+
+    return None
+
 #return results to server
 def put_work(mic, pwkey):
     data = urllib.urlencode({mic: pwkey})
@@ -376,19 +424,29 @@ if tool.find('ashcat') != -1:
 else:
     fformat = 'cap'
 
-netdata = resume_check()
+challenge = False
+resnetdata = resume_check()
+netdata = None
 while True:
-    if netdata is None:
-        netdata = get_work_wl(json.JSONEncoder().encode({'format': fformat, 'tool': os.path.basename(tool)}))
-        if netdata:
-            create_resume(netdata)
+    if challenge:
+        if netdata is None:
+            netdata = get_work_wl(json.JSONEncoder().encode({'format': fformat, 'tool': os.path.basename(tool)}))
+            if netdata:
+                create_resume(netdata)
 
-    dictname = prepare_work(netdata, fformat)
-    if not dictname:
-        print 'Couldn\'t prepare data'
-        netdata = None
-        sleepy()
-        continue
+        dictname = prepare_work(netdata, fformat)
+        if not dictname:
+            print 'Couldn\'t prepare data'
+            netdata = None
+            sleepy()
+            continue
+
+    else:
+        netdata = prepare_challenge(fformat)
+        if netdata is None:
+            print 'Couldn\'t prepare challenge'
+            exit(1)
+        dictname = netdata['dictname']
 
     #check if we will use rules
     rule = ''
@@ -441,17 +499,28 @@ while True:
         key = ktf.readline()
         ktf.close()
         key = key.rstrip('\n')
-        print 'Key for capture mic '+netdata['mic']+' is: '+key.decode('utf8', 'ignore')
-        while not put_work(netdata['mic'], key):
-            print 'Couldn\'t submit key'
-            sleepy()
+        if challenge:
+            print 'Key for capture mic '+netdata['mic']+' is: '+key.decode('utf8', 'ignore')
+            while not put_work(netdata['mic'], key):
+                print 'Couldn\'t submit key'
+                sleepy()
+        else:
+            if netdata['key'] == key:
+                print 'Challenge solved successfully!'
+                challenge = True
+                netdata   = resnetdata
+
         os.unlink(key_file)
     else:
+        if not challenge:
+            print 'Challenge solving failed! Check if your cracker runs correctly.'
+            exit(1)
         print 'Key for capture mic '+netdata['mic']+' not found.'
 
     #cleanup
     if os.path.exists(net_file):
         os.unlink(net_file)
-    if os.path.exists(res_file):
-        os.unlink(res_file)
+    if resnetdata != netdata:
+        if os.path.exists(res_file):
+            os.unlink(res_file)
     netdata = None
