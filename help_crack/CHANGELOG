@@ -61,3 +61,6 @@ ver 0.8.4 / 19 Jan 2014
  * drop support for oclHashcat-plus
  * fix hashcat-cli on 32bit (thanks Vanetz)
  * Fix hashcat output format for proper submission
+
+ver 0.8.5 / 21 Sep 2014
+ * add a simple challenge before requesting work
