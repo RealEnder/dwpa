@@ -1,4 +1,3 @@
-* implement simple proof of work for distributed cracker clients (not started)
 * do heavy work in external process for submissions (10%)
 * restructure home with folding text sections/wizzards (not started)
 * write INSTALL instructions (not started)
@@ -25,3 +24,5 @@ IMPLEMENTED
 * return both cap and hccap formats
 * move captures and hccap files into the DB
 * select net by 4-Way Handshake mic, not nhash (md5 of cap)
+* implement simple proof of work for distributed cracker clients -
+  currently just try to crack sample net before get_work
