@@ -29,6 +29,28 @@ if (! function_exists('hash_pbkdf2')) {
     }
 }
 
+// helper function for PHP version < 5.4.0
+if (function_exists('hex2bin') == False) {
+    /* Alternative working, but slow function
+    function hex2bin($h) {
+        if (strlen($h) % 2 != 0)
+            $h = '0'.$h;
+        if (!ctype_xdigit($h))
+            return '';
+        $r = '';
+        for ($i=0; $i<strlen($h); $i+=2)
+            $r .= chr(hexdec($h{$i}.$h{($i+1)}));
+        return $r;
+    }
+    */
+    function hex2bin($h) {
+        if (strlen($h) & 1)
+            $h = '0'.$h;
+
+        return pack('H*', $h);
+    }
+}
+
 /*
     check_key(hccap contents, array of keys)
     return:  False: bad format;
@@ -124,35 +146,39 @@ function submission($mysql, $file) {
     $res = '';
     $rc  = 0;
     exec(WPACLEAN." $cleancap $file", $res, $rc);
-    if (($rc != 0) || (strpos(implode('',$res), 'Net ') === FALSE)) {
+
+    //parse wpaclean output and create references to $incap mic
+    $incap = array();
+    $ref = array('');
+    foreach ($res as $net) {
+        if (strlen($net) > 59) {
+            $mic = hex2bin(substr($net, 26, 32));
+            if (isset($incap[$mic]))
+                continue;
+            $incap[$mic] = array($mic,                          //mic
+                                 mac2long(substr($net, 4, 17)), //ibssid
+                                 substr($net, 59));             //ssid
+            $ref[] = & $incap[$mic][0];
+        }
+    }
+    if (count($incap) == 0) {
         @unlink($cleancap);
         @unlink($file);
         return false;
     }
+    $ref[0] = str_repeat('s',count($incap));
 
-    //put all uploaded nets bssid in $incap
-    $incap = array();
-    $nname = array();
-    foreach ($res as $net)
-        if (strlen($net) > 22) {
-            $ibssid = mac2long(substr($net, 4, 17));
-            $nname[$ibssid] = substr($net, 22);
-            $incap[] = $ibssid;
-        }
-
-    //get all our bssids in $ourcap
-    $ourcap = array();
-    $res = $mysql->query('SELECT bssid FROM nets');
-    while ($bssid = $res->fetch_row())
-        $ourcap[] = $bssid[0];
-    $res->free();
-
-    //diff and cleanup
-    $newnets = array_diff($incap, $ourcap);
-    unset($incap);
-    unset($ourcap);
-    if (count($newnets) == 0)
-        return false;
+    //get all net_ids of of networks already in the DB
+    $sql = 'SELECT net_id, mic FROM nets WHERE mic IN ('.implode(',', array_fill(0, count($incap), '?')).')';
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    call_user_func_array(array($stmt, 'bind_param'), $ref);
+    $stmt->execute();
+    stmt_bind_assoc($stmt, $data);
+    while ($stmt->fetch()) {
+        $incap[$data['mic']][] = $data['net_id'];
+    }
+    $stmt->close();
 
     //get u_id if we have key set
     $u_id = Null;
@@ -180,8 +206,18 @@ function submission($mysql, $file) {
         $n2ustmt->prepare($n2usql);
     }
 
-    foreach ($newnets as $net) {
-        $dotmac = long2mac($net);
+    //BEGIN TRANSACTION
+    $mysql->autocommit(FALSE);
+    foreach ($incap as $net) {
+        //associate net with user
+        if (isset($net[3])) {
+            if ($u_id != Null) {
+                $n2ustmt->bind_param('ii', $net[3] ,$u_id);
+                $n2ustmt->execute();
+            }
+            continue;
+        }
+        $dotmac = long2mac($net[1]);
         $cut = '';
         $rc  = 0;
         //strip only current handshake
@@ -204,9 +240,12 @@ function submission($mysql, $file) {
                     $gzhccap = gzencode($hccap, 9);
                     //extract mic
                     $mic = get_mic($hccap);
+                    if ($mic != $net[0]) {
+                        file_put_contents('shitlog.txt', print_r($net, True), FILE_APPEND);
+                    }
                     //put in db
                     $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $stmt->bind_param('isisss', $net, $nname[$net], $ip, $mic, $gzcap, $gzhccap);
+                    $stmt->bind_param('isisss', $net[1], $net[2], $ip, $net[0], $gzcap, $gzhccap);
                     $stmt->execute();
                     if ($u_id != Null) {
                         $net_id = $mysql->insert_id;
@@ -219,7 +258,6 @@ function submission($mysql, $file) {
         }
     }
     $stmt->close();
-    unset($nname);
 
     rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
 
@@ -229,6 +267,8 @@ function submission($mysql, $file) {
     $stmt->prepare($sql);
     $stmt->execute();
     $stmt->close();
+
+    $mysql->commit();
 
     @unlink(SHM.$bnfile);
     @unlink($cleancap);
