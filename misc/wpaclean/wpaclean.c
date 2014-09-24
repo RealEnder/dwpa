@@ -44,6 +44,8 @@
 #include "ieee80211.h"
 #include "pcap.h"
 
+#define MIC_OFFSET 1+1+2+1+2+2+8+32+16+8+8
+
 static unsigned char ZERO[32] =
 "\x00\x00\x00\x00\x00\x00\x00\x00"
 "\x00\x00\x00\x00\x00\x00\x00\x00"
@@ -68,12 +70,21 @@ struct network {
 	unsigned char	n_beacon[2048];
 	int		n_beaconlen;
 	char		n_ssid[256];
+    unsigned char   n_mic[16];
 	struct client	n_clients;
 	struct client	*n_handshake;
 	struct network	*n_next;
 } _networks;
 
 static int _outfd;
+
+static void hexdump(void *p, int len)
+{
+    unsigned char *x = p;
+    
+    while (len--)
+        printf("%.2x", *x++);
+}
 
 static int open_pcap(char *fname)
 {       
@@ -124,14 +135,15 @@ static void packet_write_pcap(int fd, struct packet *p)
 
 static void print_network(struct network *n)
 {
-	printf("Net %.2x:%.2x:%.2x:%.2x:%.2x:%.2x %s\n",
+	printf("Net %.2x:%.2x:%.2x:%.2x:%.2x:%.2x mic ",
 		n->n_bssid[0],
 		n->n_bssid[1],
 		n->n_bssid[2],
 		n->n_bssid[3],
 		n->n_bssid[4],
-		n->n_bssid[5],
-		n->n_ssid);
+		n->n_bssid[5]);
+    hexdump(n->n_mic, 16);
+    printf(" %s\n", n->n_ssid);
 }
 
 static void save_network(struct network *n)
@@ -268,18 +280,6 @@ static struct client *find_add_client(struct network *n, unsigned char *mac)
 
 	return c;
 }
-
-#if 0
-static void hexdump(void *p, int len)
-{
-	unsigned char *x = p;
-	
-	while (len--)
-		printf("%.2x ", *x++);
-
-	printf("\n");
-}
-#endif
 
 static int parse_rsn(unsigned char *p, int l, int rsn)
 {
@@ -511,6 +511,7 @@ static void process_eapol(struct network *n, struct client *c, unsigned char *p,
         case 2: 
                 c->c_wpa_got |= 2;
                 c->c_wpa_got |= 4;
+                memcpy(n->n_mic, &p[MIC_OFFSET], sizeof(n->n_mic));
                 break;
 
         case 3: 
@@ -718,12 +719,12 @@ int main(int argc, char *argv[])
 		int prog = (int) (((double) (i - 1)) / ((double)(argc - 2)) 
 				   * 100.0);
 
-		printf("Pwning %s (%d/%d %d%%)\n", in, i - 1, argc - 2, prog);
-		fflush(stdout);
+		//printf("Pwning %s (%d/%d %d%%)\n", in, i - 1, argc - 2, prog);
+		//fflush(stdout);
 
 		pwn(in);
 	}
 
-	printf("Done\n");
+	//printf("Done\n");
 	exit(0);
 }
