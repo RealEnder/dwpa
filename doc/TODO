@@ -1,7 +1,6 @@
 * do heavy work in external process for submissions (10%)
 * restructure home with folding text sections/wizzards (not started)
 * write INSTALL instructions (not started)
-* implement possibility to have several captures for given net, ie changed PSK (60%)
 * add hashkill support in help_crack (suspended)
 * add JtR support in help_crack (suspended)
 * add WPA key precalculation infrastructure (RouterKeygenPC, etc.) (10%)
@@ -26,3 +25,4 @@ IMPLEMENTED
 * select net by 4-Way Handshake mic, not nhash (md5 of cap)
 * implement simple proof of work for distributed cracker clients -
   currently just try to crack sample net before get_work
+* implement possibility to have several captures for given net, ie changed PSK
