@@ -76,7 +76,8 @@ struct network {
 	struct network	*n_next;
 } _networks;
 
-static int _outfd;
+//static int _outfd;
+char outfile[2048] = "", *outfile_begin;
 
 static void hexdump(void *p, int len)
 {
@@ -149,15 +150,23 @@ static void print_network(struct network *n)
 static void save_network(struct network *n)
 {
 	int i;
+    char nmic[33];
+
+    for (i=0;i<16;i++)
+        sprintf(nmic+(i*2), "%.2x", n->n_mic[i]);
+    memcpy(outfile_begin, nmic, 32);
+
+    int _outfd=open_pcap(outfile);
 
 	write_pcap(_outfd, n->n_beacon, n->n_beaconlen);
 
-        for (i = 0; i < 4; i++) {
-                struct packet *p = &n->n_handshake->c_handshake[i];
+    for (i = 0; i < 4; i++) {
+        struct packet *p = &n->n_handshake->c_handshake[i];
 
-                if (p->p_len)
-                        packet_write_pcap(_outfd, p);
-        }
+        if (p->p_len)
+                packet_write_pcap(_outfd, p);
+    }
+    close(_outfd);
 }
 
 static void fix_beacon(struct network *n)
@@ -703,16 +712,20 @@ static void pwn(char *fname)
 
 int main(int argc, char *argv[])
 {
-	char *out;
 	int i;
+    size_t outfile_len;
 
 	if (argc < 3) {
-		printf("Usage: %s <out.cap> <in.cap> [in2.cap] [...]\n", argv[0]);
+		printf("Usage: %s <outdir> <in.cap> [in2.cap] [...]\n", argv[0]);
 		exit(1);
 	}
 
-	out = argv[1];
-	_outfd = open_pcap(out);
+    strncpy(outfile, argv[1], sizeof(outfile));
+    strcat(outfile, "/");
+    outfile_len = strlen(outfile);
+    outfile_begin = outfile+outfile_len;
+    strncpy(outfile_begin+32, ".mic.cap", sizeof(outfile)-outfile_len);
+
 
 	for (i = 2; i < argc; i++) {
 		char *in = argv[i];
@@ -722,3 +735,5 @@ int main(int argc, char *argv[])
 
 	exit(0);
 }
+
+
