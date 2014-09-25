@@ -139,13 +139,10 @@ function get_mic($hccap) {
 
 //Process submission
 function submission($mysql, $file) {
-    $bnfile = basename($file);
-    $cleancap = SHM.$bnfile.'clean';
-
     //clean uploaded capture
     $res = '';
     $rc  = 0;
-    exec(WPACLEAN." $cleancap $file", $res, $rc);
+    exec(WPACLEAN.' '.SHM.' '.$file, $res, $rc);
 
     //parse wpaclean output and create references to $incap mic
     $incap = array();
@@ -162,7 +159,7 @@ function submission($mysql, $file) {
         }
     }
     if (count($incap) == 0) {
-        @unlink($cleancap);
+        array_map('unlink', glob(SHM.'*.mic.cap'));
         @unlink($file);
         return false;
     }
@@ -212,49 +209,50 @@ function submission($mysql, $file) {
         //associate net with user
         if (isset($net[3])) {
             if ($u_id != Null) {
-                $n2ustmt->bind_param('ii', $net[3] ,$u_id);
+                $n2ustmt->bind_param('ii', $net[3], $u_id);
                 $n2ustmt->execute();
             }
             continue;
         }
         $dotmac = long2mac($net[1]);
+
+        $bnfile = SHM.bin2hex($net[0]).'.mic.cap';
+        if (! file_exists($bnfile)) {
+            file_put_contents('shitlog.txt', "$bnfile not exists, continue...", FILE_APPEND);
+            continue;
+        }
+        //run through pyrit analyze
         $cut = '';
         $rc  = 0;
-        //strip only current handshake
-        exec(TCPDUMP." -r $cleancap -w ".SHM.$bnfile." \"wlan addr1 $dotmac || wlan addr2 $dotmac\"", $cut, $rc);
-        if ($rc == 0) {
+        exec(PYRIT.' -r '.$bnfile.' analyze', $cut, $rc);
+        //check for correct errorcode and if we have only one AP
+        if (($rc == 0) && (strpos(implode("\n", $cut), 'got 1 AP(s)') !== FALSE)) {
+            //generate hccap
             $cut = '';
-            $rc  = 0;
-            //run through pyrit analyze
-            exec(PYRIT.' -r '.SHM.$bnfile.' analyze', $cut, $rc);
-            //check for correct errorcode and if we have only one AP
-            if (($rc == 0) && (strpos(implode("\n", $cut), 'got 1 AP(s)') !== FALSE)) {
-                //generate hccap
-                $cut = '';
-                exec(CAP2HCCAP.' '.SHM."$bnfile ".SHM."$bnfile.hccap", $cut, $rc);
-                if (($rc == 0) && filesize(SHM."$bnfile.hccap") == 392) {
-                    //we are OK, read data
-                    $cap = file_get_contents(SHM.$bnfile);
-                    $gzcap = gzencode($cap, 9);
-                    $hccap = file_get_contents(SHM."$bnfile.hccap");
-                    $gzhccap = gzencode($hccap, 9);
-                    //extract mic
-                    $mic = get_mic($hccap);
-                    if ($mic != $net[0]) {
-                        file_put_contents('shitlog.txt', print_r($net, True), FILE_APPEND);
-                    }
-                    //put in db
-                    $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $stmt->bind_param('isisss', $net[1], $net[2], $ip, $net[0], $gzcap, $gzhccap);
-                    $stmt->execute();
-                    if ($u_id != Null) {
-                        $net_id = $mysql->insert_id;
-                        $n2ustmt->bind_param('ii',$net_id ,$u_id);
-                        $n2ustmt->execute();
-                    }
+            exec(CAP2HCCAP." $bnfile $bnfile.hccap", $cut, $rc);
+            if (($rc == 0) && filesize("$bnfile.hccap") == 392) {
+                //we are OK, read data
+                $cap = file_get_contents($bnfile);
+                $gzcap = gzencode($cap, 9);
+                $hccap = file_get_contents("$bnfile.hccap");
+                $gzhccap = gzencode($hccap, 9);
+                //extract mic
+                $mic = get_mic($hccap);
+                if ($mic != $net[0]) {
+                    file_put_contents('shitlog.txt', print_r($net, True), FILE_APPEND);
                 }
-                @unlink(SHM."$bnfile.hccap");
+                //put in db
+                $ip = ip2long($_SERVER['REMOTE_ADDR']);
+                $stmt->bind_param('isisss', $net[1], $net[2], $ip, $net[0], $gzcap, $gzhccap);
+                $stmt->execute();
+                if ($u_id != Null) {
+                    //TODO: catch if insert_id==0
+                    $net_id = $mysql->insert_id;
+                    $n2ustmt->bind_param('ii', $net_id, $u_id);
+                    $n2ustmt->execute();
+                }
             }
+            @unlink("$bnfile.hccap");
         }
     }
     $stmt->close();
@@ -270,8 +268,7 @@ function submission($mysql, $file) {
 
     $mysql->commit();
 
-    @unlink(SHM.$bnfile);
-    @unlink($cleancap);
+    array_map('unlink', glob(SHM.'*.mic.cap'));
     return true;
 }
 
