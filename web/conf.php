@@ -14,7 +14,6 @@ $bosskey = '';
 
 //App specific defines
 define('PYRIT', 'pyrit');
-define('TCPDUMP', '/usr/sbin/tcpdump');
 define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
 define('CAP2HCCAP', '/var/www/wpa-sec/cap/cap2hccap');
 
@@ -27,5 +26,5 @@ elseif (is_dir('/dev/shm'))
 else
     die('Can not access SHM!');
 
-define('MIN_HC_VER', '0.8.1');
+define('MIN_HC_VER', '0.8.5');
 ?>
