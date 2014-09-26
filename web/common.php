@@ -159,7 +159,6 @@ function submission($mysql, $file) {
         }
     }
     if (count($incap) == 0) {
-        array_map('unlink', glob(SHM.'*.mic.cap'));
         @unlink($file);
         return false;
     }
@@ -268,7 +267,10 @@ function submission($mysql, $file) {
 
     $mysql->commit();
 
-    array_map('unlink', glob(SHM.'*.mic.cap'));
+    foreach ($incap as $net) {
+        @unlink(SHM.bin2hex($net[0]).'.mic.cap');
+    }
+
     return true;
 }
 
