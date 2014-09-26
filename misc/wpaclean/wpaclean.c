@@ -528,6 +528,7 @@ static void process_eapol(struct network *n, struct client *c, unsigned char *p,
                         c->c_wpa_got |= 1;
                 
                 c->c_wpa_got |= 4;
+                memcpy(n->n_mic, &p[MIC_OFFSET], sizeof(n->n_mic));
                 break;                                                                                       
 
         case 4: 
@@ -535,6 +536,7 @@ static void process_eapol(struct network *n, struct client *c, unsigned char *p,
                         c->c_wpa_got |= 2;
                 
                 c->c_wpa_got |= 4;
+                memcpy(n->n_mic, &p[MIC_OFFSET], sizeof(n->n_mic));
                 break;
 
         default:
