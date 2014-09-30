@@ -244,9 +244,8 @@ function submission($mysql, $file) {
                 $ip = ip2long($_SERVER['REMOTE_ADDR']);
                 $stmt->bind_param('isisss', $net[1], $net[2], $ip, $net[0], $gzcap, $gzhccap);
                 $stmt->execute();
-                if ($u_id != Null) {
-                    //TODO: catch if insert_id==0
-                    $net_id = $mysql->insert_id;
+                $net_id = $mysql->insert_id;
+                if (($u_id != Null) && ($net_id != 0)) {
                     $n2ustmt->bind_param('ii', $net_id, $u_id);
                     $n2ustmt->execute();
                 }
