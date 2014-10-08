@@ -485,7 +485,7 @@ while True:
                     print 'Check you have CUDA/OpenCL support'
                     exit(1)
         if tool.find('hashcat-cli') != -1:
-            cracker = '%s -m2500 --outfile-format=2 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
+            cracker = '%s -m2500 -w 3 --potfile-disable --outfile-format=2 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
             subprocess.call(shlex.split(cracker))
     except KeyboardInterrupt as ex:
         print 'Keyboard interrupt'
