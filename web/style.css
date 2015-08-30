@@ -82,6 +82,10 @@ div.hr hr {display: none;}
 
 .submitbutton {border: 1px solid #939384;background: #f5f5dc url(images/button.gif);letter-spacing: 1px;width: 140px;}
 
+.pagging {border: 1px solid #939384;background-color: #f5f5dc;letter-spacing: 1px;padding: 2px 5px;margin-right: 10px;text-decoration: none !important; color: #626258;}
+
+.pagging.active {border:none;background-color:transparent}
+
 /* search form */
 .searchinput {width: 200px;background-color: #f5f5dc;border: 1px solid #000000;letter-spacing: 1px;}
 
