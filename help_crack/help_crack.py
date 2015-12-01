@@ -312,10 +312,10 @@ def prepare_challenge(etype):
                          9xUryrOaRPbGzTTV9JvLQCoQuysCCo9lAWozJoq7qJ4R/FM588BSFwyHMloxQhyH7FyF1SgOZeRC\
                          OPTsUeXVVntX39v7SjFY1D5CoJFZwOjn4tQzi43PHD9TfNyYkLtel7/+u/jBMXEvO651a0USwhnE\
                          DEQgEQYmWSBsHgYArgaqj0MCAAA=""",
-                'hccap':"""H4sICMX/HVQCA0d1ZXN0LmhjY2FwAHMvTS0uYSAAJCw3sb1lkUvxbuY4e1R5tdXe1ff2vlIMFrWP\
-                           EGhkFjD6uTj1zGLjM8fPFB83dmT5zSD8+IDzdfXGemMx1qsirt9XrCjPahLZGzfTVNNvLhMzQykT\
-                           IxeDANRoJkIGMpAKxAxEGBkY+NcwgUkWCJuHYZCASpCf6xkYXpe//rv4wTFxLzuudWtFEsIBQ9x8\
-                           t4gBAAA=""",
+                'hccap':"""H4sICN7CXVYCA2d1ZXN0Lm5ldABzL00tLmEgACQsN7G9ZZFL8W7mOHtUebXV3tX39r5SDBa1jxBo\
+                           ZBYw+rk49cxi4zPHzxQfN3Zk+c0g/PiA83X1xnpjMdarIq7fV6woz2oS2Rs301TTby4TM0MpEyMX\
+                           gwDUaCZCBjKQCsQMRBgZGPjXMIFJFgibh2GQgEqQn4H4dfnrv4sfHBP3suNat1YkIRwAu+stjIgB\
+                           AAA=""",
                 'bssid': '00:18:39:b2:06:ed',
                 'mic': 'eb77ebfda3e0c6174a3e0aaead146057',
                 'key': 'password1234',
