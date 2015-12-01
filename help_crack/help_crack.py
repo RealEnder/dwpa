@@ -455,6 +455,11 @@ while True:
             if os.path.exists(netdata['rule']):
                 rule = '-r'+netdata['rule']
 
+    #run oclHashcat in performance tune mode
+    performance = ''
+    if tool.find('Hashcat') != -1:
+        performance = '-w 3'
+
     #run cracker
     try:
         if tool.find('pyrit') != -1:
@@ -465,7 +470,7 @@ while True:
             subprocess.call(shlex.split(cracker))
         if tool.find('ashcat') != -1:
             try:
-                cracker = '%s -m2500 --potfile-disable --outfile-format=2 -o%s %s %s %s' % (tool, key_file, rule, net_file, dictname)
+                cracker = '%s -m2500 --potfile-disable --outfile-format=2 %s -o%s %s %s %s' % (tool, performance, key_file, rule, net_file, dictname)
                 subprocess.check_call(shlex.split(cracker))
             except subprocess.CalledProcessError as ex:
                 if ex.returncode == -2:
