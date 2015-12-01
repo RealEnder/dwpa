@@ -30,7 +30,7 @@ net_file = 'help_crack.net'
 key_file = 'help_crack.key'
 
 #version
-hc_ver = '0.8.5'
+hc_ver = '0.8.6'
 
 def sleepy():
     print 'Sleeping...'
