@@ -69,4 +69,7 @@ ver 0.8.6 / 1 Dec 2015
  * oclHashcat: workload tune to performance (-w 3)
  * ocl/Hashcat: do not write potfile, so we can crack
    the challenge successfully
- * change challange  hccap keyver to be more compliant
+ * change challange hccap keyver to be more compliant
+
+ver 0.8.7 / x x 2016
+ * implement buffered dictionary extraction

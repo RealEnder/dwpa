@@ -32,6 +32,9 @@ key_file = 'help_crack.key'
 #version
 hc_ver = '0.8.6'
 
+#decompression block size 64k
+blocksize = 1 << 16
+
 def sleepy():
     print 'Sleeping...'
     time.sleep(222)
@@ -49,7 +52,7 @@ def md5file(filename):
     md5s = hashlib.md5()
     try:
         with open(filename, 'rb') as f:
-            for chunk in iter(lambda: f.read(8192), ''):
+            for chunk in iter(lambda: f.read(blocksize), ''):
                 md5s.update(chunk)
     except Exception as e:
         print 'Exception: %s' % e
@@ -287,15 +290,18 @@ def prepare_work(xnetdata, etype):
         if extract:
             print 'Extracting ' + gzdictname
             try:
-                f = open(xdictname, 'wb')
-                ftgz = gzip.open(gzdictname, 'rb')
-                f.write(ftgz.read())
+                with gzip.open(gzdictname, 'rb') as ftgz:
+                    f = open(xdictname, 'wb')
+                    while True:
+                        block = ftgz.read(blocksize)
+                        if block == '':
+                            break
+                        f.write(block)
                 f.close()
                 ftgz.close()
             except Exception as e:
-                print gzdictname +' extraction failed'
+                print gzdictname + ' extraction failed'
                 print 'Exception: %s' % e
-                return False
 
         return xdictname
     except TypeError as e:
