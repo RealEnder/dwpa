@@ -514,16 +514,17 @@ while True:
         key = ktf.readline()
         ktf.close()
         key = key.rstrip('\n')
-        if challenge:
-            print cc['OKGREEN'] + 'Key for capture mic {0} is: {1}'.format(netdata['mic'], key.decode('utf8', 'ignore'))+cc['ENDC']
-            while not put_work(netdata['mic'], key):
-                print cc['WARNING'] + 'Couldn\'t submit key' + cc['ENDC']
-                sleepy()
-        else:
-            if netdata['key'] == key:
-                print cc['OKBLUE'] + 'Challenge solved successfully!' + cc['ENDC']
-                challenge = True
-                netdata = resnetdata
+        if len(key) >= 8:
+            if challenge:
+                print cc['OKGREEN'] + 'Key for capture mic {0} is: {1}'.format(netdata['mic'], key.decode('utf8', 'ignore'))+cc['ENDC']
+                while not put_work(netdata['mic'], key):
+                    print cc['WARNING'] + 'Couldn\'t submit key' + cc['ENDC']
+                    sleepy()
+            else:
+                if netdata['key'] == key:
+                    print cc['OKBLUE'] + 'Challenge solved successfully!' + cc['ENDC']
+                    challenge = True
+                    netdata = resnetdata
 
         os.unlink(key_file)
     else:
