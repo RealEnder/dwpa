@@ -71,6 +71,6 @@ ver 0.8.6 / 1 Dec 2015
    the challenge successfully
  * change challange hccap keyver to be more compliant
 
-ver 0.8.7 / x x 2016
+ver 0.8.7 / 23 Jan 2016
  * implement buffered dictionary extraction
  * beautify and colorize help_crack output

@@ -30,7 +30,7 @@ net_file = 'help_crack.net'
 key_file = 'help_crack.key'
 
 #version
-hc_ver = '0.8.6'
+hc_ver = '0.8.7'
 
 #decompression block size 64k
 blocksize = 1 << 16
