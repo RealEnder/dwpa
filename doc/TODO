@@ -7,7 +7,6 @@
 * Split cracked dictionary for precalculation PSKs and others (not started)
 * write Android app with net scan and pass show from the site (not started)
 * implement json API for accessing own nets (30%)
-* beautify and colorize help_crack output (not started)
 * refactore help_crack as library (not started)
 * add example external dictionary crack based on json API (20%)
 * rework net selection for less CPU (50%)
@@ -28,3 +27,4 @@ IMPLEMENTED
 * implement simple proof of work for distributed cracker clients -
   currently just try to crack sample net before get_work
 * implement possibility to have several captures for given net, ie changed PSK
+* beautify and colorize help_crack output

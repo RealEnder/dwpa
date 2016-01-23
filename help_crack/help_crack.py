@@ -35,8 +35,16 @@ hc_ver = '0.8.6'
 #decompression block size 64k
 blocksize = 1 << 16
 
+#color codes
+cc = {'HEADER': '\033[95m',
+      'OKBLUE':  '\033[94m',
+      'OKGREEN': '\033[92m',
+      'WARNING': '\033[93m',
+      'FAIL':    '\033[91m',
+      'ENDC':    '\033[0m'}
+
 def sleepy():
-    print 'Sleeping...'
+    print cc['WARNING'] + 'Sleeping...' + cc['ENDC']
     time.sleep(222)
 
 #validate bssid/mac address
@@ -55,7 +63,7 @@ def md5file(filename):
             for chunk in iter(lambda: f.read(blocksize), ''):
                 md5s.update(chunk)
     except Exception as e:
-        print 'Exception: %s' % e
+        print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
         return None
 
     return md5s.hexdigest()
@@ -65,7 +73,7 @@ def download(url, filename):
     try:
         urllib.urlretrieve(url, filename)
     except Exception as e:
-        print 'Exception: %s' % e
+        print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
         return False
 
     return True
@@ -75,7 +83,7 @@ def get_url(url, options=None):
     try:
         response = urllib.urlopen(url, urllib.urlencode({'options': options}))
     except Exception as e:
-        print 'Exception: %s' % e
+        print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
         return None
     remote = response.read()
     response.close()
@@ -86,12 +94,12 @@ def get_url(url, options=None):
 def check_version():
     remoteversion = get_url(help_crack+'.version')
     if not remoteversion:
-        print 'Can\'t check for new version, continue...'
+        print cc['WARNING'] + 'Can\'t check for new version, continue...' + cc['ENDC']
         return
 
     if StrictVersion(remoteversion) > StrictVersion(hc_ver):
         while True:
-            user = raw_input('New version '+remoteversion+' of help_crack found. Update[y] or Show changelog[c]:')
+            user = raw_input(cc['HEADER'] + 'New version ' + remoteversion + ' of help_crack found. Update[y] or Show changelog[c]:' + cc['ENDC'])
             if user == 'c':
                 print get_url(help_crack_cl)
                 continue
@@ -101,14 +109,14 @@ def check_version():
                         os.rename(sys.argv[0]+'.new', sys.argv[0])
                         os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                     except Exception as e:
-                        print 'Exception: %s' % e
+                        print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
                         #TODO: think of workaround locking on win32
                         if os.name == 'nt':
-                            print 'You are running under win32, rename help_crack.py.new over help_crack.py'
-                    print 'help_crack updated, run again'
+                            print cc['OKBLUE'] + 'You are running under win32, rename help_crack.py.new over help_crack.py' + cc['ENDC']
+                    print cc['OKGREEN'] + 'help_crack updated, run again' + cc['ENDC']
                     exit(0)
                 else:
-                    print 'help_crack update failed'
+                    print cc['FAIL'] + 'help_crack update failed' + cc['ENDC']
                     return
 
             return
@@ -204,14 +212,14 @@ def check_tools():
                 tools.append(t)
 
     if len(tools) == 0:
-        print 'No aircrack-ng, pyrit, Hashcat or oclHashcat found'
+        print cc['FAIL'] + 'No aircrack-ng, pyrit, Hashcat or oclHashcat found' + cc['ENDC']
         exit(1)
     if len(tools) == 1:
         return tools[0]
 
-    print 'Choose the tool for cracking:'
+    print cc['HEADER'] + 'Choose the tool for cracking:' + cc['ENDC']
     for index, ttool in enumerate(tools):
-        print '%i: %s' % (index, ttool)
+        print '{0}: {1}'.format(index, ttool)
     print '9: Quit'
     while 1:
         user = raw_input('Index:')
@@ -220,7 +228,7 @@ def check_tools():
         try:
             return tools[int(user)]
         except (ValueError, IndexError):
-            print 'Wrong index'
+            print cc['WARNING'] + 'Wrong index' + cc['ENDC']
 
 #get work
 def get_work_wl(options):
@@ -237,13 +245,13 @@ def get_work_wl(options):
         return xnetdata
     except (TypeError, ValueError, KeyError):
         if work == 'Version':
-            print 'Please update help_crack, the interface has changed'
+            print cc['FAIL'] + 'Please update help_crack, the interface has changed' + cc['ENDC']
             exit(1)
         if work == 'No nets':
-            print 'No suitable net found'
+            print cc['WARNING'] + 'No suitable net found' + cc['ENDC']
             return False
 
-        print 'Server response error'
+        print cc['WARNING'] + 'Server response error' + cc['ENDC']
 
     return False
 
@@ -263,8 +271,8 @@ def prepare_work(xnetdata, etype):
             fd.close()
             fgz.close()
         except Exception as e:
-            print 'Net data extraction failed'
-            print 'Exception: %s' % e
+            print cc['FAIL'] + 'Net data extraction failed' + cc['ENDC']
+            print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
             return False
 
         #check for dict and download it
@@ -275,12 +283,12 @@ def prepare_work(xnetdata, etype):
         if os.path.exists(gzdictname):
             dictmd5 = md5file(gzdictname)
         if xnetdata['dhash'] != dictmd5:
-            print 'Downloading ' + gzdictname
+            print cc['OKBLUE'] + 'Downloading ' + gzdictname + cc['ENDC']
             if not download(xnetdata['dpath'], gzdictname):
-                print 'Can\'t download dict ' + xnetdata['dpath']
+                print cc['FAIL'] + 'Can\'t download dict ' + xnetdata['dpath'] + cc['ENDC']
                 return False
             if md5file(gzdictname) != xnetdata['dhash']:
-                print 'Dict downloaded but hash mismatch ' + xnetdata['dpath'] + 'dhash:' + xnetdata['dhash']
+                print cc['WARNING'] + 'Dict downloaded but hash mismatch dpath:{0} dhash:{1}'.format(xnetdata['dpath'], xnetdata['dhash']) + cc['ENDC']
 
             extract = True
 
@@ -288,7 +296,7 @@ def prepare_work(xnetdata, etype):
             extract = True
 
         if extract:
-            print 'Extracting ' + gzdictname
+            print cc['OKBLUE'] + 'Extracting ' + gzdictname + cc['ENDC']
             try:
                 with gzip.open(gzdictname, 'rb') as ftgz:
                     f = open(xdictname, 'wb')
@@ -300,28 +308,28 @@ def prepare_work(xnetdata, etype):
                 f.close()
                 ftgz.close()
             except Exception as e:
-                print gzdictname + ' extraction failed'
-                print 'Exception: %s' % e
+                print cc['FAIL'] + gzdictname + ' extraction failed' + cc['ENDC']
+                print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
 
         return xdictname
     except TypeError as e:
-        print 'Exception: %s' % e
+        print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
 
     return False
 
 #prepare chalenge files
 def prepare_challenge(etype):
-    xnetdata = {'cap':"""H4sICMX/HVQCA0d1ZXN0LmNhcAC7cnjTQiYGFgYY+P+fgSGTAQFOQnEDWA4EGCQsN7G9hZABDkLC\
-                         dbpqQLkUBkEWBlb30tTiEkaOppbuaSoGHjnMjGysLAyMDAxajAz6jAwGEkAm/xomJhDJAmJB+AwM\
-                         Riw8QhIJdzkZBCSYmL4AjbsrxzDBx1hOQgrkHizgrhRQ3oSNlw2bnAxDwCdGoNEBn0BWBXxiAbEg\
-                         fISqmVDMwWXFyCKX4t3MgeKxm6tWMQNlO/qYmBlKmRi6GASg+pgcWX4zCD8+4HxdvbHeWIz1qojr\
-                         9xUryrOaRPbGzTTV9JvLQCoQuysCCo9lAWozJoq7qJ4R/FM588BSFwyHMloxQhyH7FyF1SgOZeRC\
-                         OPTsUeXVVntX39v7SjFY1D5CoJFZwOjn4tQzi43PHD9TfNyYkLtel7/+u/jBMXEvO651a0USwhnE\
-                         DEQgEQYmWSBsHgYArgaqj0MCAAA=""",
-                'hccap':"""H4sICN7CXVYCA2d1ZXN0Lm5ldABzL00tLmEgACQsN7G9ZZFL8W7mOHtUebXV3tX39r5SDBa1jxBo\
-                           ZBYw+rk49cxi4zPHzxQfN3Zk+c0g/PiA83X1xnpjMdarIq7fV6woz2oS2Rs301TTby4TM0MpEyMX\
-                           gwDUaCZCBjKQCsQMRBgZGPjXMIFJFgibh2GQgEqQn4H4dfnrv4sfHBP3suNat1YkIRwAu+stjIgB\
-                           AAA=""",
+    xnetdata = {'cap': """H4sICMX/HVQCA0d1ZXN0LmNhcAC7cnjTQiYGFgYY+P+fgSGTAQFOQnEDWA4EGCQsN7G9hZABDkLC\
+                          dbpqQLkUBkEWBlb30tTiEkaOppbuaSoGHjnMjGysLAyMDAxajAz6jAwGEkAm/xomJhDJAmJB+AwM\
+                          Riw8QhIJdzkZBCSYmL4AjbsrxzDBx1hOQgrkHizgrhRQ3oSNlw2bnAxDwCdGoNEBn0BWBXxiAbEg\
+                          fISqmVDMwWXFyCKX4t3MgeKxm6tWMQNlO/qYmBlKmRi6GASg+pgcWX4zCD8+4HxdvbHeWIz1qojr\
+                          9xUryrOaRPbGzTTV9JvLQCoQuysCCo9lAWozJoq7qJ4R/FM588BSFwyHMloxQhyH7FyF1SgOZeRC\
+                          OPTsUeXVVntX39v7SjFY1D5CoJFZwOjn4tQzi43PHD9TfNyYkLtel7/+u/jBMXEvO651a0USwhnE\
+                          DEQgEQYmWSBsHgYArgaqj0MCAAA=""",
+                'hccap': """H4sICN7CXVYCA2d1ZXN0Lm5ldABzL00tLmEgACQsN7G9ZZFL8W7mOHtUebXV3tX39r5SDBa1jxBo\
+                            ZBYw+rk49cxi4zPHzxQfN3Zk+c0g/PiA83X1xnpjMdarIq7fV6woz2oS2Rs301TTby4TM0MpEyMX\
+                            gwDUaCZCBjKQCsQMRBgZGPjXMIFJFgibh2GQgEqQn4H4dfnrv4sfHBP3suNat1YkIRwAu+stjIgB\
+                            AAA=""",
                 'bssid': '00:18:39:b2:06:ed',
                 'mic': 'eb77ebfda3e0c6174a3e0aaead146057',
                 'key': 'password1234',
@@ -337,23 +345,23 @@ def prepare_challenge(etype):
             fd.close()
             fgz.close()
         except Exception as e:
-            print 'Net data extraction failed'
-            print 'Exception: %s' % e
+            print cc['FAIL'] + 'Net data extraction failed' + cc['ENDC']
+            print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
             return None
 
         #create dict
         try:
             f = open(xnetdata['dictname'], 'wb')
-            f.write(xnetdata['key']+"\n")
+            f.write(xnetdata['key'] + "\n")
             f.close()
         except Exception as e:
-            print xnetdata['dictname'] + ' creation failed'
-            print 'Exception: %s' % e
+            print cc['FAIL'] + xnetdata['dictname'] + ' creation failed' + cc['ENDC']
+            print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
             return None
 
         return xnetdata
     except TypeError as e:
-        print 'Exception: %s' % e
+        print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
 
     return None
 
@@ -363,7 +371,7 @@ def put_work(mic, pwkey):
     try:
         response = urllib.urlopen(put_work_url, data)
     except Exception as e:
-        print 'Exception: %s' % e
+        print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
         return False
 
     remote = response.read()
@@ -391,8 +399,8 @@ def low_priority():
             handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
             win32process.SetPriorityClass(handle, win32process.BELOW_NORMAL_PRIORITY_CLASS)
         except Exception as e:
-            print 'Exception: %s' % e
-            print 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32'
+            print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
+            print cc['FAIL'] + 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32' + cc['ENDC']
 
 #check for resume files
 def resume_check():
@@ -402,20 +410,19 @@ def resume_check():
             xnetdata = json.load(netdataf)
             if len(xnetdata['mic']) != 32:
                 raise ValueError
-            print 'Session resume'
+            print cc['OKBLUE'] + 'Session resume' + cc['ENDC']
             return xnetdata
         except (TypeError, ValueError, KeyError):
-            print 'Bad resume file contents'
+            print cc['WARNING'] + 'Bad resume file contents' + cc['ENDC']
             os.unlink(res_file)
 
     return None
 
-print 'help_crack, distributed WPA cracker, v' + hc_ver
-print 'site: ' + base_url
+print cc['HEADER'] + 'help_crack, distributed WPA cracker, v{0}\nsite: {1}'.format(hc_ver, base_url) + cc['ENDC']
 
 wordlist = ''
 if len(sys.argv) > 1:
-    print 'Usage: ./help_crack.py : download capture and wordlist then start cracking'
+    print cc['HEADER'] + 'Usage: ./help_crack.py : download capture and wordlist then start cracking' + cc['ENDC']
     exit(1)
 
 check_version()
@@ -442,7 +449,7 @@ while True:
 
         dictname = prepare_work(netdata, fformat)
         if not dictname:
-            print 'Couldn\'t prepare data'
+            print cc['WARNING'] + 'Couldn\'t prepare data' + cc['ENDC']
             netdata = None
             sleepy()
             continue
@@ -450,7 +457,7 @@ while True:
     else:
         netdata = prepare_challenge(fformat)
         if netdata is None:
-            print 'Couldn\'t prepare challenge'
+            print cc['FAIL'] + 'Couldn\'t prepare challenge' + cc['ENDC']
             exit(1)
         dictname = netdata['dictname']
 
@@ -459,7 +466,7 @@ while True:
     if 'rule' in netdata:
         if tool.find('ashcat') != -1:
             if os.path.exists(netdata['rule']):
-                rule = '-r'+netdata['rule']
+                rule = '-r' + netdata['rule']
 
     #run oclHashcat in performance tune mode
     performance = ''
@@ -469,34 +476,34 @@ while True:
     #run cracker
     try:
         if tool.find('pyrit') != -1:
-            cracker = '%s -i%s -o%s -b%s -r%s attack_passthrough' % (tool, dictname, key_file, netdata['bssid'], net_file)
+            cracker = '{0} -i{1} -o{2} -b{3} -r{4} attack_passthrough'.format(tool, dictname, key_file, netdata['bssid'], net_file)
             subprocess.call(shlex.split(cracker))
         if tool.find('aircrack-ng') != -1:
-            cracker = '%s -w%s -l%s -b%s %s' % (tool, dictname, key_file, netdata['bssid'], net_file)
+            cracker = '{0} -w{1} -l{2} -b{3} {4}'.format(tool, dictname, key_file, netdata['bssid'], net_file)
             subprocess.call(shlex.split(cracker))
         if tool.find('ashcat') != -1:
             try:
-                cracker = '%s -m2500 --potfile-disable --outfile-format=2 %s -o%s %s %s %s' % (tool, performance, key_file, rule, net_file, dictname)
+                cracker = '{0} -m2500 --potfile-disable --outfile-format=2 {1} -o{2} {3} {4} {5}'.format(tool, performance, key_file, rule, net_file, dictname)
                 subprocess.check_call(shlex.split(cracker))
             except subprocess.CalledProcessError as ex:
                 if ex.returncode == -2:
-                    print 'Thermal watchdog barked'
+                    print cc['WARNING'] + 'Thermal watchdog barked' + cc['ENDC']
                     sleepy()
                     continue
                 if ex.returncode == -1:
-                    print 'Internal error'
+                    print cc['FAIL'] + 'Internal error' + cc['ENDC']
                     exit(1)
                 if ex.returncode == 1:
-                    print 'Exausted'
+                    print cc['OKBLUE'] + 'Exausted' + cc['ENDC']
                 if ex.returncode == 2:
-                    print 'User abort'
+                    print cc['FAIL'] + 'User abort' + cc['ENDC']
                     exit(1)
                 if ex.returncode not in [-2, -1, 1, 2]:
-                    print 'Cracker %s died with code %i' % (tool, ex.returncode)
-                    print 'Check you have CUDA/OpenCL support'
+                    print cc['FAIL'] + 'Cracker {0} died with code {1}'.format(tool, ex.returncode) + cc['ENDC']
+                    print cc['FAIL'] + 'Check you have CUDA/OpenCL support' + cc['ENDC']
                     exit(1)
     except KeyboardInterrupt as ex:
-        print 'Keyboard interrupt'
+        print cc['OKBLUE'] + '\nKeyboard interrupt' + cc['ENDC']
         if os.path.exists(key_file):
             os.unlink(key_file)
         exit(1)
@@ -508,22 +515,22 @@ while True:
         ktf.close()
         key = key.rstrip('\n')
         if challenge:
-            print 'Key for capture mic '+netdata['mic']+' is: '+key.decode('utf8', 'ignore')
+            print cc['OKGREEN'] + 'Key for capture mic {0} is: {1}'.format(netdata['mic'], key.decode('utf8', 'ignore'))+cc['ENDC']
             while not put_work(netdata['mic'], key):
-                print 'Couldn\'t submit key'
+                print cc['WARNING'] + 'Couldn\'t submit key' + cc['ENDC']
                 sleepy()
         else:
             if netdata['key'] == key:
-                print 'Challenge solved successfully!'
+                print cc['OKBLUE'] + 'Challenge solved successfully!' + cc['ENDC']
                 challenge = True
                 netdata = resnetdata
 
         os.unlink(key_file)
     else:
         if not challenge:
-            print 'Challenge solving failed! Check if your cracker runs correctly.'
+            print cc['FAIL'] + 'Challenge solving failed! Check if your cracker runs correctly.' + cc['ENDC']
             exit(1)
-        print 'Key for capture mic '+netdata['mic']+' not found.'
+        print cc['OKBLUE'] + 'Key for capture mic {0} not found.'.format(netdata['mic']) + cc['ENDC']
 
     #cleanup
     if os.path.exists(net_file):

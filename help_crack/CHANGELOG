@@ -73,3 +73,4 @@ ver 0.8.6 / 1 Dec 2015
 
 ver 0.8.7 / x x 2016
  * implement buffered dictionary extraction
+ * beautify and colorize help_crack output
