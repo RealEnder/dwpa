@@ -35,13 +35,22 @@ hc_ver = '0.8.7'
 #decompression block size 64k
 blocksize = 1 << 16
 
-#color codes
-cc = {'HEADER': '\033[95m',
-      'OKBLUE':  '\033[94m',
-      'OKGREEN': '\033[92m',
-      'WARNING': '\033[93m',
-      'FAIL':    '\033[91m',
-      'ENDC':    '\033[0m'}
+#ANSI color codes
+#empty for win
+if os.name != 'nt':
+    cc = {'HEADER':  '\033[95m',
+          'OKBLUE':  '\033[94m',
+          'OKGREEN': '\033[92m',
+          'WARNING': '\033[93m',
+          'FAIL':    '\033[91m',
+          'ENDC':    '\033[0m'}
+else:
+    cc = {'HEADER':  '',
+          'OKBLUE':  '',
+          'OKGREEN': '',
+          'WARNING': '',
+          'FAIL':    '',
+          'ENDC':    ''}
 
 def sleepy():
     print cc['WARNING'] + 'Sleeping...' + cc['ENDC']
