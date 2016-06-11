@@ -15,9 +15,10 @@
  */
 #include "radiotap_iter.h"
 #include "platform.h"
-#if defined(ANDROID) || defined(__ANDROID__)
+#if defined(ANDROID) || defined(__ANDROID__) || (defined(__sun) && defined(__SVR4))
 	#include "../byteorder.h"
 #endif
+
 
 /* function prototypes and related defs are in radiotap_iter.h */
 

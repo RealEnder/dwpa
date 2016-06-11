@@ -3,7 +3,7 @@ include $(AC_ROOT)/common.mak
 
 RTAP		= radiotap
 
-LIB		= libosdep.a
+LIB		= libosdep.a 
 CFLAGS		+= $(PIC) -I.. $(LIBAIRPCAP)
 
 OBJS_COMMON	= network.o file.o
@@ -34,6 +34,11 @@ all:
 
 .os.dummy: $(OBJS_DUMMY)
 	$(AR) cru $(LIB) $(OBJS_DUMMY)
+	$(RANLIB) $(LIB)
+	touch $(@)
+
+.os.DragonFly: $(OBJS_FBSD)
+	$(AR) cru $(LIB) $(OBJS_FBSD)
 	$(RANLIB) $(LIB)
 	touch $(@)
 
