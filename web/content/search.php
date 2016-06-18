@@ -1,6 +1,7 @@
 <h1>Search networks</h1>
 <?
-if (strlen($_GET['search']) >= 3) {
+$search = $_GET['search'];
+if (strlen($search) >= 3) {
     require_once('db.php');
     require_once('common.php');
 
@@ -9,8 +10,8 @@ if (strlen($_GET['search']) >= 3) {
         if (valid_key($_COOKIE['key']))
             $k = $_COOKIE['key'];
 
-    if (valid_mac($_GET['search'])) {
-        $bssid = mac2long($_GET['search']);
+    if (valid_mac($search)) {
+        $bssid = mac2long($search);
         if ($k == $bosskey)
             $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
@@ -27,7 +28,10 @@ LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE
         else
             $stmt->bind_param('is', $bssid, $k);
     } else {
-        $ssid = "%{$_GET['search']}%";
+        $ssid = "$search%";
+        if (strpos($search, '_') || strpos($search, '%')) {
+            $ssid = $search;
+        }
         if ($k == $bosskey)
             $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
