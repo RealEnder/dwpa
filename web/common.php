@@ -395,8 +395,8 @@ function long2mac($lmac) {
     return "{$pmac[0]}{$pmac[1]}:{$pmac[2]}{$pmac[3]}:{$pmac[4]}{$pmac[5]}:{$pmac[6]}{$pmac[7]}:{$pmac[8]}{$pmac[9]}:{$pmac[10]}{$pmac[11]}";
 }
 
-function valid_mac($mac) {
-    return preg_match('/^([a-f0-9]{2}\:?){6}$/', strtolower($mac));
+function valid_mac($mac, $part=6) {
+    return preg_match('/^([a-f0-9]{2}\:?){'.$part.'}$/', strtolower($mac));
 }
 
 //Generate random key
