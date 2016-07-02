@@ -30,7 +30,7 @@ net_file = 'help_crack.net'
 key_file = 'help_crack.key'
 
 #version
-hc_ver = '0.8.7'
+hc_ver = '0.8.8'
 
 #decompression block size 64k
 blocksize = 1 << 16
@@ -201,7 +201,7 @@ def check_tools():
             if t and run_hashcat(t):
                 tools.append(t)
         #this is for oclHashcat
-        tl = ['oclHashcat64', 'oclHashcat64.bin', 'cudaHashcat64', 'cudaHashcat64.bin']
+        tl = ['hashcat64.bin', 'hashcat64', 'oclHashcat64', 'oclHashcat64.bin', 'cudaHashcat64', 'cudaHashcat64.bin']
         for xt in tl:
             t = which(xt)
             if t and run_tool(t+' -V'):
@@ -214,7 +214,7 @@ def check_tools():
             if t and run_hashcat(t):
                 tools.append(t)
         #this is for oclHashcat
-        tl = ['oclHashcat32', 'oclHashcat32.bin', 'cudaHashcat32', 'cudaHashcat32.bin']
+        tl = ['hashcat32.bin', 'hashcat32', 'oclHashcat32', 'oclHashcat32.bin', 'cudaHashcat32', 'cudaHashcat32.bin']
         for xt in tl:
             t = which(xt)
             if t and run_tool(t+' -V'):

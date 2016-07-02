@@ -75,5 +75,6 @@ ver 0.8.7 / 23 Jan 2016
  * implement buffered dictionary extraction
  * beautify and colorize help_crack output
  
-ver x / dd mm yyyy
+ver 0.8.8 / 2 Jul 2016
  * don't use ANSI cc on windows
+ * detect hashcat 3.0
