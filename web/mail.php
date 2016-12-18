@@ -7,14 +7,13 @@ $mailer = new PHPMailer(true);
 $mailer->IsSMTP();
 $mailer->IsHTML(false);
 $mailer->SMTPAuth   = true;
-$mailer->SMTPSecure = 'ssl';
+$mailer->SMTPSecure = 'tls';
 $mailer->Host       = 'smtp.gmail.com';
-$mailer->Port       = 465;
-$mailer->CharSet    = 'UTF-8';
+$mailer->Port       = 587;
 $mailer->SMTPKeepAlive = true;
-$mailer->FromName   = 'wpa-sec.stanev.org';
+$mailer->FromName   = '';
 $mailer->From       = '';
 $mailer->Username   = '';
 $mailer->Password   = '';
-$mailer->CharSet    = 'iso-8859-1';
+$mailer->CharSet    = 'utf-8';
 ?>
