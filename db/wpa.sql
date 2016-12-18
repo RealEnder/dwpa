@@ -1,15 +1,4 @@
--- phpMyAdmin SQL Dump
--- version 4.2.0-rc1
--- http://www.phpmyadmin.net
---
--- Host: localhost
--- Generation Time: May 16, 2014 at 03:27 PM
--- Server version: 5.5.37-0ubuntu0.12.04.1-log
--- PHP Version: 5.3.10-1ubuntu3.11
-
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
-
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -20,16 +9,6 @@ SET time_zone = "+00:00";
 -- Database: `wpa`
 --
 
-DELIMITER $$
---
--- Procedures
---
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_work`()
-    MODIFIES SQL DATA
-    DETERMINISTIC
-    SQL SECURITY INVOKER
-SELECT * FROM onets, get_dict LIMIT 1$$
-
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -39,13 +18,13 @@ DELIMITER ;
 --
 
 CREATE TABLE IF NOT EXISTS `dicts` (
-`d_id` bigint(20) unsigned NOT NULL,
+  `d_id` bigint(20) unsigned NOT NULL,
   `dpath` varchar(256) NOT NULL,
   `dhash` binary(16) DEFAULT NULL,
   `dname` varchar(128) NOT NULL,
   `wcount` int(10) unsigned NOT NULL,
   `hits` int(10) unsigned NOT NULL DEFAULT '0'
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=16 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -53,9 +32,9 @@ CREATE TABLE IF NOT EXISTS `dicts` (
 -- Stand-in structure for view `get_dict`
 --
 CREATE TABLE IF NOT EXISTS `get_dict` (
-`d_id` bigint(20) unsigned
-,`dpath` varchar(256)
-,`dhash` varchar(32)
+  `d_id` bigint(20) unsigned,
+  `dpath` varchar(256),
+  `dhash` varchar(32)
 );
 -- --------------------------------------------------------
 
@@ -115,7 +94,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `n_state` tinyint(1) unsigned NOT NULL,
   `u_id` bigint(20) DEFAULT NULL,
   `hits` int(11) unsigned NOT NULL DEFAULT '0'
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=187488 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -123,11 +102,11 @@ CREATE TABLE IF NOT EXISTS `nets` (
 -- Stand-in structure for view `onets`
 --
 CREATE TABLE IF NOT EXISTS `onets` (
-`net_id` bigint(15)
-,`mic` varchar(32)
-,`cap` varbinary(32768)
-,`hccap` varbinary(512)
-,`bssid` bigint(15) unsigned
+  `net_id` bigint(15),
+  `mic` varchar(32),
+  `cap` varbinary(32768),
+  `hccap` varbinary(512),
+  `bssid` bigint(15) unsigned
 );
 -- --------------------------------------------------------
 
@@ -135,9 +114,9 @@ CREATE TABLE IF NOT EXISTS `onets` (
 -- Stand-in structure for view `onets_dicts`
 --
 CREATE TABLE IF NOT EXISTS `onets_dicts` (
-`net_id` bigint(15)
-,`d_id` int(11)
-,`hits` int(11)
+  `net_id` bigint(15),
+  `d_id` int(11),
+  `hits` int(11)
 );
 -- --------------------------------------------------------
 
@@ -157,14 +136,14 @@ CREATE TABLE IF NOT EXISTS `stats` (
 --
 
 CREATE TABLE IF NOT EXISTS `submissions` (
-`s_id` bigint(15) NOT NULL,
+  `s_id` bigint(15) NOT NULL,
   `s_name` binary(16) NOT NULL,
   `userhash` binary(16) NOT NULL,
   `info` text,
   `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0 - processing 1 - processed',
   `ip` int(10) NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Capture file submissions' AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Capture file submissions';
 
 -- --------------------------------------------------------
 
@@ -178,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `mail` varchar(500) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,
   `ip` int(10) unsigned NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3837 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -187,7 +166,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 DROP TABLE IF EXISTS `get_dict`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `get_dict` AS select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `get_dict` AS select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount`;
 
 -- --------------------------------------------------------
 
@@ -196,7 +175,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`mic`) AS `mic`,`nets`.`cap` AS `cap`,`nets`.`hccap` AS `hccap`,`nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`mic`) AS `mic`,`nets`.`cap` AS `cap`,`nets`.`hccap` AS `hccap`,`nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
 
 -- --------------------------------------------------------
 
@@ -205,7 +184,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `onets_dicts`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`);
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`);
 
 --
 -- Indexes for dumped tables
@@ -261,12 +240,12 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `dicts`
 --
 ALTER TABLE `dicts`
-MODIFY `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=16;
+MODIFY `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT;
 --
 -- AUTO_INCREMENT for table `nets`
 --
 ALTER TABLE `nets`
-MODIFY `net_id` bigint(15) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=187488;
+MODIFY `net_id` bigint(15) NOT NULL AUTO_INCREMENT;
 --
 -- AUTO_INCREMENT for table `submissions`
 --
@@ -276,12 +255,12 @@ MODIFY `s_id` bigint(15) NOT NULL AUTO_INCREMENT;
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-MODIFY `u_id` bigint(20) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=3837;
+MODIFY `u_id` bigint(20) NOT NULL AUTO_INCREMENT;
 DELIMITER $$
 --
 -- Events
 --
-CREATE DEFINER=`root`@`localhost` EVENT `e_stats` ON SCHEDULE EVERY '0 2' DAY_HOUR STARTS '2011-09-18 17:31:07' ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats every 1h am' DO BEGIN
+CREATE EVENT `e_stats` ON SCHEDULE EVERY '0 2' DAY_HOUR STARTS '2011-09-18 17:31:07' ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats every 1h am' DO BEGIN
         UPDATE stats SET pvalue=(SELECT count(*) FROM n2d WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)) WHERE pname='24getwork';
         UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
         UPDATE stats SET pvalue=(SELECT count(*) FROM nets WHERE date( ts ) = DATE_SUB( CURDATE() , INTERVAL 1 DAY)) WHERE pname='24sub';
