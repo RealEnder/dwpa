@@ -1,13 +1,14 @@
+TODO
+====
 * do heavy work in external process for submissions (10%)
 * restructure home with folding text sections/wizzards (not started)
-* write INSTALL instructions (not started)
 * add hashkill support in help_crack (suspended)
 * add JtR support in help_crack (suspended)
 * add WPA key precalculation infrastructure (RouterKeygenPC, etc.) (10%)
 * Split cracked dictionary for precalculation PSKs and others (not started)
 * write Android app with net scan and pass show from the site (not started)
 * implement json API for accessing own nets (30%)
-* refactore help_crack as library (not started)
+* refactor help_crack as library (not started)
 * add example external dictionary crack based on json API (20%)
 * rework net selection for less CPU (50%)
 * unify records in stats table (not started)
@@ -28,3 +29,4 @@ IMPLEMENTED
   currently just try to crack sample net before get_work
 * implement possibility to have several captures for given net, ie changed PSK
 * beautify and colorize help_crack output
+* write INSTALL instructions
