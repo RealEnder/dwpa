@@ -1,6 +1,6 @@
 <h1>Get key</h1>
 <p>
-<?
+<?php
 if ($recap_resp->is_valid)
     echo 'Key issued. Make sure you keep it to access the results.';
 else {

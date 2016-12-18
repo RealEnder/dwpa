@@ -1,5 +1,5 @@
 <h1>Search networks</h1>
-<?
+<?php
 $search = $_GET['search'];
 if (strlen($search) >= 3) {
     require_once('db.php');

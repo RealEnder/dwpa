@@ -1,4 +1,4 @@
-<? if (!$_FILES['webfile']): ?>
+<?php if (!$_FILES['webfile']): ?>
 <h1>Submit WPA handshake captures</h1>
 <p>
 You must submit captures only from networks you have permission to audit.<br/>
@@ -29,7 +29,7 @@ function check_key() {
 <input class="submitbutton" type="submit" value="Submit capture" onclick="return check_key()" />
 </p>
 </form>
-<? else:
+<?php else:
     if ($_FILES['webfile']['tmp_name'] != '') {
         require_once('db.php');
         require_once('common.php');

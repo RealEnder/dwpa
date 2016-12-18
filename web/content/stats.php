@@ -1,6 +1,6 @@
 <h1>Statistics</h1>
 <p>
-<?
+<?php
 require_once('db.php');
 require_once('common.php');
 
@@ -37,6 +37,6 @@ echo "<br/>\n";
 <br/>
 Current keyspace progress:
 <dl class="progress">
-    <dd class="done" style="width: <? echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100); ?>%"><? echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100, 2); ?>%</dd>
+    <dd class="done" style="width: <?php echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100); ?>%"><?php echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100, 2); ?>%</dd>
 </dl>
 </p>

@@ -1,4 +1,4 @@
-<?
+<?php
 //DB Configuration
 $cfg_db_host='';
 $cfg_db_user='';

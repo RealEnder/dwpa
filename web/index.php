@@ -1,4 +1,4 @@
-<?
+<?php
 require('conf.php');
 //Check for submission from besside-ng
 if (isset($_FILES['file'])) {
@@ -128,7 +128,7 @@ $cont = $content.$key.'.php';
 <ul id="navtop">
 <li style="float:right;padding-right: 7px;"><form action="" method="get">Search <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
 <li style="float:right;padding-right: 7px;"><form action="" method="post">Key 
-<?
+<?php
 if (isset($_COOKIE['key']))
     echo htmlspecialchars($_COOKIE['key']).' <input type="hidden" id="remkey" name="remkey" value="1" /><input class="keybutton" type="submit" value="X" onclick=\'return confirm("Are you sure you want to dispose the key?")\'/>';
 else
@@ -137,7 +137,7 @@ else
 </form></li>
 <li><a href="?">Home</a></li>
 <li>
-<?
+<?php
 if (isset($_COOKIE['key']))
     echo '<a href="?my_nets">My nets</a>';
 else
@@ -154,7 +154,7 @@ else
 <div id="contentwrapper">
 <div id="contentcolumn">
 
-<?@include($cont)?>
+<?php @include($cont) ?>
 
 </div>
 </div>

@@ -1,4 +1,4 @@
-<?
+<?php
 if (version_compare($_GET['get_work'], MIN_HC_VER) < 0 )
     die('Version');
 

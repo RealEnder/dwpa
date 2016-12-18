@@ -1,4 +1,4 @@
-<?
+<?php
 //php 5.5 has this one
 if (! function_exists('hash_pbkdf2')) {
     // based on https://defuse.ca/php-pbkdf2.htm

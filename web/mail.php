@@ -1,4 +1,4 @@
-<?
+<?php
 //phpMailer object creation and configuration
 require_once('m/class.phpmailer.php');
 require_once('m/class.smtp.php');

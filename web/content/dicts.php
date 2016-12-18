@@ -7,7 +7,7 @@ td {padding-left: 7px; padding-right: 7px}
 </style>
 <table style="border: 1;">
 <tr><th>Dictionary</th><th>Word count</th><th>Hits</th></tr>
-<?
+<?php
 require_once('db.php');
 $sql = 'SELECT dpath, dname, wcount, hits FROM dicts ORDER BY wcount DESC';
 $stmt = $mysql->stmt_init();
