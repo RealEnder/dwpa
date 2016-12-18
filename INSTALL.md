@@ -105,6 +105,7 @@ Web application configuration
 -
 - Copy all files from `web` directory from dwpa repo to your webserver root
 - Copy previously built `wpaclean` and `cap2hccap` binaries to a location, where web server process can execute it, eg. in webserver root
+- edit `mail.php` and put your own SMTP configuration
 - Make sure webserver process can write to dictionaries location (to update cracked.txt.gz) and capture file location(`CAP` define from conf.php), where submissions will be written
 - `bosskey` must be 32 byte hexadecimal string, known to you, with which you will be able to see cracked PSKs in clear and search full database
 
