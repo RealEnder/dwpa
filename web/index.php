@@ -13,14 +13,36 @@ if (isset($_FILES['file'])) {
 }
 
 //User key actions
-if (isset($_POST['recaptcha_response_field'])) {
-    require_once('recaptchalib.php');
-    $recap_resp = recaptcha_check_answer ($privatekey,
-                                    $_SERVER['REMOTE_ADDR'],
-                                    $_POST['recaptcha_challenge_field'],
-                                    $_POST['recaptcha_response_field']);
+$rec_valid = false;
+if (isset($_POST['g-recaptcha-response'])) {
+    //Check reCAPTCHA
+    $handle = curl_init('https://www.google.com/recaptcha/api/siteverify');
+    $options = array(
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query(array(
+            'secret' => $privatekey,
+            'response' => $_POST['g-recaptcha-response'],
+            'remoteip' => $_SERVER['REMOTE_ADDR']
+        )),
+        CURLOPT_HTTPHEADER => array(
+            'Content-Type: application/x-www-form-urlencoded'
+        ),
+        CURLINFO_HEADER_OUT => false,
+        CURLOPT_HEADER => false,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => true
+    );
+    curl_setopt_array($handle, $options);
+    $response = curl_exec($handle);
+    curl_close($handle);
 
-    if ($recap_resp->is_valid) {
+    //Validate reCAPTCHA response
+    $responseData = json_decode($response, true);
+    if (isset($responseData['success']) && $responseData['success'] == true) {
+        $rec_valid = true;
+    }
+
+    if ($rec_valid) {
         require_once('db.php');
         require_once('common.php');
 
