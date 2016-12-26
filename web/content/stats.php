@@ -17,11 +17,12 @@ while ($stmt->fetch())
 $stmt->close();
 $mysql->close();
 
-echo "Total nets: {$stats['nets']}<br/>\n";
-echo "Cracked nets: {$stats['cracked']}<br/>\n";
+echo "Total nets: {$stats['nets']} / {$stats['nets_unc']} unique<br/>\n";
+echo "Cracked nets: {$stats['cracked']} / {$stats['cracked_unc']} unique<br/>\n";
 if ((int) $stats['nets'] > 0) {
     $srate = round((int) $stats['cracked'] / (int) $stats['nets'] * 100, 2);
-    echo "Success rate: $srate %<br/>\n";
+    $srate_unc = round((int) $stats['cracked_unc'] / (int) $stats['nets_unc'] * 100, 2);
+    echo "Success rate: $srate% / $srate_unc% unique<br/>\n";
 }
 echo "Last day getworks: {$stats['24getwork']}<br/>\n";
 $perf = convert_num($stats['24psk']/(60*60*24));

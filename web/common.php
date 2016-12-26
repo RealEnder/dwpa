@@ -258,11 +258,8 @@ function submission($mysql, $file) {
     rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
 
     //update net count stats
-    $sql = "UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'";
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-    $stmt->execute();
-    $stmt->close();
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets) WHERE pname='nets_unc'");
 
     $mysql->commit();
 
@@ -349,6 +346,7 @@ function put_work($mysql) {
 
     //Update cracked net stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1) WHERE pname='cracked_unc'");
 
     //Create new cracked.txt.gz and update wcount
     $sql = 'SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC';
