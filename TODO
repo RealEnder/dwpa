@@ -1,5 +1,7 @@
 TODO
 ====
+* improve wpaclean for correct detection of valid handshake packets - drops pyrit usage (started)
+* generate hccap in wpaclean directly - drops cap2hccap usage (started)
 * do heavy work in external process for submissions (10%)
 * restructure home with folding text sections/wizzards (not started)
 * add hashkill support in help_crack (suspended)
