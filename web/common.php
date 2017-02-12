@@ -80,7 +80,11 @@ function check_key($hccap, $keys) {
         return False;
 
     $ahccap = array();
-    $ahccap['essid']      = unpack('a36', substr($hccap, 0x000, 36));
+    if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
+        $ahccap['essid']      = unpack('Z36', substr($hccap, 0x000, 36));
+    } else {
+        $ahccap['essid']      = unpack('a36', substr($hccap, 0x000, 36));
+    }
     $ahccap['mac1']       =               substr($hccap, 0x024, 6);
     $ahccap['mac2']       =               substr($hccap, 0x02a, 6);
     $ahccap['nonce1']     =               substr($hccap, 0x030, 32);
