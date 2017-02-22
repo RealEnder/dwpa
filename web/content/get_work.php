@@ -14,7 +14,7 @@ $sem1 = sem_get(999);
 sem_acquire($sem1);
     
 //get work
-$sql = 'SELECT * FROM onets, get_dict LIMIT 1';
+$sql = 'SELECT * FROM (SELECT * FROM onets LIMIT 1) a, (SELECT * FROM get_dict LIMIT 1) b';
 $stmt = $mysql->stmt_init();
 $stmt->prepare($sql);
 $data = array();
