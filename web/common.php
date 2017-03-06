@@ -259,7 +259,8 @@ function submission($mysql, $file) {
     }
     $stmt->close();
 
-    rename($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
+    chmod($file, 0644);
+    move_uploaded_file($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
 
     //update net count stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
