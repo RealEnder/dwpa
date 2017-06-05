@@ -313,7 +313,6 @@ function put_work($mysql) {
                 $hccap = gzinflate(substr($data['hccap'], 10));
                 if ($key == check_key($hccap, array($key))) {
                     //put result in nets
-                    $stmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
                     $net_id = $data['net_id'];
                     $ustmt->bind_param('sii', $key, $iip, $net_id);
@@ -322,6 +321,7 @@ function put_work($mysql) {
                     $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
                 }
             }
+            $stmt->free_result();
         } elseif (valid_key($bssid_or_mic)) {
             //hash submission
             $mic = strtolower($bssid_or_mic);
@@ -332,7 +332,6 @@ function put_work($mysql) {
                 $hccap = gzinflate(substr($ndata['hccap'], 10));
                 if ($key == check_key($hccap, array($key))) {
                     //put result in nets
-                    $nstmt->free_result();
                     $iip = ip2long($_SERVER['REMOTE_ADDR']);
                     $net_id = $ndata['net_id'];
                     $ustmt->bind_param('sii', $key, $iip, $net_id);
@@ -341,6 +340,7 @@ function put_work($mysql) {
                     $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
                 }
             }
+            $nstmt->free_result();
         }
         if ($mcount++ > 20)
             break;
