@@ -75,7 +75,7 @@ if (function_exists('hex2bin') == False) {
 
     } hccap_t;
 */
-function check_key($hccap, $keys) {
+function check_key($hccap, $keys, $nc=65535) {
     if (strlen($hccap) != 392)
         return False;
 
@@ -108,12 +108,26 @@ function check_key($hccap, $keys) {
     else
         $m = $ahccap['mac2'].$ahccap['mac1'];
 
+    $swap = False;
     if (strncmp($ahccap['nonce1'], $ahccap['nonce2'], 6) < 0)
         $n = $ahccap['nonce1'].$ahccap['nonce2'];
-    else
+    else {
         $n = $ahccap['nonce2'].$ahccap['nonce1'];
+        $swap = True;
+    }
 
-    $block = "Pairwise key expansion\0".$m.$n."\0";
+    $last1 = substr($ahccap['nonce2'], 24, 4);
+    $last2 = substr($ahccap['nonce2'], 28, 4);
+    
+    $last1le = unpack('V', $last1);
+    $last2le = unpack('V', $last2);
+    $last1be = unpack('N', $last1);
+    $last2be = unpack('N', $last2);
+    
+    $corr['V'] = ($last1le[1] << 32) | $last2le[1];
+    $corr['N'] = ($last1be[1] << 32) | $last2be[1];
+    $halfnc = intdiv($nc, 2) + 1;
+    $ncarr = array(array('N', 0));
 
     foreach ($keys as $key) {
         $kl = strlen($key);
@@ -122,15 +136,37 @@ function check_key($hccap, $keys) {
 
         $pmk = hash_pbkdf2('sha1', $key, $ahccap['essid'], 4096, 32, True);
 
-        $ptk = hash_hmac('sha1', $block, $pmk, True);
+        do {
+            foreach ($ncarr as $j) {
+                $rawlast1 = pack($j[0], $corr[$j[0]] + $j[1] >> 32);
+                $rawlast2 = pack($j[0], $corr[$j[0]] + $j[1]);
 
-        if ($ahccap['keyver'] == 1)
-            $testmic = hash_hmac('md5',  $ahccap['eapol'], substr($ptk, 0, 16), True);
-        else
-            $testmic = hash_hmac('sha1', $ahccap['eapol'], substr($ptk, 0, 16), True);
+                if ($swap) {
+                    $n = substr_replace($n, $rawlast1.$rawlast2, 24, 8);
+                } else {
+                    $n = substr_replace($n, $rawlast1.$rawlast2, 56, 8);
+                }
 
-        if (strncmp($testmic, $ahccap['keymic'], 16) == 0)
-            return $key;
+                $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
+
+                if ($ahccap['keyver'] == 1)
+                    $testmic = hash_hmac('md5',  $ahccap['eapol'], substr($ptk, 0, 16), True);
+                else
+                    $testmic = hash_hmac('sha1', $ahccap['eapol'], substr($ptk, 0, 16), True);
+
+                if (strncmp($testmic, $ahccap['keymic'], 16) == 0) {
+                    return $key;
+                }
+            }
+            if ($ncarr[0][1] == 0) {
+                $ncarr = array(array('V', 1), array('V', -1), array('N', 1), array('N', -1));
+            } else {
+                $ncarr[0][1] += 1;
+                $ncarr[1][1] -= 1;
+                $ncarr[2][1] += 1;
+                $ncarr[3][1] -= 1;
+            }
+        } while ($ncarr[0][1]<=$halfnc);
     }
 
     return NULL;
