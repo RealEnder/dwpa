@@ -295,8 +295,12 @@ function submission($mysql, $file) {
     }
     $stmt->close();
 
+    $partial_path = date('Y/m/d/');
+    if (!is_dir(CAP.$partial_path)) {
+        mkdir(CAP.$partial_path, 0777, TRUE);
+    }
     chmod($file, 0644);
-    move_uploaded_file($file, CAP.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
+    move_uploaded_file($file, CAP.$partial_path.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
 
     //update net count stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
