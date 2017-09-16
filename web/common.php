@@ -544,19 +544,10 @@ function convert_sec($secs) {
 function write_nets($stmt, $data) {
     $has_input = false;
     echo '
-<style>
+<style type="text/css">
 td {padding-left: 7px; padding-right: 7px}
 </style>
-<script type="text/javascript">
-function goWigle(bssid) {
-    document.getElementById("netid").value = bssid;
-    document.getElementById("wigle").submit();
-}
-</script>
-<form method="POST" action="https://www.wigle.net/gps/gps/main/confirmquery" target="_blank" id="wigle" >
-<input type="hidden" name="netid" id="netid" />
-</form>
-<form class="form" method="POST" action="?nets" enctype="multipart/form-data">
+<form class="form" method="post" action="?nets" enctype="multipart/form-data">
 <table style="border: 1;">
 <tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
     while ($stmt->fetch()) {
@@ -568,7 +559,7 @@ function goWigle(bssid) {
             $has_input = true;
         } else
             $pass = htmlspecialchars($data['pass']);
-        echo "<tr><td style=\"font-family:monospace; font-size: 12px; cursor: pointer; \"><a title=\"Wigle geo query. You must be logged in.\" onclick=\"goWigle(this.text)\">$bssid</a></td><td>$ssid</td><td>$pass</td><td align=\"right\">{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
+        echo "<tr><td style=\"font-family:monospace; font-size: 12px; cursor: pointer; \"><a title=\"Wigle geo query. You must be logged in.\" href=\"https://wigle.net/search?netid=$bssid\">$bssid</a></td><td>$ssid</td><td>$pass</td><td align=\"right\">{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
     }
     echo '</table>';
     if ($has_input)
