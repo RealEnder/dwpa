@@ -126,7 +126,7 @@ function check_key($hccap, $keys, $nc=65535) {
     
     $corr['V'] = ($last1le[1] << 32) | $last2le[1];
     $corr['N'] = ($last1be[1] << 32) | $last2be[1];
-    $halfnc = intdiv($nc, 2) + 1;
+    $halfnc = ($nc >> 1) + 1;
     $ncarr = array(array('N', 0));
 
     foreach ($keys as $key) {
