@@ -9,15 +9,13 @@ td {padding-left: 7px; padding-right: 7px}
 <tr><th>Dictionary</th><th>Word count</th><th>Hits</th></tr>
 <?php
 require_once('db.php');
-$sql = 'SELECT dpath, dname, wcount, hits FROM dicts ORDER BY wcount DESC';
-$stmt = $mysql->stmt_init();
-$stmt->prepare($sql);
-$stmt->execute();
-$data = array();
-stmt_bind_assoc($stmt, $data);
-while ($stmt->fetch())
-    echo "<tr><td><a href=\"{$data['dpath']}\">{$data['dname']}</td><td align=\"right\">{$data['wcount']}</td><td align=\"right\">{$data['hits']}</td></tr>\n";
-$stmt->close();
+$result = $mysql->query('SELECT dpath, dname, wcount, hits FROM dicts ORDER BY wcount DESC');
+$datas = $result->fetch_all(MYSQLI_ASSOC);
+$result->free();
 $mysql->close();
+
+foreach ($datas as $data) {
+    echo "<tr><td><a href=\"{$data['dpath']}\">{$data['dname']}</td><td align=\"right\">{$data['wcount']}</td><td align=\"right\">{$data['hits']}</td></tr>\n";
+}
 ?>
 </table>
