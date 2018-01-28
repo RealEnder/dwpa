@@ -4,25 +4,24 @@
 require_once('db.php');
 require_once('common.php');
 
-$stats = array();
-$sql = 'SELECT * FROM stats';
-$stmt = $mysql->stmt_init();
-$stmt->prepare($sql);
-$data = array();
-stmt_bind_assoc($stmt, $data);
-$stmt->execute();
 
-while ($stmt->fetch())
-    $stats[$data['pname']] = $data['pvalue'];
-$stmt->close();
+
+$result = $mysql->query('SELECT * FROM stats');
+$datas = $result->fetch_all(MYSQLI_ASSOC);
+$result->free();
 $mysql->close();
 
-echo "Total nets: {$stats['nets']} / {$stats['nets_unc']} unique<br/>\n";
-echo "Cracked nets: {$stats['cracked']} / {$stats['cracked_unc']} unique<br/>\n";
+$stats = array();
+foreach ($datas as $data) {
+    $stats[$data['pname']] = $data['pvalue'];
+}
+
+echo "Total handshakes: {$stats['nets']} / {$stats['nets_unc']} unique BSSIDs<br/>\n";
+echo "Cracked handshakes: {$stats['cracked']} / {$stats['cracked_unc']} unique BSSIDs<br/>\n";
 if ((int) $stats['nets'] > 0) {
     $srate = round((int) $stats['cracked'] / (int) $stats['nets'] * 100, 2);
     $srate_unc = round((int) $stats['cracked_unc'] / (int) $stats['nets_unc'] * 100, 2);
-    echo "Success rate: $srate% / $srate_unc% unique<br/>\n";
+    echo "Success rate: $srate% / $srate_unc% unique BSSIDs<br/>\n";
 }
 echo "Last day getworks: {$stats['24getwork']}<br/>\n";
 $perf = convert_num($stats['24psk']/(60*60*24));
@@ -34,6 +33,8 @@ if ((int) $stats['24psk'] > 0)
 else
     echo 'infinity';
 echo "<br/>\n";
+if ($stats['words'] == 0)
+    $stats['words'] = 1;
 ?>
 <br/>
 Current keyspace progress:
