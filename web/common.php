@@ -552,10 +552,10 @@ td {padding-left: 7px; padding-right: 7px}
 <tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
     while ($stmt->fetch()) {
         $bssid = long2mac($data['bssid']);
-        $mic = $data['mic'];
+        $hash = $data['hash'];
         $ssid = htmlspecialchars($data['ssid']);
         if ($data['pass'] == '') {
-            $pass = '<input class="input" type="text" name="'.$mic.'" size="20"/>';
+            $pass = '<input class="input" type="text" name="'.$hash.'" size="20"/>';
             $has_input = true;
         } else
             $pass = htmlspecialchars($data['pass']);
