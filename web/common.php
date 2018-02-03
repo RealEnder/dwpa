@@ -541,8 +541,8 @@ function convert_sec($secs) {
 }
 
 //Write nets table
-function write_nets($stmt, $data) {
-    $has_input = false;
+function write_nets($datas) {
+    $has_input = False;
     echo '
 <style type="text/css">
 td {padding-left: 7px; padding-right: 7px}
@@ -550,20 +550,22 @@ td {padding-left: 7px; padding-right: 7px}
 <form class="form" method="post" action="?nets" enctype="multipart/form-data">
 <table style="border: 1;">
 <tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
-    while ($stmt->fetch()) {
+    foreach ($datas as $data) {
         $bssid = long2mac($data['bssid']);
         $hash = $data['hash'];
         $ssid = htmlspecialchars($data['ssid']);
         if ($data['pass'] == '') {
             $pass = '<input class="input" type="text" name="'.$hash.'" size="20"/>';
-            $has_input = true;
-        } else
+            $has_input = True;
+        } else {
             $pass = htmlspecialchars($data['pass']);
+        }
         echo "<tr><td style=\"font-family:monospace; font-size: 12px; cursor: pointer; \"><a title=\"Wigle geo query. You must be logged in.\" href=\"https://wigle.net/search?netid=$bssid\">$bssid</a></td><td>$ssid</td><td>$pass</td><td align=\"right\">{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
     }
     echo '</table>';
-    if ($has_input)
+    if ($has_input) {
         echo '<input class="submitbutton" type="submit" value="Send WPA keys" />';
+    }
     echo '</form>';
 }
 ?>
