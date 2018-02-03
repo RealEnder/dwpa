@@ -14,12 +14,12 @@ if (strlen($search) >= 3) {
     if (valid_mac($search)) {
         $bssid = mac2long($search);
         if ($k == $bosskey)
-            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
 WHERE bssid = ?
 ORDER BY net_id DESC';
         else
-            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM (SELECT * FROM nets WHERE bssid = ? ORDER BY nets.net_id DESC) AS nets
 LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id';
         $stmt = $mysql->stmt_init();
@@ -32,12 +32,12 @@ LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE
     } elseif (valid_mac($search, 3)) {
         $bssid = mac2long($search);
         if ($k == $bosskey)
-            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
 WHERE bssid >> 24 = ?
 ORDER BY net_id DESC';
         else
-            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM (SELECT * FROM nets WHERE bssid >> 24 = ? ORDER BY nets.net_id DESC) AS nets
 LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id';
         $stmt = $mysql->stmt_init();
@@ -53,12 +53,12 @@ LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE
             $ssid = $search;
         }
         if ($k == $bosskey)
-            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, nets.ts
 FROM nets
 WHERE ssid LIKE ?
 ORDER BY nets.net_id DESC';
         else
-            $sql = 'SELECT hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
+            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
 FROM (SELECT * FROM nets WHERE ssid LIKE ? ORDER BY nets.net_id DESC LIMIT 20) AS nets
 LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id';
         $stmt = $mysql->stmt_init();
