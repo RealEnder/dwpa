@@ -6,9 +6,9 @@ if (strlen($search) >= 3) {
     require_once('common.php');
 
     $k = '';
-    if (isset($_COOKIE['key']))
-        if (valid_key($_COOKIE['key']))
-            $k = $_COOKIE['key'];
+    if (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) {
+        $k = $_COOKIE['key'];
+    }
 
     // search by BSSID
     if (valid_mac($search)) {
@@ -20,7 +20,7 @@ WHERE bssid = ?
 ORDER BY net_id DESC';
         else
             $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
-FROM (SELECT * FROM nets WHERE bssid = ? ORDER BY nets.net_id DESC) AS nets
+FROM (SELECT * FROM nets WHERE bssid = ? ORDER BY nets.net_id DESC LIMIT 20) AS nets
 LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
@@ -38,7 +38,7 @@ WHERE bssid >> 24 = ?
 ORDER BY net_id DESC';
         else
             $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts
-FROM (SELECT * FROM nets WHERE bssid >> 24 = ? ORDER BY nets.net_id DESC) AS nets
+FROM (SELECT * FROM nets WHERE bssid >> 24 = ? ORDER BY nets.net_id DESC LIMIT 20) AS nets
 LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
@@ -68,15 +68,15 @@ LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE
         else
             $stmt->bind_param('ss', $ssid, $k);
     }
-    $stmt->execute();
-    
-    $data = array();
-    stmt_bind_assoc($stmt, $data);
-    write_nets($stmt, $data);
 
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $datas = $result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     $mysql->close();
+
+    write_nets($datas);
 } else {
-    echo 'Search for at least 3 chars or BSSID';
+    echo 'Search for at least 3 chars or BSSID/half BSSID';
 }
 ?>
