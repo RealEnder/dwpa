@@ -18,13 +18,14 @@ DELIMITER ;
 --
 
 CREATE TABLE IF NOT EXISTS `dicts` (
-  `d_id` bigint(20) unsigned NOT NULL,
+  `d_id` smallint(5) UNSIGNED NOT NULL AUTO_INCREMENT,
   `dpath` varchar(256) NOT NULL,
   `dhash` binary(16) DEFAULT NULL,
   `dname` varchar(128) NOT NULL,
-  `wcount` int(10) unsigned NOT NULL,
-  `hits` int(10) unsigned NOT NULL DEFAULT '0'
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+  `wcount` int(10) UNSIGNED NOT NULL,
+  `hits` int(10) UNSIGNED NOT NULL DEFAULT '0',
+  PRIMARY KEY (`d_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `dicts` (
 -- Stand-in structure for view `get_dict`
 --
 CREATE TABLE IF NOT EXISTS `get_dict` (
-  `d_id` bigint(20) unsigned,
+  `d_id` smallint(5) unsigned,
   `dpath` varchar(256),
   `dhash` varchar(32)
 );
@@ -44,9 +45,13 @@ CREATE TABLE IF NOT EXISTS `get_dict` (
 
 CREATE TABLE IF NOT EXISTS `n2d` (
   `net_id` bigint(15) NOT NULL,
-  `d_id` int(11) NOT NULL,
-  `hits` int(11) NOT NULL DEFAULT '1',
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `d_id` smallint(5) UNSIGNED NOT NULL,
+  `hits` smallint(5) NOT NULL DEFAULT '1',
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`net_id`,`d_id`),
+  KEY `IDX_n2d_ts` (`ts`),
+  KEY `IDX_n2d_net_id` (`net_id`),
+  KEY `IDX_n2d_d_id` (`d_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
@@ -68,9 +73,12 @@ DELIMITER ;
 --
 
 CREATE TABLE IF NOT EXISTS `n2u` (
-  `net_id` bigint(20) NOT NULL,
-  `u_id` bigint(20) NOT NULL,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `net_id` bigint(15) NOT NULL,
+  `u_id` bigint(15) NOT NULL,
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `UNC_n2u_net_id_u_id` (`net_id`,`u_id`),
+  KEY `IDX_n2u_u_id` (`u_id`),
+  KEY `IDX_n2u_net_id` (`net_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='nets2users relation';
 
 -- --------------------------------------------------------
@@ -80,21 +88,31 @@ CREATE TABLE IF NOT EXISTS `n2u` (
 --
 
 CREATE TABLE IF NOT EXISTS `nets` (
-`net_id` bigint(15) NOT NULL,
-  `bssid` bigint(15) unsigned NOT NULL,
-  `ssid` varchar(32) NOT NULL,
-  `pass` varchar(64) DEFAULT NULL,
-  `ip` int(10) unsigned NOT NULL,
-  `sip` int(10) unsigned DEFAULT NULL,
-  `mic` binary(16) NOT NULL,
-  `cap` varbinary(32768) NOT NULL,
-  `hccap` varbinary(512) NOT NULL,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `sts` timestamp NULL DEFAULT NULL,
-  `n_state` tinyint(1) unsigned NOT NULL,
-  `u_id` bigint(20) DEFAULT NULL,
-  `hits` int(11) unsigned NOT NULL DEFAULT '0'
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+  `net_id` bigint(15) NOT NULL AUTO_INCREMENT,
+  `s_id` bigint(15) NOT NULL,
+  `bssid` bigint(15) UNSIGNED NOT NULL COMMENT 'AP BSSID unsigned integer',
+  `mac_sta` bigint(15) UNSIGNED NOT NULL COMMENT 'Station mac address',
+  `ssid` varchar(32) NOT NULL COMMENT 'AP ESSID',
+  `pass` varchar(64) DEFAULT NULL COMMENT 'PSK',
+  `hash` binary(16) NOT NULL COMMENT 'partial md5 on hccapx',
+  `hccapx` varbinary(393) NOT NULL COMMENT 'hccapx struct',
+  `message_pair` tinyint(3) UNSIGNED NOT NULL COMMENT 'message_pair from hccapx',
+  `keyver` tinyint(3) UNSIGNED NOT NULL COMMENT 'keyver from hccapx 1-WPA 2-WPA2 3-WPA2 AES-128-CMAC',
+  `nc` smallint(6) DEFAULT NULL COMMENT 'Nonce correction',
+  `endian` enum('BE','LE') DEFAULT NULL COMMENT 'Endianness if detected from nonce correction',
+  `sip` int(10) UNSIGNED DEFAULT NULL COMMENT 'PSK submitter IP',
+  `sts` timestamp NULL DEFAULT NULL COMMENT 'PSK submission timestamp',
+  `n_state` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'False - not cracked, True - cracked',
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'submission timestamp',
+  `hits` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Attempts count',
+  PRIMARY KEY (`net_id`),
+  UNIQUE KEY `IDX_nets_hash` (`hash`) USING BTREE,
+  KEY `IDX_nets_bssid` (`bssid`),
+  KEY `IDX_nets_n_state` (`n_state`),
+  KEY `IDX_nets_hits_ts` (`hits`) USING BTREE,
+  KEY `FK_nets_submissions` (`s_id`),
+  KEY `IDX_nets_mac_sta` (`mac_sta`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -103,10 +121,10 @@ CREATE TABLE IF NOT EXISTS `nets` (
 --
 CREATE TABLE IF NOT EXISTS `onets` (
   `net_id` bigint(15),
-  `mic` varchar(32),
-  `cap` varbinary(32768),
-  `hccap` varbinary(512),
-  `bssid` bigint(15) unsigned
+  `hash` varchar(32),
+  `hccapx` varbinary(393),
+  `bssid` bigint(15) unsigned,
+  `hits` smallint(5) unsigned
 );
 -- --------------------------------------------------------
 
@@ -115,8 +133,8 @@ CREATE TABLE IF NOT EXISTS `onets` (
 --
 CREATE TABLE IF NOT EXISTS `onets_dicts` (
   `net_id` bigint(15),
-  `d_id` int(11),
-  `hits` int(11)
+  `d_id` smallint(5) unsigned,
+  `hits` smallint(5)
 );
 -- --------------------------------------------------------
 
@@ -126,7 +144,8 @@ CREATE TABLE IF NOT EXISTS `onets_dicts` (
 
 CREATE TABLE IF NOT EXISTS `stats` (
   `pname` varchar(20) NOT NULL,
-  `pvalue` varchar(20) DEFAULT NULL
+  `pvalue` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`pname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -136,13 +155,14 @@ CREATE TABLE IF NOT EXISTS `stats` (
 --
 
 CREATE TABLE IF NOT EXISTS `submissions` (
-  `s_id` bigint(15) NOT NULL,
-  `s_name` binary(16) NOT NULL,
-  `userhash` binary(16) NOT NULL,
-  `info` text,
-  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0 - processing 1 - processed',
-  `ip` int(10) NOT NULL,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `s_id` bigint(15) NOT NULL AUTO_INCREMENT,
+  `u_id` bigint(15) DEFAULT NULL,
+  `localfile` varchar(1024) NOT NULL COMMENT 'Local capture full path',
+  `ip` int(10) UNSIGNED NOT NULL COMMENT 'Submission IP',
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Submission timestamp',
+  PRIMARY KEY (`s_id`),
+  UNIQUE KEY `localfile` (`localfile`),
+  KEY `IDX_submissions_u_id` (`u_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Capture file submissions';
 
 -- --------------------------------------------------------
@@ -152,12 +172,15 @@ CREATE TABLE IF NOT EXISTS `submissions` (
 --
 
 CREATE TABLE IF NOT EXISTS `users` (
-`u_id` bigint(20) NOT NULL,
+  `u_id` bigint(15) NOT NULL AUTO_INCREMENT,
   `userkey` binary(16) NOT NULL,
   `mail` varchar(500) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,
-  `ip` int(10) unsigned NOT NULL,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+  `ip` int(10) UNSIGNED NOT NULL,
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`u_id`),
+  UNIQUE KEY `IDX_users_userkey` (`userkey`),
+  UNIQUE KEY `IDX_users_mail` (`mail`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -166,7 +189,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 DROP TABLE IF EXISTS `get_dict`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `get_dict` AS select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount` ;
 
 -- --------------------------------------------------------
 
@@ -175,7 +198,7 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `get_dict` AS select `d`.`d
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`net_id` AS `net_id`,hex(`nets`.`mic`) AS `mic`,`nets`.`cap` AS `cap`,`nets`.`hccap` AS `hccap`,`nets`.`bssid` AS `bssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1 ;
 
 -- --------------------------------------------------------
 
@@ -184,79 +207,33 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets` AS select `nets`.`n
 --
 DROP TABLE IF EXISTS `onets_dicts`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets_dicts` AS select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`);
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets_dicts`  AS  select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`) ;
 
 --
--- Indexes for dumped tables
+-- Constraints for dumped tables
 --
 
 --
--- Indexes for table `dicts`
---
-ALTER TABLE `dicts`
- ADD PRIMARY KEY (`d_id`);
-
---
--- Indexes for table `n2d`
+-- Constraints for table `n2d`
 --
 ALTER TABLE `n2d`
- ADD PRIMARY KEY (`net_id`,`d_id`), ADD KEY `IDX_n2d_ts` (`ts`), ADD KEY `IDX_n2d_net_id` (`net_id`);
+  ADD CONSTRAINT `FK_n2d_dicts_d_id` FOREIGN KEY (`d_id`) REFERENCES `dicts` (`d_id`),
+  ADD CONSTRAINT `FK_n2d_nets_net_id` FOREIGN KEY (`net_id`) REFERENCES `nets` (`net_id`);
 
 --
--- Indexes for table `n2u`
+-- Constraints for table `n2u`
 --
 ALTER TABLE `n2u`
- ADD UNIQUE KEY `UNC_n2u_net_id_u_id` (`net_id`,`u_id`), ADD KEY `IDX_n2u_u_id` (`u_id`);
+  ADD CONSTRAINT `FK_n2u_nets_net_id` FOREIGN KEY (`net_id`) REFERENCES `nets` (`net_id`),
+  ADD CONSTRAINT `FK_n2u_users_u_id` FOREIGN KEY (`u_id`) REFERENCES `users` (`u_id`);
 
 --
--- Indexes for table `nets`
+-- Constraints for table `nets`
 --
 ALTER TABLE `nets`
- ADD PRIMARY KEY (`net_id`), ADD UNIQUE KEY `IDX_net_mic` (`mic`), ADD KEY `u_id` (`u_id`), ADD KEY `IDX_nets_bssid` (`bssid`);
+  ADD CONSTRAINT `FK_nets_submissions` FOREIGN KEY (`s_id`) REFERENCES `submissions` (`s_id`);
+COMMIT;
 
---
--- Indexes for table `stats`
---
-ALTER TABLE `stats`
- ADD PRIMARY KEY (`pname`);
-
---
--- Indexes for table `submissions`
---
-ALTER TABLE `submissions`
- ADD PRIMARY KEY (`s_id`), ADD UNIQUE KEY `IDX_submissions_userhash` (`userhash`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
- ADD PRIMARY KEY (`u_id`), ADD UNIQUE KEY `IDX_users_userkey` (`userkey`), ADD UNIQUE KEY `IDX_users_mail` (`mail`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `dicts`
---
-ALTER TABLE `dicts`
-MODIFY `d_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT;
---
--- AUTO_INCREMENT for table `nets`
---
-ALTER TABLE `nets`
-MODIFY `net_id` bigint(15) NOT NULL AUTO_INCREMENT;
---
--- AUTO_INCREMENT for table `submissions`
---
-ALTER TABLE `submissions`
-MODIFY `s_id` bigint(15) NOT NULL AUTO_INCREMENT;
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-MODIFY `u_id` bigint(20) NOT NULL AUTO_INCREMENT;
-DELIMITER $$
 --
 -- Events
 --
