@@ -11,7 +11,7 @@ $k      = (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) ? $_COOKIE['key
 $offset = (isset($_GET['page']) && is_numeric($_GET['page'])) ? ((int)$_GET['page'] -1) * $limit : 0;
 $page   = ($offset / $limit) + 1;
 
-$sql = 'SELECT SQL_CALC_FOUND_ROWS hex(nets.mic) as mic, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, n2u.ts
+$sql = 'SELECT SQL_CALC_FOUND_ROWS hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, n2u.ts
 FROM nets, n2u, users
 WHERE nets.net_id=n2u.net_id AND users.u_id=n2u.u_id AND users.userkey=UNHEX(?)
 ORDER BY nets.net_id DESC
