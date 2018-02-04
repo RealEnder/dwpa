@@ -13,9 +13,7 @@ $privatekey = '';
 $bosskey = '';
 
 //App specific defines
-define('PYRIT', 'pyrit');
-define('WPACLEAN', '/var/www/wpa-sec/cap/wpaclean');
-define('CAP2HCCAP', '/var/www/wpa-sec/cap/cap2hccap');
+define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
 
 define('CAP', '/var/www/wpa-sec/cap/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');

@@ -179,140 +179,207 @@ function get_mic($hccap) {
 
 //Process submission
 function submission($mysql, $file) {
-    //clean uploaded capture
+    //Internal functions
+    function duplicate_nets(& $mysql, & $ref, & $nets) {
+        if (count($ref) < 2) {
+            return;
+        }
+
+        //get all net_ids of networks already in the DB
+        $sql = 'SELECT hash FROM nets WHERE hash IN ('.implode(',', array_fill(0, count($ref)-1, '?')).')';
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+
+        $ref[0] = str_repeat('s', count($ref)-1);
+        call_user_func_array(array($stmt, 'bind_param'), $ref);
+        $stmt->execute();
+        stmt_bind_assoc($stmt, $data);
+        while ($stmt->fetch()) {
+            //place skip mark - we have it in the db
+            $nets[$data['hash']][100] = '';
+        }
+        $stmt->close();
+    }
+
+    function insert_nets(& $mysql, & $ref) {
+        if (count($ref) < 2) {
+            return;
+        }
+
+        $bindvars = 'iiisssii';
+        $sql = 'INSERT IGNORE INTO nets(s_id, bssid, mac_sta, ssid, hash, hccapx, message_pair, keyver) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+
+        $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
+        call_user_func_array(array($stmt, 'bind_param'), $ref);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    function insert_n2u(& $mysql, & $ref, $u_id) {
+        if (count($ref) < 2) {
+            return;
+        }
+
+        $sql = "INSERT IGNORE INTO n2u(net_id, u_id) SELECT net_id, $u_id FROM nets WHERE hash IN (".implode(',', array_fill(0, count($ref)-1, '?')).')';
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+
+        $ref[0] = str_repeat('s', count($ref)-1);
+        call_user_func_array(array($stmt, 'bind_param'), $ref);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    //Extract handshakes from uploaded capture
+    $hccapxfile = tempnam(SHM, 'hccapx');
     $res = '';
     $rc  = 0;
-    exec(WPACLEAN.' '.SHM.' '.$file, $res, $rc);
+    exec(HCXPCAPTOOL." --time-error-corrections=10000 -o $hccapxfile $file 2>&1", $res, $rc);
 
-    //parse wpaclean output and create references to $incap mic
-    $incap = array();
-    $ref = array('');
-    foreach ($res as $net) {
-        if (strlen($net) > 59) {
-            $mic = hex2bin(substr($net, 26, 32));
-            if (isset($incap[$mic]))
-                continue;
-            $incap[$mic] = array($mic,                          //mic
-                                 mac2long(substr($net, 4, 17)), //ibssid
-                                 substr($net, 59));             //ssid
-            $ref[] = & $incap[$mic][0];
-        }
-    }
-    if (count($incap) == 0) {
+    //validate resulting hccapx file
+    if (!file_exists($hccapxfile) || $rc != 0) {
         @unlink($file);
-        return false;
+        return "Capture processing error. Exit code $rc. Please inform developers.";
     }
-    $ref[0] = str_repeat('s',count($incap));
-
-    //get all net_ids of of networks already in the DB
-    $sql = 'SELECT net_id, mic FROM nets WHERE mic IN ('.implode(',', array_fill(0, count($incap), '?')).')';
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-    call_user_func_array(array($stmt, 'bind_param'), $ref);
-    $stmt->execute();
-    stmt_bind_assoc($stmt, $data);
-    while ($stmt->fetch()) {
-        $incap[$data['mic']][] = $data['net_id'];
+    $hccapxsize = filesize($hccapxfile);
+    if ($hccapxsize == 0) {
+        @unlink($hccapxfile);
+        @unlink($file);
+        return "No valid handshakes found in submitted file.";
     }
-    $stmt->close();
-
-    //get u_id if we have key set
-    $u_id = Null;
-    if (isset($_COOKIE['key']))
-        if (valid_key($_COOKIE['key'])) {
-            $sql = 'SELECT u_id FROM users WHERE userkey=UNHEX(?)';
-            $stmt = $mysql->stmt_init();
-            $stmt->prepare($sql);
-            $stmt->bind_param('s', $_COOKIE['key']);
-            $stmt->execute();
-            $stmt->bind_result($u_id);
-            $stmt->fetch();
-            $stmt->close();
-        }
-
-    // Prepare nets for import
-    $sql = 'INSERT IGNORE INTO nets(bssid, ssid, ip, mic, cap, hccap) VALUES(?, ?, ?, ?, ?, ?)';
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-
-    // Prepare n2u for insert
-    if ($u_id != Null) {
-        $n2usql = 'INSERT IGNORE INTO n2u(net_id, u_id) VALUES(?, ?)';
-        $n2ustmt = $mysql->stmt_init();
-        $n2ustmt->prepare($n2usql);
+    if ($hccapxsize % 393 != 0) {
+        @unlink($hccapxfile);
+        @unlink($file);
+        return "Capture file produced invalid hccapx struct of size $hccapxsize. Please inform developers.";
     }
 
-    //BEGIN TRANSACTION
-    $mysql->autocommit(FALSE);
-    foreach ($incap as $net) {
-        //associate net with user
-        if (isset($net[3])) {
-            if ($u_id != Null) {
-                $n2ustmt->bind_param('ii', $net[3], $u_id);
-                $n2ustmt->execute();
-            }
-            continue;
-        }
-        $dotmac = long2mac($net[1]);
-
-        $bnfile = SHM.bin2hex($net[0]).'.mic.cap';
-        if (! file_exists($bnfile)) {
-            file_put_contents('shitlog.txt', "$bnfile not exists, continue...", FILE_APPEND);
-            continue;
-        }
-        //run through pyrit analyze
-        $cut = '';
-        $rc  = 0;
-        exec(PYRIT.' -r '.$bnfile.' analyze', $cut, $rc);
-        //check for correct errorcode and if we have only one AP
-        if (($rc == 0) && (strpos(implode("\n", $cut), 'got 1 AP(s)') !== FALSE)) {
-            //generate hccap
-            $cut = '';
-            exec(CAP2HCCAP." $bnfile $bnfile.hccap", $cut, $rc);
-            if (($rc == 0) && filesize("$bnfile.hccap") == 392) {
-                //we are OK, read data
-                $cap = file_get_contents($bnfile);
-                $gzcap = gzencode($cap, 9);
-                $hccap = file_get_contents("$bnfile.hccap");
-                $gzhccap = gzencode($hccap, 9);
-                //extract mic
-                $mic = get_mic($hccap);
-                if ($mic != $net[0]) {
-                    file_put_contents('shitlog.txt', print_r($net, True), FILE_APPEND);
-                }
-                //put in db
-                $ip = ip2long($_SERVER['REMOTE_ADDR']);
-                $stmt->bind_param('isisss', $net[1], $net[2], $ip, $net[0], $gzcap, $gzhccap);
-                $stmt->execute();
-                $net_id = $mysql->insert_id;
-                if (($u_id != Null) && ($net_id != 0)) {
-                    $n2ustmt->bind_param('ii', $net_id, $u_id);
-                    $n2ustmt->execute();
-                }
-            }
-            @unlink("$bnfile.hccap");
-        }
-    }
-    $stmt->close();
-
+    //move uploaded cap file
     $partial_path = date('Y/m/d/');
     if (!is_dir(CAP.$partial_path)) {
         mkdir(CAP.$partial_path, 0777, TRUE);
     }
     chmod($file, 0644);
-    move_uploaded_file($file, CAP.$partial_path.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap');
+    $capfile = CAP.$partial_path.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap';
+    move_uploaded_file($file, $capfile);
 
-    //update net count stats
+    //insert into submissions table
+    $sql = 'INSERT IGNORE INTO submissions(localfile, ip) VALUES(?, ?)';
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    $ip = ip2long($_SERVER['REMOTE_ADDR']);
+    $stmt->bind_param('si', $capfile, $ip);
+    $stmt->execute();
+    $s_id = $stmt->insert_id;
+    $stmt->close();
+
+    $userkey = (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) ? $_COOKIE['key'] : '';
+    if ($s_id == False && $userkey == '') {
+        @unlink($hccapxfile);
+        return 'This capture file was already submitted.';
+    }
+
+    //Read hccapx file and duplicate check
+    $nets = array();
+    $ref = array('');
+    $fp = fopen($hccapxfile, 'rb');
+    while (($hccapx = fread($fp, 393)) != FALSE) {
+        $hash = hccapx_hash($hccapx);
+        if (isset($nets[$hash])) {
+            continue;
+        }
+        $nets[$hash] = array($hash, $hccapx);
+        $ref[] = & $nets[$hash][0];
+        if (count($ref) > 1000) {
+            duplicate_nets($mysql, $ref, $nets);
+            $ref = array('');
+        }
+    }
+    fclose($fp);
+    @unlink($hccapxfile);
+    duplicate_nets($mysql, $ref, $nets);
+    $ref = array('');
+
+    //Insert identified handshakes
+    if ($s_id != False) {
+        $refi = array('');
+        foreach ($nets as &$net) {
+            //do we have a skip mark?
+            if (array_key_exists(100, $net)) {
+                continue;
+            }
+            //read from hccapx struct
+            $essid_len = ord(substr($net[1], 0x09, 1));
+            if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
+                $essid      = unpack('Z32', substr($net[1], 0x0a, 32));
+            } else {
+                $essid      = unpack('a32', substr($net[1], 0x0a, 32));
+            }
+            $essid = substr($essid[1], 0, $essid_len);
+            $message_pair = ord(substr($net[1], 0x08, 1));
+            $keyver = ord(substr($net[1], 0x2a, 1));
+
+            $mac_ap = unpack('H*', substr($net[1], 0x3b, 6));
+            $mac_ap = hexdec($mac_ap[1]);
+
+            $mac_sta = unpack('H*', substr($net[1], 0x61, 6));
+            $mac_sta = hexdec($mac_sta[1]);
+
+            $net[2] = $mac_ap;
+            $net[3] = $essid;
+            $net[4] = $message_pair;
+            $net[5] = $keyver;
+            $net[6] = $mac_sta;
+            $refi[] = & $s_id;
+            $refi[] = & $net[2];
+            $refi[] = & $net[6];
+            $refi[] = & $net[3];
+            $refi[] = & $net[0];
+            $refi[] = & $net[1];
+            $refi[] = & $net[4];
+            $refi[] = & $net[5];
+
+            if (count($refi) > 1000) {
+                insert_nets($mysql, $refi);
+                $refi = array('');
+            }
+        }
+        insert_nets($mysql, $refi);
+        $refi = array('');
+    }
+
+    //Associate handshakes to user if we have key submitted
+    if ($userkey != '') {
+        $u_id = Null;
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('SELECT u_id FROM users WHERE userkey=UNHEX(?)');
+        $stmt->bind_param('s', $userkey);
+        $stmt->execute();
+        $stmt->bind_result($u_id);
+        $stmt->fetch();
+        $stmt->close();
+
+        //associate handshakes to user
+        if ($u_id != Null) {
+            $ref = array();
+            foreach ($nets as $net) {
+                $ref[] = & $net[0];
+                if (count($ref) > 1000) {
+                    insert_n2u($mysql, $ref, $u_id);
+                    $ref = array();
+                }
+            }
+            insert_n2u($mysql, $ref, $u_id);
+            $ref = array();
+        }
+    }
+
+    //Update handshake stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets) WHERE pname='nets_unc'");
 
-    $mysql->commit();
-
-    foreach ($incap as $net) {
-        @unlink(SHM.bin2hex($net[0]).'.mic.cap');
-    }
-
-    return true;
+    return True;
 }
 
 //Put work
