@@ -172,9 +172,10 @@ function check_key($hccap, $keys, $nc=65535) {
     return NULL;
 }
 
-//Extract keymic
-function get_mic($hccap) {
-    return substr($hccap, 0x178, 16);
+//Extract partial md5 hash over hccapx struct
+function hccapx_hash(& $hccapx) {
+    //TODO: implement partial md5_64()
+    return md5(substr($hccapx, 0x09), True);
 }
 
 //Process submission
