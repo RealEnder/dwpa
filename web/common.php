@@ -606,39 +606,36 @@ function put_work($mysql, $candidates) {
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1) WHERE pname='cracked_unc'");
 
-    //create new cracked.txt.gz and update wcount
-    $sql = 'SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC';
+    //pull cracked wordlist
     $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-    $data = array();
-    stmt_bind_assoc($stmt, $data);
+    $stmt->prepare('SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC');
     $stmt->execute();
-    $wl = '';
-    $i = 0;
-    while ($stmt->fetch()) {
-        $wl = "$wl{$data['pass']}\n";
-        $i += 1;
-    }
-    $stmt->close();
+    $stmt->bind_result($key);
 
-    $gzdata    = gzencode($wl, 9);
-    $md5gzdata = md5($gzdata, True);
-    
-    $sem = sem_get(888);
-    sem_acquire($sem);
-    file_put_contents(CRACKED, $gzdata);
-    sem_release($sem);
+    //write compressed wordlist
+    $wpakeys = tempnam(SHM, 'wpakeys');
+    chmod($wpakeys, 0644);
+    $fd = gzopen($wpakeys, 'wb9');
+    while ($stmt->fetch()) {
+        gzwrite($fd, "$key\n");
+    }
+    $keycount = $stmt->num_rows;
+    $stmt->close();
+    gzclose($fd);
+
+    $md5 = md5_file($wpakeys, True);
+    rename($wpakeys, CRACKED);
 
     //update wcount for cracked dict
     $cr = '%'.basename(CRACKED);
     $sql = 'UPDATE dicts SET wcount = ?, dhash = ? WHERE dpath LIKE ?';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
-    $stmt->bind_param('iss', $i, $md5gzdata, $cr);
+    $stmt->bind_param('iss', $keycount, $md5, $cr);
     $stmt->execute();
     $stmt->close();
 
-    return true;
+    return True;
 }
 
 //MAC conversions and checks
