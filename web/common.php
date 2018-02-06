@@ -496,84 +496,117 @@ function submission($mysql, $file) {
 }
 
 //Put work
-function put_work($mysql) {
-    if (empty($_POST))
-        return false;
+function put_work($mysql, $candidates) {
+    if (empty($candidates)) {
+        return False;
+    }
 
-    //get nets by bssid
-    $sql = 'SELECT net_id, hccap FROM nets WHERE bssid = ? AND n_state=0';
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-    $data = array();
-    stmt_bind_assoc($stmt, $data);
+    function by_bssid(& $mysql, & $stmt, $bssid) {
+        if ($stmt == Null) {
+            $stmt = $mysql->stmt_init();
+            $stmt->prepare('SELECT net_id, hccapx FROM nets WHERE bssid = ? AND n_state=0');
+        }
 
-    //get net by nhash
-    $nsql = 'SELECT net_id, hccap FROM nets WHERE mic = unhex(?) AND n_state=0';
-    $nstmt = $mysql->stmt_init();
-    $nstmt->prepare($nsql);
-    $ndata = array();
-    stmt_bind_assoc($nstmt, $ndata);
+        $ibssid = mac2long($bssid);
+        $stmt->bind_param('i', $ibssid);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $res = $result->fetch_all(MYSQLI_ASSOC);
+        $result->free();
 
-    //Update key stmt
-    $usql = 'UPDATE nets SET pass=?, sip=?, n_state=1, sts=NOW() WHERE net_id=?';
-    $ustmt = $mysql->stmt_init();
-    $ustmt->prepare($usql);
+        return $res;
+    }
+
+    function by_hash(& $mysql, & $stmt, $hash) {
+        if ($stmt == Null) {
+            $stmt = $mysql->stmt_init();
+            $stmt->prepare('SELECT net_id, hccapx FROM nets WHERE hash = UNHEX(?) AND n_state=0');
+        }
+        $stmt->bind_param('s', $hash);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $res = $result->fetch_all(MYSQLI_ASSOC);
+        $result->free();
+
+        return $res;
+    }
+
+    function submit(& $mysql, & $stmt, $pass, $nc, $endian, $sip, $net_id) {
+        if ($stmt == Null) {
+            $stmt = $mysql->stmt_init();
+            $stmt->prepare('UPDATE nets SET pass=?, nc=?, endian=?, sip=?, sts=NOW(), n_state=1 WHERE net_id=?');
+        }
+
+        $stmt->bind_param('sisii', $pass, $nc, $endian, $sip, $net_id);
+        $stmt->execute();
+
+        return;
+    }
+
+    function delete_from_n2d(& $mysql, & $stmt, $net_id) {
+        if ($stmt == Null) {
+            $stmt = $mysql->stmt_init();
+            $stmt->prepare('DELETE FROM n2d WHERE net_id=?');
+        }
+
+        $stmt->bind_param('i', $net_id);
+        $stmt->execute();
+
+        return;
+    }
+
+    $bybssid_stmt = Null;
+    $byhash_stmt = Null;
+    $submit_stmt = Null;
+    $n2d_stmt = Null;
 
     $mcount = 0;
-    foreach ($_POST as $bssid_or_mic => $key) {
-        if (strlen($key) < 8)
+    foreach ($candidates as $bssid_or_hash => $key) {
+        if (strlen($key) < 8) {
             continue;
-        if (valid_mac($bssid_or_mic)) {
-            //old style submission with bssid
-            $ibssid = mac2long($bssid_or_mic);
-            $stmt->bind_param('i', $ibssid);
-            $stmt->execute();
-
-            while ($stmt->fetch()) {
-                $hccap = gzinflate(substr($data['hccap'], 10));
-                if ($key == check_key($hccap, array($key))) {
-                    //put result in nets
-                    $iip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $net_id = $data['net_id'];
-                    $ustmt->bind_param('sii', $key, $iip, $net_id);
-                    $ustmt->execute();
-                    //delete from n2d
-                    $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
-                }
-            }
-            $stmt->free_result();
-        } elseif (valid_key($bssid_or_mic)) {
-            //hash submission
-            $mic = strtolower($bssid_or_mic);
-            $nstmt->bind_param('s', $mic);
-            $nstmt->execute();
-
-            if ($nstmt->fetch()) {
-                $hccap = gzinflate(substr($ndata['hccap'], 10));
-                if ($key == check_key($hccap, array($key))) {
-                    //put result in nets
-                    $iip = ip2long($_SERVER['REMOTE_ADDR']);
-                    $net_id = $ndata['net_id'];
-                    $ustmt->bind_param('sii', $key, $iip, $net_id);
-                    $ustmt->execute();
-                    //delete from n2d
-                    $mysql->query("DELETE FROM n2d WHERE net_id=$net_id");
-                }
-            }
-            $nstmt->free_result();
         }
-        if ($mcount++ > 20)
+
+        //get hccapx structs by bssid or hash
+        if (valid_mac($bssid_or_hash)) {
+            $nets = by_bssid($mysql, $bybssid_stmt, $bssid_or_hash);
+        } elseif (valid_key($bssid_or_hash)) {
+            $nets = by_hash($mysql, $byhash_stmt, $bssid_or_hash);
+        } else {
+            continue;
+        }
+
+        //check PSK candidate against hccapx
+        foreach ($nets as $net) {
+            if ($res = check_key_hccapx($net['hccapx'], array($key))) {
+                $iip = ip2long($_SERVER['REMOTE_ADDR']);
+                submit($mysql, $submit_stmt, $key, $res[1], $res[2], $iip, $net['net_id']);
+                delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
+            }
+        }
+
+        if ($mcount++ > 200)
             break;
     }
-    $stmt->close();
-    $ustmt->close();
-    $nstmt->close();
 
-    //Update cracked net stats
+    //cleanup stmts
+    if ($bybssid_stmt) {
+        $bybssid_stmt->close();
+    }
+    if ($byhash_stmt) {
+        $byhash_stmt->close();
+    }
+    //if we haven't accepted valid PSK just exit
+    if (!$submit_stmt) {
+        return False;
+    }
+    $submit_stmt->close();
+    $n2d_stmt->close();
+
+    //update cracked net stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1) WHERE pname='cracked_unc'");
 
-    //Create new cracked.txt.gz and update wcount
+    //create new cracked.txt.gz and update wcount
     $sql = 'SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC';
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);

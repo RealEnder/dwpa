@@ -2,7 +2,7 @@
 require_once('db.php');
 require_once('common.php');
 
-put_work($mysql);
+put_work($mysql, $_POST);
 
 echo '<h1>My networks</h1>';
 
