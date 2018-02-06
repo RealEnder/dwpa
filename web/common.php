@@ -52,29 +52,141 @@ if (function_exists('hex2bin') == False) {
 }
 
 /*
-    check_key(hccap contents, array of keys)
+    check_key_hccapx(hccapx contents, array of keys)
     return:  False: bad format;
              Null: not found
-             string: the key
-    hccap structure http://hashcat.net/wiki/doku.php?id=hccap
+             array('key_found',
+                    0, //nonce correction value if used
+                    'BE') //big endian(BE) or little endian(LE), if detected
+    hccapx structure https://hashcat.net/wiki/doku.php?id=hccapx
 
-    typedef struct
+    #define HCCAPX_SIGNATURE 0x58504348 // HCPX
+    struct hccapx
     {
-        char          essid[36];
+      u32 signature;
+      u32 version;
+      u8  message_pair;
+      u8  essid_len;
+      u8  essid[32];
+      u8  keyver;
+      u8  keymic[16];
+      u8  mac_ap[6];
+      u8  nonce_ap[32];
+      u8  mac_sta[6];
+      u8  nonce_sta[32];
+      u16 eapol_len;
+      u8  eapol[256];
 
-        unsigned char mac1[6];
-        unsigned char mac2[6];
-        unsigned char nonce1[32];
-        unsigned char nonce2[32];
-
-        unsigned char eapol[256];
-        int           eapol_size;
-
-        int           keyver;
-        unsigned char keymic[16];
-
-    } hccap_t;
+    } __attribute__((packed));
 */
+
+function check_key_hccapx($hccapx, $keys, $nc=32767) {
+    if (strlen($hccapx) != 393)
+        return False;
+
+    $ahccap = array();
+    if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
+        $ahccap['essid'] = unpack('Z32', substr($hccapx, 0x00a, 32));
+    } else {
+        $ahccap['essid'] = unpack('a32', substr($hccapx, 0x00a, 32));
+    }
+    $ahccap['essid_len'] =         ord(substr($hccapx, 0x009, 1));
+    $ahccap['mac_ap']    =             substr($hccapx, 0x03b, 6);
+    $ahccap['mac_sta']   =             substr($hccapx, 0x061, 6);
+    $ahccap['nonce_ap']  =             substr($hccapx, 0x041, 32);
+    $ahccap['nonce_sta'] =             substr($hccapx, 0x067, 32);
+    $ahccap['eapol']     =             substr($hccapx, 0x089, 256);
+    $ahccap['eapol_len'] = unpack('S', substr($hccapx, 0x087, 2));
+    $ahccap['keyver']    =         ord(substr($hccapx, 0x02a, 1));
+    $ahccap['keymic']    =             substr($hccapx, 0x02b, 16);
+
+    // fixup unpack
+    $ahccap['essid']      = substr($ahccap['essid'][1], 0, $ahccap['essid_len']);
+    $ahccap['eapol_len'] = $ahccap['eapol_len'][1];
+
+    // cut eapol to right size
+    $ahccap['eapol'] = substr($ahccap['eapol'], 0, $ahccap['eapol_len']);
+
+    // fix order
+    if (strncmp($ahccap['mac_ap'], $ahccap['mac_sta'], 6) < 0)
+        $m = $ahccap['mac_ap'].$ahccap['mac_sta'];
+    else
+        $m = $ahccap['mac_sta'].$ahccap['mac_ap'];
+
+    $swap = False;
+
+    if (strncmp($ahccap['nonce_sta'], $ahccap['nonce_ap'], 6) < 0)
+        $n = $ahccap['nonce_sta'].$ahccap['nonce_ap'];
+    else {
+        $n = $ahccap['nonce_ap'].$ahccap['nonce_sta'];
+        $swap = True;
+    }
+
+    $last1 = substr($ahccap['nonce_ap'], 24, 4);
+    $last2 = substr($ahccap['nonce_ap'], 28, 4);
+    
+    $last1le = unpack('V', $last1);
+    $last2le = unpack('V', $last2);
+    $last1be = unpack('N', $last1);
+    $last2be = unpack('N', $last2);
+    
+    $corr['V'] = ($last1le[1] << 32) | $last2le[1];
+    $corr['N'] = ($last1be[1] << 32) | $last2be[1];
+    $halfnc = ($nc >> 1) + 1;
+    $ncarr = array(array('N', 0));
+
+    foreach ($keys as $key) {
+        $kl = strlen($key);
+        if (($kl < 8) || ($kl > 64))
+            continue;
+
+        $pmk = hash_pbkdf2('sha1', $key, $ahccap['essid'], 4096, 32, True);
+
+        do {
+            foreach ($ncarr as $j) {
+                $rawlast1 = pack($j[0], $corr[$j[0]] + $j[1] >> 32);
+                $rawlast2 = pack($j[0], $corr[$j[0]] + $j[1]);
+
+                if ($swap) {
+                    $n = substr_replace($n, $rawlast1.$rawlast2, 24, 8);
+                } else {
+                    $n = substr_replace($n, $rawlast1.$rawlast2, 56, 8);
+                }
+
+                $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
+
+                if ($ahccap['keyver'] == 1)
+                    $testmic = hash_hmac('md5',  $ahccap['eapol'], substr($ptk, 0, 16), True);
+                else
+                    $testmic = hash_hmac('sha1', $ahccap['eapol'], substr($ptk, 0, 16), True);
+
+                if (strncmp($testmic, $ahccap['keymic'], 16) == 0) {
+                    if ($ncarr[0][1] == 0) {
+                        return array($key, 0, Null);
+                    } else {
+                        if ($j[0] == 'N') {
+                            return array($key, $j[1], 'BE');
+                        } else {
+                            return array($key, $j[1], 'LE');
+                        }
+                    }
+                    
+                }
+            }
+            if ($ncarr[0][1] == 0) {
+                $ncarr = array(array('V', 1), array('V', -1), array('N', 1), array('N', -1));
+            } else {
+                $ncarr[0][1] += 1;
+                $ncarr[1][1] -= 1;
+                $ncarr[2][1] += 1;
+                $ncarr[3][1] -= 1;
+            }
+        } while ($ncarr[0][1]<=$halfnc);
+    }
+
+    return Null;
+}
+
 function check_key($hccap, $keys, $nc=65535) {
     if (strlen($hccap) != 392)
         return False;
