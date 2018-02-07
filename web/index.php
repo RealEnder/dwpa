@@ -4,11 +4,15 @@ require('conf.php');
 if (isset($_FILES['file'])) {
     require('db.php');
     require('common.php');
-    if (submission($mysql, $_FILES['file']['tmp_name']))
-        echo 2;
-    else
-        echo 0;
+    $status = submission($mysql, $_FILES['file']['tmp_name']);
     $mysql->close();
+
+    if ($status === True) {
+        echo 2;
+    } else {
+        echo $status;
+    }
+
     exit;
 }
 
@@ -48,9 +52,9 @@ if (isset($_POST['g-recaptcha-response'])) {
 
         //if we have email, validate it
         $mail = Null;
-        if (isset($_POST['mail']))
-            if (validEmail($_POST['mail']))
-                $mail = trim($_POST['mail']);
+        if (isset($_POST['mail']) && validEmail($_POST['mail'])) {
+            $mail = trim($_POST['mail']);
+        }
 
         //put new key in db
         $sql = 'INSERT INTO users(userkey, mail, ip) VALUES(UNHEX(?), ?, ?)
@@ -87,23 +91,21 @@ function valid_key($key) {
 }
 
 //Set key
-if (isset($_POST['key'])) {
-    if (valid_key($_POST['key'])) {
-        require_once('db.php');
-        $sql = 'SELECT HEX(userkey) FROM users WHERE userkey=UNHEX(?)';
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare($sql);
-        $stmt->bind_param('s', $_POST['key']);
-        $stmt->execute();
-        $stmt->store_result();
-        
-        if ($stmt->num_rows == 1) {
-            setcookie('key', $_POST['key'], 2147483647, '', '', false, true);
-            $_COOKIE['key'] = $_POST['key'];
-        } else
-            $_POST['remkey'] = '1';
-        $stmt->close();
-    }
+if (isset($_POST['key']) && valid_key($_POST['key'])) {
+    require_once('db.php');
+    $sql = 'SELECT u_id FROM users WHERE userkey=UNHEX(?)';
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+    $stmt->bind_param('s', $_POST['key']);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows == 1) {
+        setcookie('key', $_POST['key'], 2147483647, '', '', false, true);
+        $_COOKIE['key'] = $_POST['key'];
+    } else
+        $_POST['remkey'] = '1';
+    $stmt->close();
 }
 
 //Remove key
@@ -118,15 +120,16 @@ $keys = array('home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'stats', 
 $keys_if = array('get_work', 'put_work');
 
 list($key) = each($_GET);
-if (!in_array($key,$keys))
+if (!in_array($key,$keys)) {
 	$key = 'home';
-
-if (in_array($key, $keys_if)) {
-    require($content.$key.'.php');
-    exit;
 }
 
 $cont = $content.$key.'.php';
+
+if (in_array($key, $keys_if)) {
+    require($cont);
+    exit;
+}
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
