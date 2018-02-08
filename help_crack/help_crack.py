@@ -154,29 +154,19 @@ def which(program):
 
     return False
 
-#run external tool and check returncode
-def run_tool(xtool):
-    if not isinstance(xtool, basestring):
-        return False
-
-    try:
-        subprocess.check_call(shlex.split(xtool), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except (subprocess.CalledProcessError, OSError):
-        return False
-
-    return True
-
-#Hashcat always returns returncode 255
+#check hashcat version
 def run_hashcat(tool_hashcat):
     if not isinstance(tool_hashcat, basestring):
         return False
 
     try:
-        acp = subprocess.Popen(tool_hashcat, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        acp = subprocess.Popen(shlex.split(tool_hashcat + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = acp.communicate()[0]
     except OSError:
         return False
-    if output.find('hashcat') != -1:
+
+    output = re.sub('[^\d\.]', '', output)
+    if StrictVersion(output) >= StrictVersion('4.0.1'):
         return True
 
     return False
@@ -185,43 +175,24 @@ def run_hashcat(tool_hashcat):
 def check_tools():
     tools = []
 
-    #search for general tools
-    tl = ['pyrit', 'aircrack-ng']
-    for xt in tl:
-        t = which(xt)
-        if t:
-            tools.append(t)
-
     bits = platform.architecture()[0]
     if bits == '64bit':
-        #this is for Hashcat
-        tl = ['hashcat-cli64', 'hashcat-cliAVX', 'hashcat-cliXOP', 'hashcat-cli64.bin', 'hashcat-cliAVX.bin', 'hashcat-cliXOP.bin', 'hashcat-cli64.app']
+        #this is for hashcat
+        tl = ['hashcat64.bin', 'hashcat64']
         for xt in tl:
             t = which(xt)
             if t and run_hashcat(t):
-                tools.append(t)
-        #this is for oclHashcat
-        tl = ['hashcat64.bin', 'hashcat64', 'oclHashcat64', 'oclHashcat64.bin', 'cudaHashcat64', 'cudaHashcat64.bin']
-        for xt in tl:
-            t = which(xt)
-            if t and run_tool(t+' -V'):
                 tools.append(t)
     else:
-        #this is for Hashcat
-        tl = ['hashcat-cli32', 'hashcat-cli32.bin']
+        #this is for hashcat
+        tl = ['hashcat32.bin', 'hashcat32']
         for xt in tl:
             t = which(xt)
             if t and run_hashcat(t):
-                tools.append(t)
-        #this is for oclHashcat
-        tl = ['hashcat32.bin', 'hashcat32', 'oclHashcat32', 'oclHashcat32.bin', 'cudaHashcat32', 'cudaHashcat32.bin']
-        for xt in tl:
-            t = which(xt)
-            if t and run_tool(t+' -V'):
                 tools.append(t)
 
     if len(tools) == 0:
-        print cc['FAIL'] + 'No aircrack-ng, pyrit, Hashcat or oclHashcat found' + cc['ENDC']
+        print cc['FAIL'] + 'hashcat not found' + cc['ENDC']
         exit(1)
     if len(tools) == 1:
         return tools[0]
@@ -396,21 +367,6 @@ def create_resume(xnetdata):
     with open(res_file, 'w') as outfile:
         json.dump(xnetdata, outfile)
 
-#multiplatform lower priority
-def low_priority():
-    if os.name == 'posix':
-        os.nice(10)
-    else:
-        try:
-            import win32api, win32process, win32con
-
-            pid = win32api.GetCurrentProcessId()
-            handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
-            win32process.SetPriorityClass(handle, win32process.BELOW_NORMAL_PRIORITY_CLASS)
-        except Exception as e:
-            print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
-            print cc['FAIL'] + 'Maybe you lack Python for Windows extensions. Link: http://sourceforge.net/projects/pywin32' + cc['ENDC']
-
 #check for resume files
 def resume_check():
     if os.path.exists(res_file):
@@ -436,9 +392,6 @@ if len(sys.argv) > 1:
 
 check_version()
 tool = check_tools()
-#lower priority for CPU crackers. Pyrit goes here too
-if tool.find('aircrack-ng') != -1 or tool.find('pyrit') != -1 or tool.find('hashcat-cli') != -1:
-    low_priority()
 
 #set format
 if tool.find('ashcat') != -1:
@@ -484,12 +437,6 @@ while True:
 
     #run cracker
     try:
-        if tool.find('pyrit') != -1:
-            cracker = '{0} -i{1} -o{2} -b{3} -r{4} attack_passthrough'.format(tool, dictname, key_file, netdata['bssid'], net_file)
-            subprocess.call(shlex.split(cracker))
-        if tool.find('aircrack-ng') != -1:
-            cracker = '{0} -w{1} -l{2} -b{3} {4}'.format(tool, dictname, key_file, netdata['bssid'], net_file)
-            subprocess.call(shlex.split(cracker))
         if tool.find('ashcat') != -1:
             try:
                 cracker = '{0} -m2500 --potfile-disable --outfile-format=2 {1} -o{2} {3} {4} {5}'.format(tool, performance, key_file, rule, net_file, dictname)
@@ -549,3 +496,4 @@ while True:
         if os.path.exists(res_file):
             os.unlink(res_file)
     netdata = None
+
