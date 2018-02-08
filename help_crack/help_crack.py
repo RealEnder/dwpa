@@ -14,7 +14,6 @@ import hashlib
 import gzip
 import re
 import time
-import StringIO
 import json
 import base64
 from distutils.version import StrictVersion
@@ -165,7 +164,7 @@ def run_hashcat(tool_hashcat):
     except OSError:
         return False
 
-    output = re.sub('[^\d\.]', '', output)
+    output = re.sub(r'[^\d\.]', '', output)
     if StrictVersion(output) >= StrictVersion('4.0.1'):
         return True
 
@@ -191,7 +190,7 @@ def check_tools():
             if t and run_hashcat(t):
                 tools.append(t)
 
-    if len(tools) == 0:
+    if not tools:
         print cc['FAIL'] + 'hashcat not found' + cc['ENDC']
         exit(1)
     if len(tools) == 1:
@@ -483,4 +482,3 @@ while True:
         if os.path.exists(res_file):
             os.unlink(res_file)
     netdata = None
-
