@@ -215,7 +215,7 @@ def get_work_wl(options):
     work = get_url(get_work_url+'='+hc_ver, options)
     try:
         xnetdata = json.loads(work)
-        if len(xnetdata['mic']) != 32:
+        if len(xnetdata['hash']) != 32:
             return False
         if len(xnetdata['dhash']) != 32:
             return False
@@ -243,15 +243,12 @@ def prepare_work(xnetdata, etype):
     try:
         #write net
         try:
-            gznet = base64.b64decode(xnetdata[etype])
-            gzstream = StringIO.StringIO(gznet)
-            fgz = gzip.GzipFile(fileobj=gzstream)
+            handshake = base64.b64decode(xnetdata[etype])
             fd = open(net_file, 'wb')
-            fd.write(fgz.read())
+            fd.write(handshake)
             fd.close()
-            fgz.close()
         except Exception as e:
-            print cc['FAIL'] + 'Net data extraction failed' + cc['ENDC']
+            print cc['FAIL'] + 'Handshake write failed' + cc['ENDC']
             print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
             return False
 
@@ -339,8 +336,8 @@ def prepare_challenge(etype):
     return None
 
 #return results to server
-def put_work(mic, pwkey):
-    data = urllib.urlencode({mic: pwkey})
+def put_work(handshakehash, pwkey):
+    data = urllib.urlencode({handshakehash: pwkey})
     try:
         response = urllib.urlopen(put_work_url, data)
     except Exception as e:
