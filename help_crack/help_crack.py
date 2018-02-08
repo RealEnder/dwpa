@@ -299,41 +299,34 @@ def prepare_work(xnetdata, etype):
 
 #prepare chalenge files
 def prepare_challenge(etype):
-    xnetdata = {'cap': """H4sICMX/HVQCA0d1ZXN0LmNhcAC7cnjTQiYGFgYY+P+fgSGTAQFOQnEDWA4EGCQsN7G9hZABDkLC\
-                          dbpqQLkUBkEWBlb30tTiEkaOppbuaSoGHjnMjGysLAyMDAxajAz6jAwGEkAm/xomJhDJAmJB+AwM\
-                          Riw8QhIJdzkZBCSYmL4AjbsrxzDBx1hOQgrkHizgrhRQ3oSNlw2bnAxDwCdGoNEBn0BWBXxiAbEg\
-                          fISqmVDMwWXFyCKX4t3MgeKxm6tWMQNlO/qYmBlKmRi6GASg+pgcWX4zCD8+4HxdvbHeWIz1qojr\
-                          9xUryrOaRPbGzTTV9JvLQCoQuysCCo9lAWozJoq7qJ4R/FM588BSFwyHMloxQhyH7FyF1SgOZeRC\
-                          OPTsUeXVVntX39v7SjFY1D5CoJFZwOjn4tQzi43PHD9TfNyYkLtel7/+u/jBMXEvO651a0USwhnE\
-                          DEQgEQYmWSBsHgYArgaqj0MCAAA=""",
-                'hccap': """H4sICN7CXVYCA2d1ZXN0Lm5ldABzL00tLmEgACQsN7G9ZZFL8W7mOHtUebXV3tX39r5SDBa1jxBo\
-                            ZBYw+rk49cxi4zPHzxQfN3Zk+c0g/PiA83X1xnpjMdarIq7fV6woz2oS2Rs301TTby4TM0MpEyMX\
-                            gwDUaCZCBjKQCsQMRBgZGPjXMIFJFgibh2GQgEqQn4H4dfnrv4sfHBP3suNat1YkIRwAu+stjIgB\
-                            AAA=""",
-                'bssid': '00:18:39:b2:06:ed',
-                'mic': 'eb77ebfda3e0c6174a3e0aaead146057',
-                'key': 'password1234',
+    xnetdata = {'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
+                             x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
+                             I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
+                             b1k+bcXjgjoy+9Svkp9RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+                             AAAAAAAAABgwFgEAAA+sAgEAAA+sBAEAAA+sAjwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+                             AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+                             AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""",
+                'bssid': '1c:7e:e5:e2:f2:d0',
+                'hash': '0747af15ffbd5ce545c862dd1e36d727',
+                'key': 'aaaa1234',
                 'dictname': 'challenge.txt'}
     try:
         #write net
         try:
-            gznet = base64.b64decode(xnetdata[etype])
-            gzstream = StringIO.StringIO(gznet)
-            fgz = gzip.GzipFile(fileobj=gzstream)
+            handshake = base64.b64decode(xnetdata[etype])
             fd = open(net_file, 'wb')
-            fd.write(fgz.read())
+            fd.write(handshake)
             fd.close()
-            fgz.close()
         except Exception as e:
-            print cc['FAIL'] + 'Net data extraction failed' + cc['ENDC']
+            print cc['FAIL'] + 'Handshake write failed' + cc['ENDC']
             print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
             return None
 
         #create dict
         try:
-            f = open(xnetdata['dictname'], 'wb')
-            f.write(xnetdata['key'] + "\n")
-            f.close()
+            fd = open(xnetdata['dictname'], 'wb')
+            fd.write(xnetdata['key'] + "\n")
+            fd.close()
         except Exception as e:
             print cc['FAIL'] + xnetdata['dictname'] + ' creation failed' + cc['ENDC']
             print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
@@ -373,7 +366,7 @@ def resume_check():
         netdataf = open(res_file)
         try:
             xnetdata = json.load(netdataf)
-            if len(xnetdata['mic']) != 32:
+            if len(xnetdata['hash']) != 32:
                 raise ValueError
             print cc['OKBLUE'] + 'Session resume' + cc['ENDC']
             return xnetdata
@@ -394,10 +387,7 @@ check_version()
 tool = check_tools()
 
 #set format
-if tool.find('ashcat') != -1:
-    fformat = 'hccap'
-else:
-    fformat = 'cap'
+fformat = 'hccapx'
 
 challenge = False
 resnetdata = resume_check()
@@ -432,7 +422,7 @@ while True:
 
     #run oclHashcat in performance tune mode
     performance = ''
-    if tool.find('Hashcat') != -1:
+    if tool.find('ashcat') != -1:
         performance = '-w 3'
 
     #run cracker
@@ -456,7 +446,7 @@ while True:
                     exit(1)
                 if ex.returncode not in [-2, -1, 1, 2]:
                     print cc['FAIL'] + 'Cracker {0} died with code {1}'.format(tool, ex.returncode) + cc['ENDC']
-                    print cc['FAIL'] + 'Check you have CUDA/OpenCL support' + cc['ENDC']
+                    print cc['FAIL'] + 'Check you have OpenCL support' + cc['ENDC']
                     exit(1)
     except KeyboardInterrupt as ex:
         print cc['OKBLUE'] + '\nKeyboard interrupt' + cc['ENDC']
@@ -472,8 +462,8 @@ while True:
         key = key.rstrip('\n')
         if len(key) >= 8:
             if challenge:
-                print cc['OKGREEN'] + 'Key for capture mic {0} is: {1}'.format(netdata['mic'], key.decode('utf8', 'ignore'))+cc['ENDC']
-                while not put_work(netdata['mic'], key):
+                print cc['OKGREEN'] + 'Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode('utf8', 'ignore'))+cc['ENDC']
+                while not put_work(netdata['hash'], key):
                     print cc['WARNING'] + 'Couldn\'t submit key' + cc['ENDC']
                     sleepy()
             else:
@@ -487,7 +477,7 @@ while True:
         if not challenge:
             print cc['FAIL'] + 'Challenge solving failed! Check if your cracker runs correctly.' + cc['ENDC']
             exit(1)
-        print cc['OKBLUE'] + 'Key for capture mic {0} not found.'.format(netdata['mic']) + cc['ENDC']
+        print cc['OKBLUE'] + 'Key for capture hash {0} not found.'.format(netdata['hash']) + cc['ENDC']
 
     #cleanup
     if os.path.exists(net_file):
