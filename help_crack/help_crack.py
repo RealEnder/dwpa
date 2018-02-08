@@ -429,7 +429,7 @@ while True:
     try:
         if tool.find('ashcat') != -1:
             try:
-                cracker = '{0} -m2500 --potfile-disable --outfile-format=2 {1} -o{2} {3} {4} {5}'.format(tool, performance, key_file, rule, net_file, dictname)
+                cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4} {5}'.format(tool, performance, key_file, rule, net_file, dictname)
                 subprocess.check_call(shlex.split(cracker))
             except subprocess.CalledProcessError as ex:
                 if ex.returncode == -2:
