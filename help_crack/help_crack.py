@@ -243,9 +243,8 @@ def prepare_work(xnetdata, etype):
         #write net
         try:
             handshake = base64.b64decode(xnetdata[etype])
-            fd = open(net_file, 'wb')
-            fd.write(handshake)
-            fd.close()
+            with open(net_file, 'wb') as fd:
+                fd.write(handshake)
         except Exception as e:
             print cc['FAIL'] + 'Handshake write failed' + cc['ENDC']
             print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
@@ -275,14 +274,12 @@ def prepare_work(xnetdata, etype):
             print cc['OKBLUE'] + 'Extracting ' + gzdictname + cc['ENDC']
             try:
                 with gzip.open(gzdictname, 'rb') as ftgz:
-                    f = open(xdictname, 'wb')
-                    while True:
-                        block = ftgz.read(blocksize)
-                        if block == '':
-                            break
-                        f.write(block)
-                f.close()
-                ftgz.close()
+                    with open(xdictname, 'wb') as fd:
+                        while True:
+                            block = ftgz.read(blocksize)
+                            if block == '':
+                                break
+                            fd.write(block)
             except Exception as e:
                 print cc['FAIL'] + gzdictname + ' extraction failed' + cc['ENDC']
                 print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
@@ -310,9 +307,8 @@ def prepare_challenge(etype):
         #write net
         try:
             handshake = base64.b64decode(xnetdata[etype])
-            fd = open(net_file, 'wb')
-            fd.write(handshake)
-            fd.close()
+            with open(net_file, 'wb') as fd:
+                fd.write(handshake)
         except Exception as e:
             print cc['FAIL'] + 'Handshake write failed' + cc['ENDC']
             print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
@@ -320,9 +316,8 @@ def prepare_challenge(etype):
 
         #create dict
         try:
-            fd = open(xnetdata['dictname'], 'wb')
-            fd.write(xnetdata['key'] + "\n")
-            fd.close()
+            with open(xnetdata['dictname'], 'wb') as fd:
+                fd.write(xnetdata['key'] + "\n")
         except Exception as e:
             print cc['FAIL'] + xnetdata['dictname'] + ' creation failed' + cc['ENDC']
             print cc['FAIL'] + 'Exception: {0}'.format(e) + cc['ENDC']
@@ -353,22 +348,22 @@ def put_work(handshakehash, pwkey):
 
 #create resume file
 def create_resume(xnetdata):
-    with open(res_file, 'w') as outfile:
-        json.dump(xnetdata, outfile)
+    with open(res_file, 'w') as fd:
+        json.dump(xnetdata, fd)
 
 #check for resume files
 def resume_check():
     if os.path.exists(res_file):
-        netdataf = open(res_file)
-        try:
-            xnetdata = json.load(netdataf)
-            if len(xnetdata['hash']) != 32:
-                raise ValueError
-            print cc['OKBLUE'] + 'Session resume' + cc['ENDC']
-            return xnetdata
-        except (TypeError, ValueError, KeyError):
-            print cc['WARNING'] + 'Bad resume file contents' + cc['ENDC']
-            os.unlink(res_file)
+        with open(res_file) as fd:
+            try:
+                xnetdata = json.load(fd)
+                if len(xnetdata['hash']) != 32:
+                    raise ValueError
+                print cc['OKBLUE'] + 'Session resume' + cc['ENDC']
+                return xnetdata
+            except (TypeError, ValueError, KeyError):
+                print cc['WARNING'] + 'Bad resume file contents' + cc['ENDC']
+                os.unlink(res_file)
 
     return None
 
@@ -452,9 +447,8 @@ while True:
 
     #if we have key, submit it
     if os.path.exists(key_file):
-        ktf = open(key_file, 'r')
-        key = ktf.readline()
-        ktf.close()
+        with open(key_file, 'r') as fd:
+            key = fd.readline()
         key = key.rstrip('\n')
         if len(key) >= 8:
             if challenge:
