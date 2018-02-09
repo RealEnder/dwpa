@@ -320,7 +320,7 @@ class HelpCrack(object):
             except OSError as e:
                 self.pprint('Handshake write failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
-                return None
+                exit(1)
 
             #create dict
             try:
@@ -329,13 +329,13 @@ class HelpCrack(object):
             except OSError as e:
                 self.pprint(xnetdata['dictname'] + ' creation failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
-                return None
+                exit(1)
 
             return xnetdata
         except TypeError as e:
+            self.pprint('Couldn\'t prepare challenge', 'FAIL')
             self.pprint('Exception: {0}'.format(e), 'FAIL')
-
-        return None
+            exit(1)
 
     #return results to server
     def put_work(self, handshakehash, pwkey):
@@ -346,11 +346,7 @@ class HelpCrack(object):
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return False
 
-        remote = response.read()
         response.close()
-
-        if remote != 'OK':
-            return False
 
         return True
 
@@ -375,53 +371,11 @@ class HelpCrack(object):
 
         return None
 
-    #entry point
-    def run(self):
-        self.check_version()
-        tool = self.check_tools()
-
-        #set format
-        fformat = 'hccapx'
-
-        challenge = False
-        resnetdata = self.resume_check()
-        netdata = None
+    #run externel cracker process
+    def run_cracker(self, tool, dictname, performance='', rule=''):
         while True:
-            if challenge:
-                if netdata is None:
-                    netdata = self.get_work_wl(json.JSONEncoder().encode({'format': fformat, 'tool': os.path.basename(tool)}))
-                    if netdata:
-                        self.create_resume(netdata)
-
-                dictname = self.prepare_work(netdata, fformat)
-                if not dictname:
-                    self.pprint('Couldn\'t prepare data', 'WARNING')
-                    netdata = None
-                    self.sleepy()
-                    continue
-
-            else:
-                netdata = self.prepare_challenge(fformat)
-                if netdata is None:
-                    self.pprint('Couldn\'t prepare challenge', 'FAIL')
-                    exit(1)
-                dictname = netdata['dictname']
-
-            #check if we will use rules
-            rule = ''
-            if 'rule' in netdata:
-                if tool.find('ashcat') != -1:
-                    if os.path.exists(netdata['rule']):
-                        rule = '-r' + netdata['rule']
-
-            #run oclHashcat in performance tune mode
-            performance = ''
-            if tool.find('ashcat') != -1:
-                performance = '-w 3'
-
-            #run cracker
             try:
-                if tool.find('ashcat') != -1:
+                if tool.find('ashcat'):
                     try:
                         cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4} {5}'.format(tool, performance, self.conf['key_file'], rule, self.conf['net_file'], dictname)
                         subprocess.check_call(shlex.split(cracker))
@@ -435,6 +389,7 @@ class HelpCrack(object):
                             exit(1)
                         if ex.returncode == 1:
                             self.pprint('Exausted', 'OKBLUE')
+                            return ex.returncode
                         if ex.returncode == 2:
                             self.pprint('User abort', 'FAIL')
                             exit(1)
@@ -448,36 +403,80 @@ class HelpCrack(object):
                     os.unlink(self.conf['key_file'])
                 exit(1)
 
-            #if we have key, submit it
+            return 0
+
+    #read key from file
+    def get_key(self):
+        try:
             if os.path.exists(self.conf['key_file']):
                 with open(self.conf['key_file'], 'r') as fd:
                     key = fd.readline()
                 key = key.rstrip('\n')
                 if len(key) >= 8:
-                    if challenge:
-                        self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode('utf8', 'ignore')), 'OKGREEN')
-                        while not self.put_work(netdata['hash'], key):
-                            self.pprint('Couldn\'t submit key', 'WARNING')
-                            self.sleepy()
-                    else:
-                        if netdata['key'] == key:
-                            self.pprint('Challenge solved successfully!', 'OKBLUE')
-                            challenge = True
-                            netdata = resnetdata
+                    os.unlink(self.conf['key_file'])
+                    return key
+        except IOError as e:
+            self.pprint('Couldn\'t read key', 'FAIL')
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
+            exit(1)
 
-                os.unlink(self.conf['key_file'])
-            else:
-                if not challenge:
-                    self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
-                    exit(1)
-                self.pprint('Key for capture hash {0} not found.'.format(netdata['hash']), 'OKBLUE')
+        return None
+
+    #entry point
+    def run(self):
+        self.check_version()
+        tool = self.check_tools()
+
+        #set format
+        fformat = 'hccapx'
+
+        #run hashcat in performance tune mode
+        performance = ''
+        if tool.find('ashcat'):
+            performance = '-w 3'
+
+        #challenge the cracker
+        self.pprint('Challenge cracker for correct results', 'OKBLUE')
+        netdata = self.prepare_challenge(fformat)
+        rc = self.run_cracker(tool, netdata['dictname'], performance)
+        key = self.get_key()
+        if rc != 0 or key != netdata['key']:
+            self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
+            exit(1)
+
+        netdata = self.resume_check()
+
+        while True:
+            if netdata is None:
+                netdata = self.get_work_wl(json.JSONEncoder().encode({'format': fformat, 'tool': os.path.basename(tool)}))
+                if netdata:
+                    self.create_resume(netdata)
+
+            dictname = self.prepare_work(netdata, fformat)
+            if not dictname:
+                self.pprint('Couldn\'t prepare data', 'WARNING')
+                netdata = None
+                self.sleepy()
+                continue
+
+            #check if we will use rules
+            rule = ''
+            if 'rule' in netdata and tool.find('ashcat') and os.path.exists(netdata['rule']):
+                rule = '-r' + netdata['rule']
+
+            rc = self.run_cracker(tool, dictname, performance, rule)
+            if rc == 0:
+                key = self.get_key()
+                self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode('utf8', 'ignore')), 'OKGREEN')
+                while not self.put_work(netdata['hash'], key):
+                    self.pprint('Couldn\'t submit key', 'WARNING')
+                    self.sleepy()
 
             #cleanup
             if os.path.exists(self.conf['net_file']):
                 os.unlink(self.conf['net_file'])
-            if resnetdata != netdata:
-                if os.path.exists(self.conf['res_file']):
-                    os.unlink(self.conf['res_file'])
+            if os.path.exists(self.conf['res_file']):
+                os.unlink(self.conf['res_file'])
             netdata = None
 
 
