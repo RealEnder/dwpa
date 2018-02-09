@@ -221,15 +221,15 @@ class HelpCrack(object):
     def get_work_wl(self, options):
         work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
         try:
-            xnetdata = json.loads(work)
-            if len(xnetdata['hash']) != 32:
+            netdata = json.loads(work)
+            if len(netdata['hash']) != 32:
                 return False
-            if len(xnetdata['dhash']) != 32:
+            if len(netdata['dhash']) != 32:
                 return False
-            if not self.valid_mac(xnetdata['bssid']):
+            if not self.valid_mac(netdata['bssid']):
                 return False
 
-            return xnetdata
+            return netdata
         except (TypeError, ValueError, KeyError):
             if work == 'Version':
                 self.pprint('Please update help_crack, the API has changed', 'FAIL')
@@ -243,14 +243,14 @@ class HelpCrack(object):
         return False
 
     #prepare work based on netdata; returns dictname
-    def prepare_work(self, xnetdata, etype):
-        if xnetdata is None:
+    def prepare_work(self, netdata, etype):
+        if netdata is None:
             return False
 
         try:
             #write net
             try:
-                handshake = base64.b64decode(xnetdata[etype])
+                handshake = base64.b64decode(netdata[etype])
                 with open(self.conf['net_file'], 'wb') as fd:
                     fd.write(handshake)
             except OSError as e:
@@ -261,28 +261,28 @@ class HelpCrack(object):
             #check for dict and download it
             dictmd5 = ''
             extract = False
-            gzdictname = xnetdata['dpath'].split('/')[-1]
-            xdictname = gzdictname.rsplit('.', 1)[0]
+            gzdictname = netdata['dpath'].split('/')[-1]
+            dictname = gzdictname.rsplit('.', 1)[0]
             if os.path.exists(gzdictname):
                 dictmd5 = self.md5file(gzdictname)
-            if xnetdata['dhash'] != dictmd5:
+            if netdata['dhash'] != dictmd5:
                 self.pprint('Downloading ' + gzdictname, 'OKBLUE')
-                if not self.download(xnetdata['dpath'], gzdictname):
-                    self.pprint('Can\'t download dict ' + xnetdata['dpath'], 'FAIL')
+                if not self.download(netdata['dpath'], gzdictname):
+                    self.pprint('Can\'t download dict ' + netdata['dpath'], 'FAIL')
                     return False
-                if self.md5file(gzdictname) != xnetdata['dhash']:
-                    self.pprint('Dict downloaded but hash mismatch dpath:{0} dhash:{1}'.format(xnetdata['dpath'], xnetdata['dhash']), 'WARNING')
+                if self.md5file(gzdictname) != netdata['dhash']:
+                    self.pprint('Dict downloaded but hash mismatch dpath:{0} dhash:{1}'.format(netdata['dpath'], netdata['dhash']), 'WARNING')
 
                 extract = True
 
-            if not os.path.exists(xdictname):
+            if not os.path.exists(dictname):
                 extract = True
 
             if extract:
                 self.pprint('Extracting ' + gzdictname, 'OKBLUE')
                 try:
                     with gzip.open(gzdictname, 'rb') as ftgz:
-                        with open(xdictname, 'wb') as fd:
+                        with open(dictname, 'wb') as fd:
                             while True:
                                 block = ftgz.read(self.blocksize)
                                 if block == '':
@@ -292,7 +292,7 @@ class HelpCrack(object):
                     self.pprint(gzdictname + ' extraction failed', 'FAIL')
                     self.pprint('Exception: {0}'.format(e), 'FAIL')
 
-            return xdictname
+            return dictname
         except TypeError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
 
@@ -300,21 +300,21 @@ class HelpCrack(object):
 
     #prepare chalenge files
     def prepare_challenge(self, etype):
-        xnetdata = {'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
-                                 x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
-                                 I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
-                                 b1k+bcXjgjoy+9Svkp9RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                                 AAAAAAAAABgwFgEAAA+sAgEAAA+sBAEAAA+sAjwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                                 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                                 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""",
-                    'bssid': '1c:7e:e5:e2:f2:d0',
-                    'hash': '0747af15ffbd5ce545c862dd1e36d727',
-                    'key': 'aaaa1234',
-                    'dictname': 'challenge.txt'}
+        netdata = {'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
+                                x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
+                                I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
+                                b1k+bcXjgjoy+9Svkp9RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+                                AAAAAAAAABgwFgEAAA+sAgEAAA+sBAEAAA+sAjwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+                                AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+                                AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""",
+                   'bssid': '1c:7e:e5:e2:f2:d0',
+                   'hash': '0747af15ffbd5ce545c862dd1e36d727',
+                   'key': 'aaaa1234',
+                   'dictname': 'challenge.txt'}
         try:
             #write net
             try:
-                handshake = base64.b64decode(xnetdata[etype])
+                handshake = base64.b64decode(netdata[etype])
                 with open(self.conf['net_file'], 'wb') as fd:
                     fd.write(handshake)
             except OSError as e:
@@ -324,14 +324,14 @@ class HelpCrack(object):
 
             #create dict
             try:
-                with open(xnetdata['dictname'], 'wb') as fd:
-                    fd.write(xnetdata['key'] + "\n")
+                with open(netdata['dictname'], 'wb') as fd:
+                    fd.write(netdata['key'] + "\n")
             except OSError as e:
-                self.pprint(xnetdata['dictname'] + ' creation failed', 'FAIL')
+                self.pprint(netdata['dictname'] + ' creation failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
                 exit(1)
 
-            return xnetdata
+            return netdata
         except TypeError as e:
             self.pprint('Couldn\'t prepare challenge', 'FAIL')
             self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -351,20 +351,20 @@ class HelpCrack(object):
         return True
 
     #create resume file
-    def create_resume(self, xnetdata):
+    def create_resume(self, netdata):
         with open(self.conf['res_file'], 'w') as fd:
-            json.dump(xnetdata, fd)
+            json.dump(netdata, fd)
 
     #check for resume files
     def resume_check(self):
         if os.path.exists(self.conf['res_file']):
             with open(self.conf['res_file']) as fd:
                 try:
-                    xnetdata = json.load(fd)
-                    if len(xnetdata['hash']) != 32:
+                    netdata = json.load(fd)
+                    if len(netdata['hash']) != 32:
                         raise ValueError
                     self.pprint('Session resume', 'OKBLUE')
-                    return xnetdata
+                    return netdata
                 except (TypeError, ValueError, KeyError):
                     self.pprint('Bad resume file contents', 'WARNING')
                     os.unlink(self.conf['res_file'])
