@@ -75,7 +75,7 @@ class HelpCrack(object):
             with open(filename, 'rb') as fd:
                 for chunk in iter(lambda: fd.read(self.blocksize), ''):
                     md5s.update(chunk)
-        except Exception as e:
+        except OSError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return None
 
@@ -85,7 +85,7 @@ class HelpCrack(object):
     def download(self, url, filename):
         try:
             urllib.urlretrieve(url, filename)
-        except Exception as e:
+        except IOError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return False
 
@@ -95,7 +95,7 @@ class HelpCrack(object):
     def get_url(self, url, options=None):
         try:
             response = urllib.urlopen(url, urllib.urlencode({'options': options}))
-        except Exception as e:
+        except IOError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return None
         remote = response.read()
@@ -122,7 +122,7 @@ class HelpCrack(object):
                         try:
                             os.rename(sys.argv[0]+'.new', sys.argv[0])
                             os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
-                        except Exception as e:
+                        except OSError as e:
                             self.pprint('Exception: {0}'.format(e), 'FAIL')
                             #TODO: think of workaround locking on win32
                             if os.name == 'nt':
@@ -253,7 +253,7 @@ class HelpCrack(object):
                 handshake = base64.b64decode(xnetdata[etype])
                 with open(self.conf['net_file'], 'wb') as fd:
                     fd.write(handshake)
-            except Exception as e:
+            except OSError as e:
                 self.pprint('Handshake write failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
                 return False
@@ -288,7 +288,7 @@ class HelpCrack(object):
                                 if block == '':
                                     break
                                 fd.write(block)
-                except Exception as e:
+                except OSError as e:
                     self.pprint(gzdictname + ' extraction failed', 'FAIL')
                     self.pprint('Exception: {0}'.format(e), 'FAIL')
 
@@ -317,7 +317,7 @@ class HelpCrack(object):
                 handshake = base64.b64decode(xnetdata[etype])
                 with open(self.conf['net_file'], 'wb') as fd:
                     fd.write(handshake)
-            except Exception as e:
+            except OSError as e:
                 self.pprint('Handshake write failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
                 return None
@@ -326,7 +326,7 @@ class HelpCrack(object):
             try:
                 with open(xnetdata['dictname'], 'wb') as fd:
                     fd.write(xnetdata['key'] + "\n")
-            except Exception as e:
+            except OSError as e:
                 self.pprint(xnetdata['dictname'] + ' creation failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
                 return None
@@ -342,7 +342,7 @@ class HelpCrack(object):
         data = urllib.urlencode({handshakehash: pwkey})
         try:
             response = urllib.urlopen(self.conf['put_work_url'], data)
-        except Exception as e:
+        except IOError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return False
 
