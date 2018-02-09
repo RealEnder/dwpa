@@ -3,6 +3,7 @@
 # author: Alex Stanev, alex at stanev dot org
 # web: http://wpa-sec.stanev.org
 
+from __future__ import print_function
 import sys
 import os
 import platform
@@ -35,30 +36,27 @@ conf['put_work_url'] = conf['base_url'] + '?put_work'
 class HelpCrack(object):
     #decompression block size 64k
     blocksize = 1 << 16
-    cc = None
     conf = None
 
     def __init__(self, c=None):
         self.conf = c
 
-        #ANSI color codes, empty for win
-        if os.name != 'nt':
-            self.cc = {'HEADER':  '\033[95m',
-                       'OKBLUE':  '\033[94m',
-                       'OKGREEN': '\033[92m',
-                       'WARNING': '\033[93m',
-                       'FAIL':    '\033[91m',
-                       'ENDC':    '\033[0m'}
+    #pretty print
+    @staticmethod
+    def pprint(mess, code='HEADER'):
+        if os.name == 'nt':
+            print(mess)
         else:
-            self.cc = {'HEADER':  '',
-                       'OKBLUE':  '',
-                       'OKGREEN': '',
-                       'WARNING': '',
-                       'FAIL':    '',
-                       'ENDC':    ''}
+            cc = {'HEADER':  '\033[95m',
+                  'OKBLUE':  '\033[94m',
+                  'OKGREEN': '\033[92m',
+                  'WARNING': '\033[93m',
+                  'FAIL':    '\033[91m',
+                  'ENDC':    '\033[0m'}
+            print(cc[code] + mess + cc['ENDC'])
 
     def sleepy(self):
-        print self.cc['WARNING'] + 'Sleeping...' + self.cc['ENDC']
+        self.pprint('Sleeping...', 'WARNING')
         time.sleep(222)
 
     #validate bssid/mac address
@@ -78,7 +76,7 @@ class HelpCrack(object):
                 for chunk in iter(lambda: fd.read(self.blocksize), ''):
                     md5s.update(chunk)
         except Exception as e:
-            print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
             return None
 
         return md5s.hexdigest()
@@ -88,7 +86,7 @@ class HelpCrack(object):
         try:
             urllib.urlretrieve(url, filename)
         except Exception as e:
-            print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
             return False
 
         return True
@@ -98,7 +96,7 @@ class HelpCrack(object):
         try:
             response = urllib.urlopen(url, urllib.urlencode({'options': options}))
         except Exception as e:
-            print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
             return None
         remote = response.read()
         response.close()
@@ -109,14 +107,15 @@ class HelpCrack(object):
     def check_version(self):
         remoteversion = self.get_url(self.conf['help_crack']+'.version')
         if not remoteversion:
-            print self.cc['WARNING'] + 'Can\'t check for new version, continue...' + self.cc['ENDC']
+            self.pprint('Can\'t check for new version, continue...', 'WARNING')
             return
 
         if StrictVersion(remoteversion) > StrictVersion(self.conf['hc_ver']):
             while True:
-                user = raw_input(self.cc['HEADER'] + 'New version ' + remoteversion + ' of help_crack found. Update[y] or Show changelog[c]:' + self.cc['ENDC'])
+                self.pprint('New version ' + remoteversion + ' of help_crack found.')
+                user = raw_input('Update[y] or Show changelog[c]:')
                 if user == 'c':
-                    print self.get_url(self.conf['help_crack_cl'])
+                    self.pprint(self.get_url(self.conf['help_crack_cl']))
                     continue
                 if user == 'y' or user == '':
                     if self.download(self.conf['help_crack'], sys.argv[0]+'.new'):
@@ -124,14 +123,14 @@ class HelpCrack(object):
                             os.rename(sys.argv[0]+'.new', sys.argv[0])
                             os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                         except Exception as e:
-                            print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+                            self.pprint('Exception: {0}'.format(e), 'FAIL')
                             #TODO: think of workaround locking on win32
                             if os.name == 'nt':
-                                print self.cc['OKBLUE'] + 'You are running under win32, rename help_crack.py.new over help_crack.py' + self.cc['ENDC']
-                        print self.cc['OKGREEN'] + 'help_crack updated, run again' + self.cc['ENDC']
+                                self.pprint('You are running under win32, rename help_crack.py.new over help_crack.py', 'OKBLUE')
+                        self.pprint('help_crack updated, run again', 'OKGREEN')
                         exit(0)
                     else:
-                        print self.cc['FAIL'] + 'help_crack update failed' + self.cc['ENDC']
+                        self.pprint('help_crack update failed', 'FAIL')
                         return
 
                 return
@@ -200,15 +199,15 @@ class HelpCrack(object):
                     tools.append(t)
 
         if not tools:
-            print self.cc['FAIL'] + 'hashcat not found' + self.cc['ENDC']
+            self.pprint('hashcat not found', 'FAIL')
             exit(1)
         if len(tools) == 1:
             return tools[0]
 
-        print self.cc['HEADER'] + 'Choose the tool for cracking:' + self.cc['ENDC']
+        self.pprint('Choose the tool for cracking:')
         for index, ttool in enumerate(tools):
-            print '{0}: {1}'.format(index, ttool)
-        print '9: Quit'
+            print('{0}: {1}'.format(index, ttool))
+        print('9: Quit')
         while 1:
             user = raw_input('Index:')
             if user == '9':
@@ -216,7 +215,7 @@ class HelpCrack(object):
             try:
                 return tools[int(user)]
             except (ValueError, IndexError):
-                print self.cc['WARNING'] + 'Wrong index' + self.cc['ENDC']
+                self.pprint('Wrong index', 'WARNING')
 
     #get work
     def get_work_wl(self, options):
@@ -233,13 +232,13 @@ class HelpCrack(object):
             return xnetdata
         except (TypeError, ValueError, KeyError):
             if work == 'Version':
-                print self.cc['FAIL'] + 'Please update help_crack, the interface has changed' + self.cc['ENDC']
+                self.pprint('Please update help_crack, the API has changed', 'FAIL')
                 exit(1)
             if work == 'No nets':
-                print self.cc['WARNING'] + 'No suitable net found' + self.cc['ENDC']
+                self.pprint('No suitable net found', 'WARNING')
                 return False
 
-            print self.cc['WARNING'] + 'Server response error' + self.cc['ENDC']
+            self.pprint('Server response error', 'WARNING')
 
         return False
 
@@ -255,8 +254,8 @@ class HelpCrack(object):
                 with open(self.conf['net_file'], 'wb') as fd:
                     fd.write(handshake)
             except Exception as e:
-                print self.cc['FAIL'] + 'Handshake write failed' + self.cc['ENDC']
-                print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+                self.pprint('Handshake write failed', 'FAIL')
+                self.pprint('Exception: {0}'.format(e), 'FAIL')
                 return False
 
             #check for dict and download it
@@ -267,12 +266,12 @@ class HelpCrack(object):
             if os.path.exists(gzdictname):
                 dictmd5 = self.md5file(gzdictname)
             if xnetdata['dhash'] != dictmd5:
-                print self.cc['OKBLUE'] + 'Downloading ' + gzdictname + self.cc['ENDC']
+                self.pprint('Downloading ' + gzdictname, 'OKBLUE')
                 if not self.download(xnetdata['dpath'], gzdictname):
-                    print self.cc['FAIL'] + 'Can\'t download dict ' + xnetdata['dpath'] + self.cc['ENDC']
+                    self.pprint('Can\'t download dict ' + xnetdata['dpath'], 'FAIL')
                     return False
                 if self.md5file(gzdictname) != xnetdata['dhash']:
-                    print self.cc['WARNING'] + 'Dict downloaded but hash mismatch dpath:{0} dhash:{1}'.format(xnetdata['dpath'], xnetdata['dhash']) + self.cc['ENDC']
+                    self.pprint('Dict downloaded but hash mismatch dpath:{0} dhash:{1}'.format(xnetdata['dpath'], xnetdata['dhash']), 'WARNING')
 
                 extract = True
 
@@ -280,7 +279,7 @@ class HelpCrack(object):
                 extract = True
 
             if extract:
-                print self.cc['OKBLUE'] + 'Extracting ' + gzdictname + self.cc['ENDC']
+                self.pprint('Extracting ' + gzdictname, 'OKBLUE')
                 try:
                     with gzip.open(gzdictname, 'rb') as ftgz:
                         with open(xdictname, 'wb') as fd:
@@ -290,12 +289,12 @@ class HelpCrack(object):
                                     break
                                 fd.write(block)
                 except Exception as e:
-                    print self.cc['FAIL'] + gzdictname + ' extraction failed' + self.cc['ENDC']
-                    print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+                    self.pprint(gzdictname + ' extraction failed', 'FAIL')
+                    self.pprint('Exception: {0}'.format(e), 'FAIL')
 
             return xdictname
         except TypeError as e:
-            print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
 
         return False
 
@@ -319,8 +318,8 @@ class HelpCrack(object):
                 with open(self.conf['net_file'], 'wb') as fd:
                     fd.write(handshake)
             except Exception as e:
-                print self.cc['FAIL'] + 'Handshake write failed' + self.cc['ENDC']
-                print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+                self.pprint('Handshake write failed', 'FAIL')
+                self.pprint('Exception: {0}'.format(e), 'FAIL')
                 return None
 
             #create dict
@@ -328,13 +327,13 @@ class HelpCrack(object):
                 with open(xnetdata['dictname'], 'wb') as fd:
                     fd.write(xnetdata['key'] + "\n")
             except Exception as e:
-                print self.cc['FAIL'] + xnetdata['dictname'] + ' creation failed' + self.cc['ENDC']
-                print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+                self.pprint(xnetdata['dictname'] + ' creation failed', 'FAIL')
+                self.pprint('Exception: {0}'.format(e), 'FAIL')
                 return None
 
             return xnetdata
         except TypeError as e:
-            print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
 
         return None
 
@@ -344,7 +343,7 @@ class HelpCrack(object):
         try:
             response = urllib.urlopen(self.conf['put_work_url'], data)
         except Exception as e:
-            print self.cc['FAIL'] + 'Exception: {0}'.format(e) + self.cc['ENDC']
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
             return False
 
         remote = response.read()
@@ -368,10 +367,10 @@ class HelpCrack(object):
                     xnetdata = json.load(fd)
                     if len(xnetdata['hash']) != 32:
                         raise ValueError
-                    print self.cc['OKBLUE'] + 'Session resume' + self.cc['ENDC']
+                    self.pprint('Session resume', 'OKBLUE')
                     return xnetdata
                 except (TypeError, ValueError, KeyError):
-                    print self.cc['WARNING'] + 'Bad resume file contents' + self.cc['ENDC']
+                    self.pprint('Bad resume file contents', 'WARNING')
                     os.unlink(self.conf['res_file'])
 
         return None
@@ -396,7 +395,7 @@ class HelpCrack(object):
 
                 dictname = self.prepare_work(netdata, fformat)
                 if not dictname:
-                    print self.cc['WARNING'] + 'Couldn\'t prepare data' + self.cc['ENDC']
+                    self.pprint('Couldn\'t prepare data', 'WARNING')
                     netdata = None
                     self.sleepy()
                     continue
@@ -404,7 +403,7 @@ class HelpCrack(object):
             else:
                 netdata = self.prepare_challenge(fformat)
                 if netdata is None:
-                    print self.cc['FAIL'] + 'Couldn\'t prepare challenge' + self.cc['ENDC']
+                    self.pprint('Couldn\'t prepare challenge', 'FAIL')
                     exit(1)
                 dictname = netdata['dictname']
 
@@ -428,23 +427,23 @@ class HelpCrack(object):
                         subprocess.check_call(shlex.split(cracker))
                     except subprocess.CalledProcessError as ex:
                         if ex.returncode == -2:
-                            print self.cc['WARNING'] + 'Thermal watchdog barked' + self.cc['ENDC']
+                            self.pprint('Thermal watchdog barked', 'WARNING')
                             self.sleepy()
                             continue
                         if ex.returncode == -1:
-                            print self.cc['FAIL'] + 'Internal error' + self.cc['ENDC']
+                            self.pprint('Internal error', 'FAIL')
                             exit(1)
                         if ex.returncode == 1:
-                            print self.cc['OKBLUE'] + 'Exausted' + self.cc['ENDC']
+                            self.pprint('Exausted', 'OKBLUE')
                         if ex.returncode == 2:
-                            print self.cc['FAIL'] + 'User abort' + self.cc['ENDC']
+                            self.pprint('User abort', 'FAIL')
                             exit(1)
                         if ex.returncode not in [-2, -1, 1, 2]:
-                            print self.cc['FAIL'] + 'Cracker {0} died with code {1}'.format(tool, ex.returncode) + self.cc['ENDC']
-                            print self.cc['FAIL'] + 'Check you have OpenCL support' + self.cc['ENDC']
+                            self.pprint('Cracker {0} died with code {1}'.format(tool, ex.returncode), 'FAIL')
+                            self.pprint('Check you have OpenCL support', 'FAIL')
                             exit(1)
             except KeyboardInterrupt as ex:
-                print self.cc['OKBLUE'] + '\nKeyboard interrupt' + self.cc['ENDC']
+                self.pprint('\nKeyboard interrupt', 'OKBLUE')
                 if os.path.exists(self.conf['key_file']):
                     os.unlink(self.conf['key_file'])
                 exit(1)
@@ -456,22 +455,22 @@ class HelpCrack(object):
                 key = key.rstrip('\n')
                 if len(key) >= 8:
                     if challenge:
-                        print self.cc['OKGREEN'] + 'Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode('utf8', 'ignore'))+self.cc['ENDC']
+                        self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode('utf8', 'ignore')), 'OKGREEN')
                         while not self.put_work(netdata['hash'], key):
-                            print self.cc['WARNING'] + 'Couldn\'t submit key' + self.cc['ENDC']
+                            self.pprint('Couldn\'t submit key', 'WARNING')
                             self.sleepy()
                     else:
                         if netdata['key'] == key:
-                            print self.cc['OKBLUE'] + 'Challenge solved successfully!' + self.cc['ENDC']
+                            self.pprint('Challenge solved successfully!', 'OKBLUE')
                             challenge = True
                             netdata = resnetdata
 
                 os.unlink(self.conf['key_file'])
             else:
                 if not challenge:
-                    print self.cc['FAIL'] + 'Challenge solving failed! Check if your cracker runs correctly.' + self.cc['ENDC']
+                    self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
                     exit(1)
-                print self.cc['OKBLUE'] + 'Key for capture hash {0} not found.'.format(netdata['hash']) + self.cc['ENDC']
+                self.pprint('Key for capture hash {0} not found.'.format(netdata['hash']), 'OKBLUE')
 
             #cleanup
             if os.path.exists(self.conf['net_file']):
@@ -484,10 +483,10 @@ class HelpCrack(object):
 
 # Execute
 if __name__ == "__main__":
-    print 'help_crack, distributed WPA cracker, v{0}\nsite: {1}'.format(conf['hc_ver'], conf['base_url'])
+    print('help_crack, distributed WPA cracker, v{0}\nsite: {1}'.format(conf['hc_ver'], conf['base_url']))
 
     if len(sys.argv) > 1:
-        print 'Usage: {0} : download capture and wordlist then start cracking'.format(sys.argv[0])
+        print('Usage: {0} : download capture and wordlist then start cracking'.format(sys.argv[0]))
         exit(1)
 
     hc = HelpCrack(conf)
