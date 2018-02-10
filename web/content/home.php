@@ -19,12 +19,12 @@ There is no dedicated resource on this machine for handshake cracking.
 All the work is done from volunteers like you, who contribute CPU/GPU
 to the cracking process by running <a href="hc/help_crack.py">help_crack.py</a> [<a href="hc/CHANGELOG">CHANGELOG</a>],
 a script that will automatically fetch uncracked handshake, download wordlist, try to crack, and upload the results to this site.
-Prerequisite: you must have python 2.7 and <a href="https://hashcat.net/hashcat/">Hashcat</a> installed.
+Prerequisite: you must have python and <a href="https://hashcat.net/hashcat/">hashcat</a> installed.<br/>
+Put help_crack.py in the same directory as hashcat and run it from there.
 </p>
 
 <p>
 <h4>Cracking under Windows</h4>
-Install Python 2.7 from <a href="https://python.org/download/">here</a> and
-Python for Windows extensions from <a href="http://sourceforge.net/projects/pywin32/files/pywin32">here</a>.<br/>
+Install Python from <a href="https://python.org/download/">here</a>.
 Put executables and <a href="hc/help_crack.py">help_crack.py</a> in same directory and run help_crack.py from cmd shell.
 </p>
