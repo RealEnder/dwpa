@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 # The source code is distributed under GPLv3+ license
 # author: Alex Stanev, alex at stanev dot org
 # web: http://wpa-sec.stanev.org
@@ -10,7 +10,6 @@ import platform
 import subprocess
 import shlex
 import stat
-import urllib
 import hashlib
 import gzip
 import re
@@ -18,6 +17,19 @@ import time
 import json
 import base64
 from distutils.version import StrictVersion
+from functools import partial
+try:
+    from urllib import urlretrieve
+    from urllib import urlopen
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
+    from urllib.request import urlopen, urlretrieve
+
+try:
+    userinput = raw_input
+except NameError:
+    userinput = input
 
 #configuration
 conf = {
@@ -70,21 +82,23 @@ class HelpCrack(object):
 
     #get md5 from local file
     def md5file(self, filename):
-        md5s = hashlib.md5()
+        md5 = hashlib.md5()
         try:
             with open(filename, 'rb') as fd:
-                for chunk in iter(lambda: fd.read(self.blocksize), ''):
-                    md5s.update(chunk)
+                for chunk in iter(partial(fd.read, self.blocksize), b''):
+                    if not chunk:
+                        break
+                    md5.update(chunk)
         except OSError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return None
 
-        return md5s.hexdigest()
+        return md5.hexdigest()
 
     #download remote file
     def download(self, url, filename):
         try:
-            urllib.urlretrieve(url, filename)
+            urlretrieve(url, filename)
         except IOError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return False
@@ -94,14 +108,16 @@ class HelpCrack(object):
     #get remote content and return it in var
     def get_url(self, url, options=None):
         try:
-            response = urllib.urlopen(url, urllib.urlencode({'options': options}))
+            data = urlencode({'options': options}).encode()
+            response = urlopen(url, data)
+        #URLError
         except IOError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return None
         remote = response.read()
         response.close()
 
-        return remote
+        return remote.decode()
 
     #compare version and initiate update
     def check_version(self):
@@ -113,7 +129,7 @@ class HelpCrack(object):
         if StrictVersion(remoteversion) > StrictVersion(self.conf['hc_ver']):
             while True:
                 self.pprint('New version ' + remoteversion + ' of help_crack found.')
-                user = raw_input('Update[y] or Show changelog[c]:')
+                user = userinput('Update[y] or Show changelog[c]:')
                 if user == 'c':
                     self.pprint(self.get_url(self.conf['help_crack_cl']))
                     continue
@@ -163,16 +179,13 @@ class HelpCrack(object):
     #check hashcat version
     @staticmethod
     def run_hashcat(tool_hashcat):
-        if not isinstance(tool_hashcat, basestring):
-            return False
-
         try:
             acp = subprocess.Popen(shlex.split(tool_hashcat + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output = acp.communicate()[0]
         except OSError:
             return False
 
-        output = re.sub(r'[^\d\.]', '', output)
+        output = re.sub(r'[^\d\.]', '', output.decode())
         if StrictVersion(output) >= StrictVersion('4.0.1'):
             return True
 
@@ -209,7 +222,7 @@ class HelpCrack(object):
             print('{0}: {1}'.format(index, ttool))
         print('9: Quit')
         while 1:
-            user = raw_input('Index:')
+            user = userinput('Index:')
             if user == '9':
                 exit(0)
             try:
@@ -284,10 +297,10 @@ class HelpCrack(object):
                     with gzip.open(gzdictname, 'rb') as ftgz:
                         with open(dictname, 'wb') as fd:
                             while True:
-                                block = ftgz.read(self.blocksize)
-                                if block == '':
+                                chunk = ftgz.read(self.blocksize)
+                                if not chunk:
                                     break
-                                fd.write(block)
+                                fd.write(chunk)
                 except OSError as e:
                     self.pprint(gzdictname + ' extraction failed', 'FAIL')
                     self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -324,8 +337,9 @@ class HelpCrack(object):
 
             #create dict
             try:
+                data = netdata['key'] + "\n"
                 with open(netdata['dictname'], 'wb') as fd:
-                    fd.write(netdata['key'] + "\n")
+                    fd.write(data.encode())
             except OSError as e:
                 self.pprint(netdata['dictname'] + ' creation failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -339,9 +353,9 @@ class HelpCrack(object):
 
     #return results to server
     def put_work(self, handshakehash, pwkey):
-        data = urllib.urlencode({handshakehash: pwkey})
         try:
-            response = urllib.urlopen(self.conf['put_work_url'], data)
+            data = urlencode({handshakehash: pwkey}).encode()
+            response = urlopen(self.conf['put_work_url'], data)
         except IOError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return False
@@ -467,7 +481,7 @@ class HelpCrack(object):
             rc = self.run_cracker(tool, dictname, performance, rule)
             if rc == 0:
                 key = self.get_key()
-                self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode('utf8', 'ignore')), 'OKGREEN')
+                self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.encode(sys.stdout.encoding or 'utf-8', errors='xmlcharrefreplace')), 'OKGREEN')
                 while not self.put_work(netdata['hash'], key):
                     self.pprint('Couldn\'t submit key', 'WARNING')
                     self.sleepy()
