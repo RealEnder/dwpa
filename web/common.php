@@ -349,7 +349,7 @@ function submission($mysql, $file) {
     $hccapxfile = tempnam(SHM, 'hccapx');
     $res = '';
     $rc  = 0;
-    exec(HCXPCAPTOOL." --time-error-corrections=10000 -o $hccapxfile $file 2>&1", $res, $rc);
+    exec(HCXPCAPTOOL." --nonce-error-corrections=128 --time-error-corrections=10000 -o $hccapxfile $file 2>&1", $res, $rc);
 
     //validate resulting hccapx file
     if (!file_exists($hccapxfile) || $rc != 0) {
