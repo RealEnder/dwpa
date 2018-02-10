@@ -6,37 +6,25 @@ Those are the basic steps for local installation of the distributed WPA PSK audi
 Requirements
 -
 
- - Linux OS - tested with Ubuntu 14.04
+ - Linux OS - tested with Ubuntu 16.04
  - MySQL database 5.5 or better
- - PHP 5.3 or better
+ - PHP 5.3 or better. PHP 7.x recommended
  - Apache or other webserver with PHP support
  - gcc toolchain
- - libnl3, eg. `sudo apt-get install libnl-3-dev libnl-genl-3-dev`
- - Pyrit, eg `sudo apt-get install pyrit`
- - cap2hccap tool, available from https://sourceforge.net/projects/cap2hccap
- - git, subversion `sudo apt-get install git subversion`
+ - hcxpcaptool tool, part of hcxtools https://github.com/ZerBea/hcxtools
+ - git `sudo apt-get install git`
  - reCAPTCHA API keys for your domain, register here https://www.google.com/recaptcha 
 
 Compilation of external tools
 -
 
-- cap2hccap
-You can download ready made binaries, or just do it yourself:
+- hcxpcaptool
 ```
-$ svn checkout svn://svn.code.sf.net/p/cap2hccap/svn/trunk cap2hccap
-$ cd cap2hccap
+$ git clone https://github.com/ZerBea/hcxtools
+$ cd hcxtools
 $ make
 ```
-Your binary should be `cap2hccap.bin`.
-
-- wpaclean
-You *must* use bundled version from dwpa repo:
-```
-$ git clone https://github.com/RealEnder/dwpa
-$ cd dwpa/misc/wpaclean
-$ make
-```
-Your binary should be `wpaclean`.
+Your binary should be `hcxpcaptool`.
 
 Database
 -
@@ -104,7 +92,7 @@ $
 Web application configuration
 -
 - Copy all files from `web` directory from dwpa repo to your webserver root
-- Copy previously built `wpaclean` and `cap2hccap` binaries to a location, where web server process can execute it, eg. in webserver root
+- Copy previously built `hcxpcaptool` binary to a location, where web server process can execute it, eg. in webserver root
 - edit `mail.php` and put your own SMTP configuration
 - Make sure webserver process can write to dictionaries location (to update cracked.txt.gz) and capture file location(`CAP` define from conf.php), where submissions will be written
 - `bosskey` must be 32 byte hexadecimal string, known to you, with which you will be able to see cracked PSKs in clear and search full database
@@ -130,9 +118,8 @@ $privatekey = '<your reCAPTCHA private key>';
 //bosskey
 $bosskey = '01234567890123456789012345678901';
 //App specific defines
-define('PYRIT', 'pyrit');
-define('WPACLEAN', '/var/www/wpa-sec/wpaclean');
-define('CAP2HCCAP', '/var/www/wpa-sec/cap2hccap');
+define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
+
 define('CAP', '/var/www/wpa-sec/cap/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
 if (is_dir('/run/shm'))
@@ -141,7 +128,7 @@ elseif (is_dir('/dev/shm'))
     define('SHM', '/dev/shm/');
 else
     die('Can not access SHM!');
-define('MIN_HC_VER', '0.8.7');
+define('MIN_HC_VER', '0.9.0');
 ?>
 ```
 
