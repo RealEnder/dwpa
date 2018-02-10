@@ -3,11 +3,11 @@ error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
 $mysql = mysqli_init();
-$mysql->real_connect($cfg_db_host,$cfg_db_user,$cfg_db_pass);
-if (mysqli_connect_errno())
-	exit();	
-$mysql->select_db($cfg_db_name);
-$mysql->query("SET NAMES 'utf8'");
+$mysql->real_connect($cfg_db_host, $cfg_db_user, $cfg_db_pass, $cfg_db_name);
+if ($mysql->errno) {
+	exit();
+}
+$mysql->set_charset('utf8');
 
 function stmt_bind_assoc (&$stmt, &$out) {
 	$data = mysqli_stmt_result_metadata($stmt);
