@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-# The source code is distributed under GPLv3+ license
-# author: Alex Stanev, alex at stanev dot org
-# web: http://wpa-sec.stanev.org
+'''Clientside part of dwpa distributed cracker
+The source code is distributed under GPLv3+ license
+author: Alex Stanev, alex at stanev dot org
+web: http://wpa-sec.stanev.org'''
 
 from __future__ import print_function
 import sys
@@ -46,6 +47,7 @@ conf['put_work_url'] = conf['base_url'] + '?put_work'
 
 
 class HelpCrack(object):
+    '''Main helpcrack class'''
     #decompression block size 64k
     blocksize = 1 << 16
     conf = None
@@ -53,9 +55,9 @@ class HelpCrack(object):
     def __init__(self, c=None):
         self.conf = c
 
-    #pretty print
     @staticmethod
     def pprint(mess, code='HEADER'):
+        '''pretty print'''
         if os.name == 'nt':
             print(mess)
         else:
@@ -68,20 +70,21 @@ class HelpCrack(object):
             print(cc[code] + mess + cc['ENDC'])
 
     def sleepy(self):
+        '''wait for calm down'''
         self.pprint('Sleeping...', 'WARNING')
         time.sleep(222)
 
-    #validate bssid/mac address
     @staticmethod
     def valid_mac(mac):
+        '''validate bssid/mac address'''
         if len(mac) != 17:
             return False
         if not re.match(r'^([a-f0-9]{2}\:?){6}$', mac):
             return False
         return True
 
-    #get md5 from local file
     def md5file(self, filename):
+        '''compute md5 over local file'''
         md5 = hashlib.md5()
         try:
             with open(filename, 'rb') as fd:
@@ -95,8 +98,8 @@ class HelpCrack(object):
 
         return md5.hexdigest()
 
-    #download remote file
     def download(self, url, filename):
+        '''download remote file'''
         try:
             urlretrieve(url, filename)
         except IOError as e:
@@ -105,8 +108,8 @@ class HelpCrack(object):
 
         return True
 
-    #get remote content and return it in var
     def get_url(self, url, options=None):
+        '''get remote content and return it in var'''
         try:
             data = urlencode({'options': options}).encode()
             response = urlopen(url, data)
@@ -119,8 +122,8 @@ class HelpCrack(object):
 
         return remote.decode()
 
-    #compare version and initiate update
     def check_version(self):
+        '''compare version and initiate update'''
         remoteversion = self.get_url(self.conf['help_crack']+'.version')
         if not remoteversion:
             self.pprint('Can\'t check for new version, continue...', 'WARNING')
@@ -151,10 +154,11 @@ class HelpCrack(object):
 
                 return
 
-    #find executable in current dir or in PATH env var
     @staticmethod
     def which(program):
+        '''find executable in current dir or in PATH env var'''
         def is_exe(fpath):
+            '''check if file exists and is executable'''
             return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
         if os.name == 'nt':
@@ -176,9 +180,9 @@ class HelpCrack(object):
 
         return False
 
-    #check hashcat version
     @staticmethod
     def run_hashcat(tool_hashcat):
+        '''check hashcat version'''
         try:
             acp = subprocess.Popen(shlex.split(tool_hashcat + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output = acp.communicate()[0]
@@ -191,8 +195,8 @@ class HelpCrack(object):
 
         return False
 
-    #look for cracking tools, check for their capabilities, ask user
     def check_tools(self):
+        '''look for cracking tools, check for their capabilities, ask user'''
         tools = []
 
         bits = platform.architecture()[0]
@@ -230,8 +234,8 @@ class HelpCrack(object):
             except (ValueError, IndexError):
                 self.pprint('Wrong index', 'WARNING')
 
-    #get work
     def get_work_wl(self, options):
+        '''pull handshake and dictionary'''
         work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
         try:
             netdata = json.loads(work)
@@ -255,8 +259,8 @@ class HelpCrack(object):
 
         return False
 
-    #prepare work based on netdata; returns dictname
     def prepare_work(self, netdata, etype):
+        '''prepare work based on netdata; returns dictname'''
         if netdata is None:
             return False
 
@@ -311,8 +315,8 @@ class HelpCrack(object):
 
         return False
 
-    #prepare chalenge files
     def prepare_challenge(self, etype):
+        '''prepare chalenge files with known PSK'''
         netdata = {'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
                                 x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
                                 I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
@@ -351,8 +355,8 @@ class HelpCrack(object):
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             exit(1)
 
-    #return results to server
     def put_work(self, handshakehash, pwkey):
+        '''return results to server'''
         try:
             data = urlencode({handshakehash: pwkey}).encode()
             response = urlopen(self.conf['put_work_url'], data)
@@ -364,13 +368,13 @@ class HelpCrack(object):
 
         return True
 
-    #create resume file
     def create_resume(self, netdata):
+        '''create resume file'''
         with open(self.conf['res_file'], 'w') as fd:
             json.dump(netdata, fd)
 
-    #check for resume files
     def resume_check(self):
+        '''check for resume files'''
         if os.path.exists(self.conf['res_file']):
             with open(self.conf['res_file']) as fd:
                 try:
@@ -385,8 +389,8 @@ class HelpCrack(object):
 
         return None
 
-    #run externel cracker process
     def run_cracker(self, tool, dictname, performance='', rule=''):
+        '''run externel cracker process'''
         while True:
             try:
                 if tool.find('ashcat'):
@@ -419,8 +423,8 @@ class HelpCrack(object):
 
             return 0
 
-    #read key from file
     def get_key(self):
+        '''read key from file'''
         try:
             if os.path.exists(self.conf['key_file']):
                 with open(self.conf['key_file'], 'r') as fd:
@@ -436,8 +440,8 @@ class HelpCrack(object):
 
         return None
 
-    #entry point
     def run(self):
+        '''entry point'''
         self.check_version()
         tool = self.check_tools()
 
@@ -494,7 +498,6 @@ class HelpCrack(object):
             netdata = None
 
 
-# Execute
 if __name__ == "__main__":
     print('help_crack, distributed WPA cracker, v{0}\nsite: {1}'.format(conf['hc_ver'], conf['base_url']))
 
