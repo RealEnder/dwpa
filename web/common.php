@@ -608,7 +608,7 @@ function put_work($mysql, $candidates) {
 
     //pull cracked wordlist
     $stmt = $mysql->stmt_init();
-    $stmt->prepare('$stmt->prepare('SELECT pass FROM (SELECT DISTINCT bssid, pass FROM nets WHERE n_state=1 GROUP BY bssid, pass) t GROUP BY pass ORDER BY count(pass) DESC');');
+    $stmt->prepare('SELECT pass FROM (SELECT DISTINCT bssid, pass FROM nets WHERE n_state=1 GROUP BY bssid, pass) t GROUP BY pass ORDER BY count(pass) DESC');
     $stmt->execute();
     $stmt->bind_result($key);
 
