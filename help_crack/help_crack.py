@@ -38,7 +38,7 @@ conf = {
     'res_file': 'help_crack.res',
     'net_file': 'help_crack.net',
     'key_file': 'help_crack.key',
-    'hc_ver': '0.8.8'
+    'hc_ver': '0.9.0'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
 conf['help_crack_cl'] = conf['base_url'] + 'hc/CHANGELOG'
