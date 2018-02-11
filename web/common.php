@@ -475,12 +475,12 @@ function submission($mysql, $file) {
 
         //associate handshakes to user
         if ($u_id != Null) {
-            $ref = array();
+            $ref = array('');
             foreach ($nets as $net) {
                 $ref[] = & $net[0];
                 if (count($ref) > 1000) {
                     insert_n2u($mysql, $ref, $u_id);
-                    $ref = array();
+                    $ref = array('');
                 }
             }
             insert_n2u($mysql, $ref, $u_id);
