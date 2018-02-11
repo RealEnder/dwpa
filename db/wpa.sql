@@ -1,15 +1,8 @@
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-
 --
 -- Database: `wpa`
 --
-
-DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -27,16 +20,22 @@ CREATE TABLE IF NOT EXISTS `dicts` (
   PRIMARY KEY (`d_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- RELATIONSHIPS FOR TABLE `dicts`:
+--
+
 -- --------------------------------------------------------
 
 --
 -- Stand-in structure for view `get_dict`
+-- (See below for the actual view)
 --
 CREATE TABLE IF NOT EXISTS `get_dict` (
-  `d_id` smallint(5) unsigned,
-  `dpath` varchar(256),
-  `dhash` varchar(32)
+`d_id` smallint(5) unsigned
+,`dpath` varchar(256)
+,`dhash` varchar(32)
 );
+
 -- --------------------------------------------------------
 
 --
@@ -55,15 +54,22 @@ CREATE TABLE IF NOT EXISTS `n2d` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
+-- RELATIONSHIPS FOR TABLE `n2d`:
+--   `d_id`
+--       `dicts` -> `d_id`
+--   `net_id`
+--       `nets` -> `net_id`
+--
+
+--
 -- Triggers `n2d`
 --
-DELIMITER //
-CREATE TRIGGER `TRG_n2d` BEFORE INSERT ON `n2d`
- FOR EACH ROW BEGIN
+DELIMITER $$
+CREATE TRIGGER `TRG_n2d` BEFORE INSERT ON `n2d` FOR EACH ROW BEGIN
     UPDATE nets SET hits=hits+1 WHERE nets.net_id=NEW.net_id;
     UPDATE dicts SET hits=hits+1 WHERE dicts.d_id=NEW.d_id;
 END
-//
+$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -76,10 +82,18 @@ CREATE TABLE IF NOT EXISTS `n2u` (
   `net_id` bigint(15) NOT NULL,
   `u_id` bigint(15) NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `UNC_n2u_net_id_u_id` (`net_id`,`u_id`),
+  PRIMARY KEY (`net_id`,`u_id`) USING BTREE,
   KEY `IDX_n2u_u_id` (`u_id`),
   KEY `IDX_n2u_net_id` (`net_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='nets2users relation';
+
+--
+-- RELATIONSHIPS FOR TABLE `n2u`:
+--   `net_id`
+--       `nets` -> `net_id`
+--   `u_id`
+--       `users` -> `u_id`
+--
 
 -- --------------------------------------------------------
 
@@ -109,33 +123,43 @@ CREATE TABLE IF NOT EXISTS `nets` (
   UNIQUE KEY `IDX_nets_hash` (`hash`) USING BTREE,
   KEY `IDX_nets_bssid` (`bssid`),
   KEY `IDX_nets_n_state` (`n_state`),
-  KEY `IDX_nets_hits_ts` (`hits`) USING BTREE,
   KEY `FK_nets_submissions` (`s_id`),
-  KEY `IDX_nets_mac_sta` (`mac_sta`)
+  KEY `IDX_nets_mac_sta` (`mac_sta`),
+  KEY `IDX_nets_hits_ts` (`hits`,`ts`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- RELATIONSHIPS FOR TABLE `nets`:
+--   `s_id`
+--       `submissions` -> `s_id`
+--
 
 -- --------------------------------------------------------
 
 --
 -- Stand-in structure for view `onets`
+-- (See below for the actual view)
 --
 CREATE TABLE IF NOT EXISTS `onets` (
-  `net_id` bigint(15),
-  `hash` varchar(32),
-  `hccapx` varbinary(393),
-  `bssid` bigint(15) unsigned,
-  `hits` smallint(5) unsigned
+`net_id` bigint(15)
+,`hash` varchar(32)
+,`hccapx` varbinary(393)
+,`bssid` bigint(15) unsigned
+,`hits` smallint(5) unsigned
 );
+
 -- --------------------------------------------------------
 
 --
 -- Stand-in structure for view `onets_dicts`
+-- (See below for the actual view)
 --
 CREATE TABLE IF NOT EXISTS `onets_dicts` (
-  `net_id` bigint(15),
-  `d_id` smallint(5) unsigned,
-  `hits` smallint(5)
+`net_id` bigint(15)
+,`d_id` smallint(5) unsigned
+,`hits` smallint(5)
 );
+
 -- --------------------------------------------------------
 
 --
@@ -147,6 +171,10 @@ CREATE TABLE IF NOT EXISTS `stats` (
   `pvalue` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`pname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- RELATIONSHIPS FOR TABLE `stats`:
+--
 
 -- --------------------------------------------------------
 
@@ -161,9 +189,13 @@ CREATE TABLE IF NOT EXISTS `submissions` (
   `ip` int(10) UNSIGNED NOT NULL COMMENT 'Submission IP',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Submission timestamp',
   PRIMARY KEY (`s_id`),
-  UNIQUE KEY `localfile` (`localfile`),
+  UNIQUE KEY `IDX_UNC_localfile` (`localfile`) USING BTREE,
   KEY `IDX_submissions_u_id` (`u_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Capture file submissions';
+
+--
+-- RELATIONSHIPS FOR TABLE `submissions`:
+--
 
 -- --------------------------------------------------------
 
@@ -182,6 +214,10 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `IDX_users_mail` (`mail`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- RELATIONSHIPS FOR TABLE `users`:
+--
+
 -- --------------------------------------------------------
 
 --
@@ -189,7 +225,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 DROP TABLE IF EXISTS `get_dict`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount` ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount` ;
 
 -- --------------------------------------------------------
 
@@ -198,7 +234,7 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `get_dict`  AS  select `d`.
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1 ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1 ;
 
 -- --------------------------------------------------------
 
@@ -207,7 +243,7 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets`  AS  select `nets`.
 --
 DROP TABLE IF EXISTS `onets_dicts`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `onets_dicts`  AS  select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`) ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `onets_dicts`  AS  select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`) ;
 
 --
 -- Constraints for dumped tables
@@ -231,22 +267,16 @@ ALTER TABLE `n2u`
 -- Constraints for table `nets`
 --
 ALTER TABLE `nets`
-  ADD CONSTRAINT `FK_nets_submissions` FOREIGN KEY (`s_id`) REFERENCES `submissions` (`s_id`);
-COMMIT;
+  ADD CONSTRAINT `FK_nets_submissions_s_id` FOREIGN KEY (`s_id`) REFERENCES `submissions` (`s_id`);
 
+DELIMITER $$
 --
 -- Events
 --
-CREATE EVENT `e_stats` ON SCHEDULE EVERY '0 2' DAY_HOUR STARTS '2011-09-18 17:31:07' ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats every 1h am' DO BEGIN
-        UPDATE stats SET pvalue=(SELECT count(*) FROM n2d WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)) WHERE pname='24getwork';
-        UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
-        UPDATE stats SET pvalue=(SELECT count(*) FROM nets WHERE date( ts ) = DATE_SUB( CURDATE() , INTERVAL 1 DAY)) WHERE pname='24sub';
-        UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, dicts WHERE nets.n_state=0) WHERE pname='words';
-        UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, n2d, dicts WHERE nets.n_state=0 AND nets.net_id = n2d.net_id AND dicts.d_id = n2d.d_id) WHERE pname='triedwords';
-      END$$
-
-DELIMITER ;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+CREATE EVENT `e_stats` ON SCHEDULE EVERY 2 HOUR ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats' DO BEGIN
+UPDATE stats SET pvalue=(SELECT count(*) FROM n2d WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)) WHERE pname='24getwork';
+UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
+UPDATE stats SET pvalue=(SELECT count(*) FROM nets WHERE date( ts ) = DATE_SUB( CURDATE() , INTERVAL 1 DAY)) WHERE pname='24sub';
+UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, dicts WHERE nets.n_state=0) WHERE pname='words';
+UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, n2d, dicts WHERE nets.n_state=0 AND nets.net_id = n2d.net_id AND dicts.d_id = n2d.d_id) WHERE pname='triedwords';
+END$$
