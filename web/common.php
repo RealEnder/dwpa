@@ -133,7 +133,6 @@ function check_key_hccapx($hccapx, $keys, $nc=32767) {
     $corr['V'] = ($last1le[1] << 32) | $last2le[1];
     $corr['N'] = ($last1be[1] << 32) | $last2be[1];
     $halfnc = ($nc >> 1) + 1;
-    $ncarr = array(array('N', 0));
 
     foreach ($keys as $key) {
         $kl = strlen($key);
@@ -142,6 +141,7 @@ function check_key_hccapx($hccapx, $keys, $nc=32767) {
 
         $pmk = hash_pbkdf2('sha1', $key, $ahccap['essid'], 4096, 32, True);
 
+        $ncarr = array(array('N', 0));
         do {
             foreach ($ncarr as $j) {
                 $rawlast1 = pack($j[0], $corr[$j[0]] + $j[1] >> 32);
