@@ -276,6 +276,8 @@ class HelpCrack(object):
                 return False
 
             #check for dict and download it
+            if 'dpath' not in netdata:
+                return True
             dictmd5 = ''
             extract = False
             gzdictname = netdata['dpath'].split('/')[-1]
