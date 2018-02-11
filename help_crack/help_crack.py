@@ -391,15 +391,21 @@ class HelpCrack(object):
 
         return None
 
-    def run_cracker(self, tool, dictname, performance='', rule=''):
+    def run_cracker(self, tool, dictname, performance='', rule='', disablestdout=False):
         '''run externel cracker process'''
         while True:
             try:
                 if tool.find('ashcat'):
                     try:
+                        if disablestdout:
+                            fd = open(os.devnull, 'w')
+                        else:
+                            fd = None
                         cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4} {5}'.format(tool, performance, self.conf['key_file'], rule, self.conf['net_file'], dictname)
-                        subprocess.check_call(shlex.split(cracker))
+                        subprocess.check_call(shlex.split(cracker), stdout=fd)
                     except subprocess.CalledProcessError as ex:
+                        if fd:
+                            fd.close()
                         if ex.returncode == -2:
                             self.pprint('Thermal watchdog barked', 'WARNING')
                             self.sleepy()
