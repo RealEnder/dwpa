@@ -12,6 +12,7 @@ import subprocess
 import shlex
 import stat
 import hashlib
+import zlib
 import gzip
 import re
 import time
@@ -69,10 +70,10 @@ class HelpCrack(object):
                   'ENDC':    '\033[0m'}
             print(cc[code] + mess + cc['ENDC'])
 
-    def sleepy(self):
+    def sleepy(self, sec=222):
         '''wait for calm down'''
         self.pprint('Sleeping...', 'WARNING')
-        time.sleep(222)
+        time.sleep(sec)
 
     @staticmethod
     def valid_mac(mac):
@@ -307,9 +308,10 @@ class HelpCrack(object):
                                 if not chunk:
                                     break
                                 fd.write(chunk)
-                except OSError as e:
+                except (IOError, OSError, zlib.error) as e:
                     self.pprint(gzdictname + ' extraction failed', 'FAIL')
                     self.pprint('Exception: {0}'.format(e), 'FAIL')
+                    return False
 
             return dictname
         except TypeError as e:
@@ -478,12 +480,13 @@ class HelpCrack(object):
                 if netdata:
                     self.create_resume(netdata)
 
-            dictname = self.prepare_work(netdata, fformat)
-            if not dictname:
-                self.pprint('Couldn\'t prepare data', 'WARNING')
-                netdata = None
-                self.sleepy()
-                continue
+            while True:
+                dictname = self.prepare_work(netdata, fformat)
+                if not dictname:
+                    self.pprint('Couldn\'t prepare data', 'WARNING')
+                    self.sleepy(10)
+                    continue
+                break
 
             #check if we will use rules
             rule = ''
