@@ -621,6 +621,7 @@ function put_work($mysql, $candidates) {
     }
     $keycount = $stmt->num_rows;
     $stmt->close();
+    fflush($fd);
     gzclose($fd);
 
     $md5 = md5_file($wpakeys, True);
