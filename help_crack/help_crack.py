@@ -34,7 +34,7 @@ except ImportError:
 try:
     from string import maketrans
 except ImportError:
-    maketrans = bytearray.maketrans
+    maketrans = bytearray.maketrans  # pylint: disable=no-member
 
 try:
     userinput = raw_input
@@ -163,91 +163,96 @@ class HelpCrack(object):
 
                 return
 
-    @staticmethod
-    def which(program):
-        '''find executable in current dir or in PATH env var'''
-        def is_exe(fpath):
-            '''check if file exists and is executable'''
-            return os.path.exists(fpath) and os.access(fpath, os.X_OK)
-
-        if os.name == 'nt':
-            program += '.exe'
-            if os.path.exists(program):
-                return program
-
-        fpath = os.path.split(program)[0]
-        if fpath:
-            if is_exe(program):
-                return program
-        else:
-            for path in os.environ['PATH'].split(os.pathsep):
-                exe_file = os.path.join(path, program)
-                if is_exe(exe_file):
-                    return exe_file
-            if os.name == 'posix' and is_exe(program):
-                return './' + program
-
-        return False
-
-    @staticmethod
-    def run_hashcat(tool_hashcat):
-        '''check hashcat version'''
-        try:
-            acp = subprocess.Popen(shlex.split(tool_hashcat + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            output = acp.communicate()[0]
-        except OSError:
-            return False
-
-        output = re.sub(r'[^\d\.]', '', output.decode())
-        if StrictVersion(output) >= StrictVersion('4.0.1'):
-            return True
-
-        return False
-
-    @staticmethod
-    def run_jtr(tool_jtr):
-        '''check JtR capabilities'''
-        try:
-            acp = subprocess.Popen(shlex.split(tool_jtr), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            output = acp.communicate()[0]
-        except OSError:
-            return False
-
-        if output.find(b'PASS') != -1:
-            return True
-
-        return False
-
     def check_tools(self):
         '''look for cracking tools, check for their capabilities, ask user'''
+
+        def which(program):
+            '''find executable in current dir or in PATH env var'''
+            def is_exe(fpath):
+                '''check if file exists and is executable'''
+                return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+
+            if os.name == 'nt':
+                program += '.exe'
+                if os.path.exists(program):
+                    return program
+
+            fpath = os.path.split(program)[0]
+            if fpath:
+                if is_exe(program):
+                    return program
+            else:
+                for path in os.environ['PATH'].split(os.pathsep):
+                    exe_file = os.path.join(path, program)
+                    if is_exe(exe_file):
+                        return exe_file
+                if os.name == 'posix' and is_exe(program):
+                    return './' + program
+
+            return False
+
+        def run_hashcat(tl):
+            '''check hashcat version'''
+            def _run_hashcat(tool):
+                '''execute and check version'''
+                try:
+                    acp = subprocess.Popen(shlex.split(tool + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    output = acp.communicate()[0]
+                except OSError:
+                    return False
+
+                output = re.sub(r'[^\d\.]', '', output.decode())
+                if StrictVersion(output) >= StrictVersion('4.0.1'):
+                    return True
+
+                return False
+
+            tools = []
+            for xt in tl:
+                t = which(xt)
+                if t and _run_hashcat(t):
+                    tools.append(t)
+
+            return tools
+
+        def run_jtr():
+            '''check JtR capabilities'''
+            def _run_jtr(tool):
+                '''execute and check'''
+                try:
+                    acp = subprocess.Popen(shlex.split(tool), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    output = acp.communicate()[0]
+                except OSError:
+                    return False
+
+                if output.find(b'PASS') != -1:
+                    return True
+
+                return False
+
+            tools = []
+            t = which('john')
+            if t:
+                if _run_jtr(t + ' --format=wpapsk --test=0'):
+                    tools.append(t + ' --format=wpapsk')
+                if _run_jtr(t + ' --format=wpapsk-opencl --test=0'):
+                    tools.append(t + ' --format=wpapsk-opencl')
+                if _run_jtr(t + ' --format=wpapsk-cuda --test=0'):
+                    tools.append(t + ' --format=wpapsk-cuda')
+
+            return tools
+
         tools = []
 
         #hashcat
         bits = platform.architecture()[0]
         if bits == '64bit':
-            #this is for hashcat
-            tl = ['hashcat64.bin', 'hashcat64']
-            for xt in tl:
-                t = self.which(xt)
-                if t and self.run_hashcat(t):
-                    tools.append(t)
+            tools += run_hashcat(['hashcat64.bin', 'hashcat64'])
         else:
-            #this is for hashcat
-            tl = ['hashcat32.bin', 'hashcat32']
-            for xt in tl:
-                t = self.which(xt)
-                if t and self.run_hashcat(t):
-                    tools.append(t)
+            tools += run_hashcat(['hashcat32.bin', 'hashcat32'])
 
         #John the Ripper
-        t = self.which('john')
-        if t:
-            if self.run_jtr(t + ' --format=wpapsk --test=0'):
-                tools.append(t + ' --format=wpapsk')
-            if self.run_jtr(t + ' --format=wpapsk-opencl --test=0'):
-                tools.append(t + ' --format=wpapsk-opencl')
-            if self.run_jtr(t + ' --format=wpapsk-cuda --test=0'):
-                tools.append(t + ' --format=wpapsk-cuda')
+        tools += run_jtr()
 
         if not tools:
             self.pprint('hashcat or john not found', 'FAIL')
@@ -293,7 +298,8 @@ class HelpCrack(object):
 
         return False
 
-    def hccapx2john(self, hccapx):
+    @staticmethod
+    def hccapx2john(hccapx):
         '''convert hccapx struct to JtR $WPAPSK$ and implement nonce correction
             hccap:  https://hashcat.net/wiki/doku.php?id=hccap
             hccapx: https://hashcat.net/wiki/doku.php?id=hccapx
@@ -348,24 +354,30 @@ class HelpCrack(object):
                               keyver,
                               ver)
 
-        #essid
-        hccap = hccapx[10:42] + b'\x00\x00\x00\x00'
-        #mac1 = mac_ap
-        hccap += hccapx[59:65]
-        #mac2 = mac_sta
-        hccap += hccapx[97:103]
-        #snonce = nonce_sta
-        hccap += hccapx[103:135]
-        #anonce = nonce_ap
-        hccap += hccapx[65:97]
-        #eapol
-        hccap += hccapx[137:393]
-        #eapol_size = eapol_len
-        hccap += hccapx[135:137] + b'\x00\x00'
-        #keyver
-        hccap += hccapx[42:43] + b'\x00\x00\x00'
-        #keymic
-        hccap += hccapx[43:59]
+        def hccapx2hccap(hccapx):
+            '''convert hccapx to hccap struct'''
+            #essid
+            hccap = hccapx[10:42] + b'\x00\x00\x00\x00'
+            #mac1 = mac_ap
+            hccap += hccapx[59:65]
+            #mac2 = mac_sta
+            hccap += hccapx[97:103]
+            #snonce = nonce_sta
+            hccap += hccapx[103:135]
+            #anonce = nonce_ap
+            hccap += hccapx[65:97]
+            #eapol
+            hccap += hccapx[137:393]
+            #eapol_size = eapol_len
+            hccap += hccapx[135:137] + b'\x00\x00'
+            #keyver
+            hccap += hccapx[42:43] + b'\x00\x00\x00'
+            #keymic
+            hccap += hccapx[43:59]
+
+            return hccap
+
+        hccap = hccapx2hccap(hccapx)
 
         #get and eventually fixup essid_len
         essid_len = ord(hccapx[9:10])
@@ -471,7 +483,7 @@ class HelpCrack(object):
 
         return False
 
-    def prepare_challenge(self, etype):
+    def prepare_challenge(self):
         '''prepare chalenge files with known PSK'''
         netdata = {'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
                                 x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
@@ -641,7 +653,7 @@ class HelpCrack(object):
 
         #challenge the cracker
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
-        netdata = self.prepare_challenge(fformat)
+        netdata = self.prepare_challenge()
         self.prepare_work(netdata, fformat)
         rc = self.run_cracker(tool, netdata['dictname'], performance, disablestdout=True)
         key = self.get_key(tool)
