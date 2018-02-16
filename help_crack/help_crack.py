@@ -18,8 +18,11 @@ import re
 import time
 import json
 import base64
+import struct
 from distutils.version import StrictVersion
 from functools import partial
+from binascii import hexlify
+
 try:
     from urllib import urlretrieve
     from urllib import urlopen
@@ -27,6 +30,11 @@ try:
 except ImportError:
     from urllib.parse import urlencode
     from urllib.request import urlopen, urlretrieve
+
+try:
+    from string import maketrans
+except ImportError:
+    maketrans = bytearray.maketrans
 
 try:
     userinput = raw_input
@@ -196,10 +204,25 @@ class HelpCrack(object):
 
         return False
 
+    @staticmethod
+    def run_jtr(tool_jtr):
+        '''check JtR capabilities'''
+        try:
+            acp = subprocess.Popen(shlex.split(tool_jtr), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output = acp.communicate()[0]
+        except OSError:
+            return False
+
+        if output.find(b'PASS') != -1:
+            return True
+
+        return False
+
     def check_tools(self):
         '''look for cracking tools, check for their capabilities, ask user'''
         tools = []
 
+        #hashcat
         bits = platform.architecture()[0]
         if bits == '64bit':
             #this is for hashcat
@@ -216,8 +239,18 @@ class HelpCrack(object):
                 if t and self.run_hashcat(t):
                     tools.append(t)
 
+        #John the Ripper
+        t = self.which('john')
+        if t:
+            if self.run_jtr(t + ' --format=wpapsk --test=0'):
+                tools.append(t + ' --format=wpapsk')
+            if self.run_jtr(t + ' --format=wpapsk-opencl --test=0'):
+                tools.append(t + ' --format=wpapsk-opencl')
+            if self.run_jtr(t + ' --format=wpapsk-cuda --test=0'):
+                tools.append(t + ' --format=wpapsk-cuda')
+
         if not tools:
-            self.pprint('hashcat not found', 'FAIL')
+            self.pprint('hashcat or john not found', 'FAIL')
             exit(1)
         if len(tools) == 1:
             return tools[0]
@@ -260,17 +293,135 @@ class HelpCrack(object):
 
         return False
 
+    def hccapx2john(self, hccapx):
+        '''convert hccapx struct to JtR $WPAPSK$ and implement nonce correction
+            hccap:  https://hashcat.net/wiki/doku.php?id=hccap
+            hccapx: https://hashcat.net/wiki/doku.php?id=hccapx
+            JtR:    $WPAPSK$essid#b64encoded hccap
+        '''
+
+        def pack_jtr(hccap, hccapx, essid, corr='', nc=0, endian=''):
+            '''prepare handshake in JtR format'''
+            jtr = '{0}:$WPAPSK${0}#{1}:{2}:{3}:{3}::{4}:{5}:/dev/null\n'
+
+            #cut essid part and stuff correction, if passed
+            if corr == '':
+                newhccap = hccap[36:]
+            else:
+                newhccap = hccap[36:108] + corr + hccap[112:]
+
+            mac_sta = hexlify(hccap[42:47])
+            mac_ap = hexlify(hccap[36:42])
+            keyver = struct.unpack('<L', hccap[372:376])[0]
+            if keyver == 1:
+                keyver = 'WPA'
+            elif keyver == 2:
+                keyver = 'WPA2'
+            elif keyver >= 3:
+                keyver = 'WPA CMAC'
+
+            #message_pair check
+            if ord(hccapx[8:9]) & 0x80 > 1:
+                ver = 'verified'
+            else:
+                ver = 'not verified'
+
+            #nc fuzzing info
+            if nc != 0:
+                ver += ', fuzz {0} {1}'.format(nc, endian)
+
+            #prepare translation to base64 alphabet used by JtR
+            sta_ab = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.encode()
+            jtr_ab = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.encode()
+            encode_trans = maketrans(sta_ab, jtr_ab)
+
+            #workaround python 2/3 shit
+            try:
+                essid = bytes(essid).decode()
+            except UnicodeDecodeError:
+                essid = bytes(essid)
+
+            return jtr.format(essid,
+                              base64.b64encode(newhccap).translate(encode_trans)[:-1].decode(),
+                              mac_sta.decode(),
+                              mac_ap.decode(),
+                              keyver,
+                              ver)
+
+        #essid
+        hccap = hccapx[10:42] + b'\x00\x00\x00\x00'
+        #mac1 = mac_ap
+        hccap += hccapx[59:65]
+        #mac2 = mac_sta
+        hccap += hccapx[97:103]
+        #snonce = nonce_sta
+        hccap += hccapx[103:135]
+        #anonce = nonce_ap
+        hccap += hccapx[65:97]
+        #eapol
+        hccap += hccapx[137:393]
+        #eapol_size = eapol_len
+        hccap += hccapx[135:137] + b'\x00\x00'
+        #keyver
+        hccap += hccapx[42:43] + b'\x00\x00\x00'
+        #keymic
+        hccap += hccapx[43:59]
+
+        #get and eventually fixup essid_len
+        essid_len = ord(hccapx[9:10])
+        if essid_len > 32:
+            essid_len = 32
+        #get essid
+        essid = hccapx[10:10+essid_len]
+
+        #exact handshake
+        hccaps = pack_jtr(hccap, hccapx, essid)
+
+        #get last nonce_ap 4 bytes for correction
+        corrle = struct.unpack('<L', hccapx[93:97])[0]
+        corrbe = struct.unpack('>L', hccapx[93:97])[0]
+
+        #prepare nonce correction
+        for i in range(1, 128):
+            #LE+
+            if corrle+i <= 4294967295:
+                newcorr = struct.pack('<L', corrle+i)
+                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, i, 'LE')
+            #LE-
+            if corrle-i >= 0:
+                newcorr = struct.pack('<L', corrle-i)
+                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, -i, 'LE')
+            #BE+
+            if corrbe+i <= 4294967295:
+                newcorr = struct.pack('>L', corrbe+i)
+                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, i, 'BE')
+            #BE-
+            if corrbe-i >= 0:
+                newcorr = struct.pack('>L', corrbe-i)
+                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, -i, 'BE')
+
+        return hccaps
+
     def prepare_work(self, netdata, etype):
         '''prepare work based on netdata; returns dictname'''
         if netdata is None:
             return False
 
         try:
+            if etype == 'hccapx':
+                handshake = base64.b64decode(netdata['hccapx'])
+            else:
+                handshake = self.hccapx2john(base64.b64decode(netdata['hccapx']))
+
             #write net
             try:
-                handshake = base64.b64decode(netdata[etype])
-                with open(self.conf['net_file'], 'wb') as fd:
-                    fd.write(handshake)
+                try:
+                    with open(self.conf['net_file'], 'wb') as fd:
+                        fd.write(handshake)
+                except TypeError:
+                    with open(self.conf['net_file'], 'w') as fd:
+                        fd.write(handshake)
+
             except OSError as e:
                 self.pprint('Handshake write failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -314,6 +465,7 @@ class HelpCrack(object):
                     return False
 
             return dictname
+
         except TypeError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
 
@@ -333,16 +485,6 @@ class HelpCrack(object):
                    'key': 'aaaa1234',
                    'dictname': 'challenge.txt'}
         try:
-            #write net
-            try:
-                handshake = base64.b64decode(netdata[etype])
-                with open(self.conf['net_file'], 'wb') as fd:
-                    fd.write(handshake)
-            except OSError as e:
-                self.pprint('Handshake write failed', 'FAIL')
-                self.pprint('Exception: {0}'.format(e), 'FAIL')
-                exit(1)
-
             #create dict
             try:
                 data = netdata['key'] + "\n"
@@ -397,7 +539,7 @@ class HelpCrack(object):
         '''run externel cracker process'''
         while True:
             try:
-                if tool.find('ashcat'):
+                if tool.find('ashcat') != -1:
                     try:
                         if disablestdout:
                             fd = open(os.devnull, 'w')
@@ -422,9 +564,29 @@ class HelpCrack(object):
                             self.pprint('User abort', 'FAIL')
                             exit(1)
                         if ex.returncode not in [-2, -1, 1, 2]:
-                            self.pprint('Cracker {0} died with code {1}'.format(tool, ex.returncode), 'FAIL')
+                            self.pprint('hashcat {0} died with code {1}'.format(tool, ex.returncode), 'FAIL')
                             self.pprint('Check you have OpenCL support', 'FAIL')
                             exit(1)
+
+                if tool.find('john') != -1:
+                    try:
+                        if disablestdout:
+                            fd = open(os.devnull, 'w')
+                        else:
+                            fd = None
+                        cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(tool, performance, self.conf['key_file'], dictname, self.conf['net_file'])
+                        subprocess.check_call(shlex.split(cracker), stdout=fd)
+                    except subprocess.CalledProcessError as ex:
+                        if fd:
+                            fd.close()
+                        self.pprint('john {0} died with code {1}'.format(tool, ex.returncode), 'FAIL')
+                        exit(1)
+
+                    if not os.path.exists(self.conf['key_file']):
+                        return 1
+                    if os.path.getsize(self.conf['key_file']) == 0:
+                        return 1
+
             except KeyboardInterrupt as ex:
                 self.pprint('\nKeyboard interrupt', 'OKBLUE')
                 if os.path.exists(self.conf['key_file']):
@@ -433,16 +595,27 @@ class HelpCrack(object):
 
             return 0
 
-    def get_key(self):
+    def get_key(self, tool):
         '''read key from file'''
         try:
-            if os.path.exists(self.conf['key_file']):
-                with open(self.conf['key_file'], 'r') as fd:
-                    key = fd.readline()
-                key = key.rstrip('\n')
-                if len(key) >= 8:
-                    os.unlink(self.conf['key_file'])
-                    return key
+            if tool.find('ashcat') != -1:
+                if os.path.exists(self.conf['key_file']):
+                    with open(self.conf['key_file'], 'r') as fd:
+                        key = fd.readline()
+                    key = key.rstrip('\n')
+                    if len(key) >= 8:
+                        os.unlink(self.conf['key_file'])
+                        return key
+
+            if tool.find('john') != -1:
+                if os.path.exists(self.conf['key_file']):
+                    with open(self.conf['key_file'], 'r') as fd:
+                        key = fd.readline()
+                    key = key.rstrip('\n')[100:]
+                    key = key[key.find(':')+1:]
+                    if len(key) >= 8:
+                        os.unlink(self.conf['key_file'])
+                        return key
         except IOError as e:
             self.pprint('Couldn\'t read key', 'FAIL')
             self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -456,18 +629,23 @@ class HelpCrack(object):
         tool = self.check_tools()
 
         #set format
-        fformat = 'hccapx'
+        if tool.find('ashcat') != -1:
+            fformat = 'hccapx'
+        else:
+            fformat = 'wpapsk'
 
         #run hashcat in performance tune mode
         performance = ''
-        if tool.find('ashcat'):
+        if tool.find('ashcat') != -1:
             performance = '-w 3'
 
         #challenge the cracker
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge(fformat)
-        rc = self.run_cracker(tool, netdata['dictname'], performance)
-        key = self.get_key()
+        self.prepare_work(netdata, fformat)
+        rc = self.run_cracker(tool, netdata['dictname'], performance, disablestdout=True)
+        key = self.get_key(tool)
+
         if rc != 0 or key != netdata['key']:
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
             exit(1)
@@ -490,12 +668,12 @@ class HelpCrack(object):
 
             #check if we will use rules
             rule = ''
-            if 'rule' in netdata and tool.find('ashcat') and os.path.exists(netdata['rule']):
+            if 'rule' in netdata and tool.find('ashcat') != -1 and os.path.exists(netdata['rule']):
                 rule = '-r' + netdata['rule']
 
             rc = self.run_cracker(tool, dictname, performance, rule)
             if rc == 0:
-                key = self.get_key()
+                key = self.get_key(tool)
                 self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.encode(sys.stdout.encoding or 'utf-8', errors='xmlcharrefreplace')), 'OKGREEN')
                 while not self.put_work(netdata['hash'], key):
                     self.pprint('Couldn\'t submit key', 'WARNING')
