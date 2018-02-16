@@ -459,7 +459,7 @@ class HelpCrack(object):
                                 if not chunk:
                                     break
                                 fd.write(chunk)
-                except (IOError, OSError, zlib.error) as e:
+                except (IOError, OSError, EOFError, zlib.error) as e:
                     self.pprint(gzdictname + ' extraction failed', 'FAIL')
                     self.pprint('Exception: {0}'.format(e), 'FAIL')
                     return False
