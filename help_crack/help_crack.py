@@ -5,6 +5,7 @@ author: Alex Stanev, alex at stanev dot org
 web: http://wpa-sec.stanev.org'''
 
 from __future__ import print_function
+import argparse
 import sys
 import os
 import platform
@@ -47,6 +48,7 @@ conf = {
     'res_file': 'help_crack.res',
     'net_file': 'help_crack.net',
     'key_file': 'help_crack.key',
+    'additional': None,
     'hc_ver': '0.9.0'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
@@ -683,13 +685,21 @@ class HelpCrack(object):
             if 'rule' in netdata and tool.find('ashcat') != -1 and os.path.exists(netdata['rule']):
                 rule = '-r' + netdata['rule']
 
-            rc = self.run_cracker(tool, dictname, performance, rule)
-            if rc == 0:
-                key = self.get_key(tool)
-                self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.encode(sys.stdout.encoding or 'utf-8', errors='xmlcharrefreplace')), 'OKGREEN')
-                while not self.put_work(netdata['hash'], key):
-                    self.pprint('Couldn\'t submit key', 'WARNING')
-                    self.sleepy()
+            runadditional = True
+            while True:
+                print(dictname)
+                rc = self.run_cracker(tool, dictname, performance, rule)
+                if rc == 0:
+                    key = self.get_key(tool)
+                    self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.encode(sys.stdout.encoding or 'utf-8', errors='xmlcharrefreplace')), 'OKGREEN')
+                    while not self.put_work(netdata['hash'], key):
+                        self.pprint('Couldn\'t submit key', 'WARNING')
+                        self.sleepy()
+                if conf['additional'] is not None and runadditional:
+                    dictname = conf['additional']
+                    runadditional = False
+                    continue
+                break
 
             #cleanup
             if os.path.exists(self.conf['net_file']):
@@ -700,11 +710,22 @@ class HelpCrack(object):
 
 
 if __name__ == "__main__":
-    print('help_crack, distributed WPA cracker, v{0}\nsite: {1}'.format(conf['hc_ver'], conf['base_url']))
+    def is_valid_file(aparser, arg):
+        '''check if it's a valid file'''
+        if not os.path.isfile(arg):
+            aparser.error('The file {} does not exist!'.format(arg))
+        else:
+            return arg
 
-    if len(sys.argv) > 1:
-        print('Usage: {0} : download capture and wordlist then start cracking'.format(sys.argv[0]))
-        exit(1)
+    parser = argparse.ArgumentParser(description='help_crack, distributed WPA cracker site: {0}'.format(conf['base_url']))
+    parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
+    parser.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
+    try:
+        args = parser.parse_args()
+    except IOError as e:
+        parser.error(str(e))
+
+    conf['additional'] = args.additional
 
     hc = HelpCrack(conf)
     hc.run()
