@@ -305,18 +305,43 @@ class HelpCrack(object):
         '''convert hccapx struct to JtR $WPAPSK$ and implement nonce correction
             hccap:  https://hashcat.net/wiki/doku.php?id=hccap
             hccapx: https://hashcat.net/wiki/doku.php?id=hccapx
-            JtR:    $WPAPSK$essid#b64encoded hccap
+            JtR:    https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/wpapcap2john.c
         '''
 
-        def pack_jtr(hccap, hccapx, essid, corr='', nc=0, endian=''):
+        def pack_jtr(hccap, message_pair, nc=0):
             '''prepare handshake in JtR format'''
             jtr = '{0}:$WPAPSK${0}#{1}:{2}:{3}:{3}::{4}:{5}:/dev/null\n'
 
-            #cut essid part and stuff correction, if passed
-            if corr == '':
-                newhccap = hccap[36:]
+            #workaround python 2/3 shit when reading asciiz essid
+            try:
+                essid = hccap[:36].rstrip(b'\0').decode()
+                #essid = bytes(essid).decode()
+            except UnicodeDecodeError:
+                essid = bytes(hccap[:36].rstrip(b'\0'))
+
+            #replay count checked
+            if message_pair & 0x80 > 1:
+                ver = 'verified'
             else:
-                newhccap = hccap[36:108] + corr + hccap[112:]
+                ver = 'not verified'
+
+            #detect endian and apply nonce correction
+            corr = hccap[108:112]
+            if nc != 0:
+                try:
+                    if message_pair & 0x40 > 1:
+                        ver += ', fuzz {0} {1}'.format(nc, 'BE')
+                        dcorr = struct.unpack('>L', corr)[0]
+                        corr = struct.pack('>L', dcorr+nc)
+                    if message_pair & 0x20 > 1:
+                        ver += ', fuzz {0} {1}'.format(nc, 'LE')
+                        dcorr = struct.unpack('<L', corr)[0]
+                        corr = struct.pack('<L', dcorr+nc)
+                except struct.error:
+                    None
+
+            #cut essid part and stuff correction
+            newhccap = hccap[36:108] + corr + hccap[112:]
 
             mac_sta = hexlify(hccap[42:47])
             mac_ap = hexlify(hccap[36:42])
@@ -328,26 +353,9 @@ class HelpCrack(object):
             elif keyver >= 3:
                 keyver = 'WPA CMAC'
 
-            #message_pair check
-            if ord(hccapx[8:9]) & 0x80 > 1:
-                ver = 'verified'
-            else:
-                ver = 'not verified'
-
-            #nc fuzzing info
-            if nc != 0:
-                ver += ', fuzz {0} {1}'.format(nc, endian)
-
             #prepare translation to base64 alphabet used by JtR
-            sta_ab = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.encode()
-            jtr_ab = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.encode()
-            encode_trans = maketrans(sta_ab, jtr_ab)
-
-            #workaround python 2/3 shit
-            try:
-                essid = bytes(essid).decode()
-            except UnicodeDecodeError:
-                essid = bytes(essid)
+            encode_trans = maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.encode(),
+                                     './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.encode())
 
             return jtr.format(essid,
                               base64.b64encode(newhccap).translate(encode_trans)[:-1].decode(),
@@ -379,40 +387,35 @@ class HelpCrack(object):
 
             return hccap
 
+        #get message_pair
+        message_pair = ord(hccapx[8:9])
+
+        #convert hccapx to hccap
         hccap = hccapx2hccap(hccapx)
 
-        #get and eventually fixup essid_len
-        essid_len = ord(hccapx[9:10])
-        if essid_len > 32:
-            essid_len = 32
-        #get essid
-        essid = hccapx[10:10+essid_len]
-
         #exact handshake
-        hccaps = pack_jtr(hccap, hccapx, essid)
+        hccaps = pack_jtr(hccap, message_pair)
+        if message_pair & 0x10 > 1:
+            return hccaps
 
-        #get last nonce_ap 4 bytes for correction
-        corrle = struct.unpack('<L', hccapx[93:97])[0]
-        corrbe = struct.unpack('>L', hccapx[93:97])[0]
+        #detect if we have endianness info
+        flip = False
+        if message_pair & 0x60 == 0:
+            flip = True
+            #set flag for LE
+            message_pair |= 0x20
 
         #prepare nonce correction
         for i in range(1, 128):
-            #LE+
-            if corrle+i <= 4294967295:
-                newcorr = struct.pack('<L', corrle+i)
-                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, i, 'LE')
-            #LE-
-            if corrle-i >= 0:
-                newcorr = struct.pack('<L', corrle-i)
-                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, -i, 'LE')
-            #BE+
-            if corrbe+i <= 4294967295:
-                newcorr = struct.pack('>L', corrbe+i)
-                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, i, 'BE')
-            #BE-
-            if corrbe-i >= 0:
-                newcorr = struct.pack('>L', corrbe-i)
-                hccaps += pack_jtr(hccap, hccapx, essid, newcorr, -i, 'BE')
+            if flip:
+                #this comes with LE set first time if we don't have endianness info
+                hccaps += pack_jtr(hccap, message_pair, i)
+                hccaps += pack_jtr(hccap, message_pair, -i)
+                #toggle BE/LE bits
+                message_pair ^= 0x60
+
+            hccaps += pack_jtr(hccap, message_pair, i)
+            hccaps += pack_jtr(hccap, message_pair, -i)
 
         return hccaps
 
