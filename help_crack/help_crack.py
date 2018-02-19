@@ -18,11 +18,10 @@ import gzip
 import re
 import time
 import json
-import base64
+import binascii
 import struct
 from distutils.version import StrictVersion
 from functools import partial
-from binascii import hexlify
 
 try:
     from urllib import urlretrieve
@@ -310,59 +309,57 @@ class HelpCrack(object):
 
         def pack_jtr(hccap, message_pair, nc=0):
             '''prepare handshake in JtR format'''
-            jtr = '{0}:$WPAPSK${0}#{1}:{2}:{3}:{3}::{4}:{5}:/dev/null\n'
+            jtr = b'%s:$WPAPSK$%s#%s:%s:%s:%s::%s:%s:/dev/null\n'
 
-            #workaround python 2/3 shit when reading asciiz essid
-            try:
-                essid = hccap[:36].rstrip(b'\0').decode()
-                #essid = bytes(essid).decode()
-            except UnicodeDecodeError:
-                essid = bytes(hccap[:36].rstrip(b'\0'))
+            #get essid
+            essid = hccap[:36].rstrip(b'\0')
 
             #replay count checked
             if message_pair & 0x80 > 1:
-                ver = 'verified'
+                ver = b'verified'
             else:
-                ver = 'not verified'
+                ver = b'not verified'
 
             #detect endian and apply nonce correction
             corr = hccap[108:112]
             if nc != 0:
                 try:
                     if message_pair & 0x40 > 1:
-                        ver += ', fuzz {0} {1}'.format(nc, 'BE')
+                        ver += b', fuzz ' + str(nc).encode() + b' BE'
                         dcorr = struct.unpack('>L', corr)[0]
-                        corr = struct.pack('>L', dcorr+nc)
+                        corr = struct.pack('>L', dcorr + nc)
                     if message_pair & 0x20 > 1:
-                        ver += ', fuzz {0} {1}'.format(nc, 'LE')
+                        ver += b', fuzz ' + str(nc).encode() + b' LE'
                         dcorr = struct.unpack('<L', corr)[0]
-                        corr = struct.pack('<L', dcorr+nc)
+                        corr = struct.pack('<L', dcorr + nc)
                 except struct.error:
-                    None
+                    pass
 
             #cut essid part and stuff correction
             newhccap = hccap[36:108] + corr + hccap[112:]
 
-            mac_sta = hexlify(hccap[42:47])
-            mac_ap = hexlify(hccap[36:42])
+            mac_sta = binascii.hexlify(hccap[42:47])
+            mac_ap = binascii.hexlify(hccap[36:42])
             keyver = struct.unpack('<L', hccap[372:376])[0]
             if keyver == 1:
-                keyver = 'WPA'
+                keyver = b'WPA'
             elif keyver == 2:
-                keyver = 'WPA2'
+                keyver = b'WPA2'
             elif keyver >= 3:
-                keyver = 'WPA CMAC'
+                keyver = b'WPA CMAC'
 
             #prepare translation to base64 alphabet used by JtR
-            encode_trans = maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.encode(),
-                                     './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.encode())
+            encode_trans = maketrans(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+                                     b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
 
-            return jtr.format(essid,
-                              base64.b64encode(newhccap).translate(encode_trans)[:-1].decode(),
-                              mac_sta.decode(),
-                              mac_ap.decode(),
-                              keyver,
-                              ver)
+            return jtr % (essid,
+                          essid,
+                          binascii.b2a_base64(newhccap).translate(encode_trans).rstrip(b'=\n'),
+                          mac_sta,
+                          mac_ap,
+                          mac_ap,
+                          keyver,
+                          ver)
 
         def hccapx2hccap(hccapx):
             '''convert hccapx to hccap struct'''
@@ -387,8 +384,9 @@ class HelpCrack(object):
 
             return hccap
 
+        hccapx = bytearray(hccapx)
         #get message_pair
-        message_pair = ord(hccapx[8:9])
+        message_pair = hccapx[8]
 
         #convert hccapx to hccap
         hccap = hccapx2hccap(hccapx)
@@ -426,19 +424,14 @@ class HelpCrack(object):
 
         try:
             if etype == 'hccapx':
-                handshake = base64.b64decode(netdata['hccapx'])
+                handshake = binascii.a2b_base64(netdata['hccapx'])
             else:
-                handshake = self.hccapx2john(base64.b64decode(netdata['hccapx']))
+                handshake = self.hccapx2john(binascii.a2b_base64(netdata['hccapx']))
 
             #write net
             try:
-                try:
-                    with open(self.conf['net_file'], 'wb') as fd:
-                        fd.write(handshake)
-                except TypeError:
-                    with open(self.conf['net_file'], 'w') as fd:
-                        fd.write(handshake)
-
+                with open(self.conf['net_file'], 'wb') as fd:
+                    fd.write(handshake)
             except OSError as e:
                 self.pprint('Handshake write failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -617,19 +610,19 @@ class HelpCrack(object):
         try:
             if tool.find('ashcat') != -1:
                 if os.path.exists(self.conf['key_file']):
-                    with open(self.conf['key_file'], 'r') as fd:
+                    with open(self.conf['key_file'], 'rb') as fd:
                         key = fd.readline()
-                    key = key.rstrip('\n')
+                    key = key.rstrip(b'\n')
                     if len(key) >= 8:
                         os.unlink(self.conf['key_file'])
                         return key
 
             if tool.find('john') != -1:
                 if os.path.exists(self.conf['key_file']):
-                    with open(self.conf['key_file'], 'r') as fd:
+                    with open(self.conf['key_file'], 'rb') as fd:
                         key = fd.readline()
-                    key = key.rstrip('\n')[100:]
-                    key = key[key.find(':')+1:]
+                    key = key.rstrip(b'\n')[100:]
+                    key = key[key.find(b':')+1:]
                     if len(key) >= 8:
                         os.unlink(self.conf['key_file'])
                         return key
@@ -663,7 +656,7 @@ class HelpCrack(object):
         rc = self.run_cracker(tool, netdata['dictname'], performance, disablestdout=True)
         key = self.get_key(tool)
 
-        if rc != 0 or key != netdata['key']:
+        if rc != 0 or key != bytearray(netdata['key'], 'utf-8', errors='ignore'):
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
             exit(1)
 
@@ -690,11 +683,10 @@ class HelpCrack(object):
 
             runadditional = True
             while True:
-                print(dictname)
                 rc = self.run_cracker(tool, dictname, performance, rule)
                 if rc == 0:
                     key = self.get_key(tool)
-                    self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.encode(sys.stdout.encoding or 'utf-8', errors='xmlcharrefreplace')), 'OKGREEN')
+                    self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
                     while not self.put_work(netdata['hash'], key):
                         self.pprint('Couldn\'t submit key', 'WARNING')
                         self.sleepy()
