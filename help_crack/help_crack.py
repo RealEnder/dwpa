@@ -123,8 +123,7 @@ class HelpCrack(object):
         try:
             data = urlencode({'options': options}).encode()
             response = urlopen(url, data)
-        #URLError
-        except IOError as e:
+        except URLError as e:
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             return None
         remote = response.read()
