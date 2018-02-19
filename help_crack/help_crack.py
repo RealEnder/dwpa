@@ -48,6 +48,7 @@ conf = {
     'net_file': 'help_crack.net',
     'key_file': 'help_crack.key',
     'additional': None,
+    'format': None,
     'hc_ver': '0.9.0'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
@@ -242,6 +243,14 @@ class HelpCrack(object):
 
             return tools
 
+        def set_format(tool):
+            '''sets format based on selected tool'''
+            if tool.find('hashcat') != -1:
+                self.conf['format'] = 'hccapx'
+            else:
+                self.conf['format'] = 'wpapsk'
+            return
+
         tools = []
 
         #hashcat
@@ -258,6 +267,7 @@ class HelpCrack(object):
             self.pprint('hashcat or john not found', 'FAIL')
             exit(1)
         if len(tools) == 1:
+            set_format(tools[0])
             return tools[0]
 
         self.pprint('Choose the tool for cracking:')
@@ -269,6 +279,7 @@ class HelpCrack(object):
             if user == '9':
                 exit(0)
             try:
+                set_format(tools[int(user)])
                 return tools[int(user)]
             except (ValueError, IndexError):
                 self.pprint('Wrong index', 'WARNING')
@@ -416,13 +427,13 @@ class HelpCrack(object):
 
         return hccaps
 
-    def prepare_work(self, netdata, etype):
+    def prepare_work(self, netdata):
         '''prepare work based on netdata; returns dictname'''
         if netdata is None:
             return False
 
         try:
-            if etype == 'hccapx':
+            if self.conf['format'] == 'hccapx':
                 handshake = binascii.a2b_base64(netdata['hccapx'])
             else:
                 handshake = self.hccapx2john(binascii.a2b_base64(netdata['hccapx']))
@@ -637,12 +648,6 @@ class HelpCrack(object):
         self.check_version()
         tool = self.check_tools()
 
-        #set format
-        if tool.find('ashcat') != -1:
-            fformat = 'hccapx'
-        else:
-            fformat = 'wpapsk'
-
         #run hashcat in performance tune mode
         performance = ''
         if tool.find('ashcat') != -1:
@@ -651,7 +656,7 @@ class HelpCrack(object):
         #challenge the cracker
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
-        self.prepare_work(netdata, fformat)
+        self.prepare_work(netdata)
         rc = self.run_cracker(tool, netdata['dictname'], performance, disablestdout=True)
         key = self.get_key(tool)
 
@@ -663,12 +668,12 @@ class HelpCrack(object):
 
         while True:
             if netdata is None:
-                netdata = self.get_work_wl(json.JSONEncoder().encode({'format': fformat, 'tool': os.path.basename(tool)}))
+                netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'tool': os.path.basename(tool)}))
                 if netdata:
                     self.create_resume(netdata)
 
             while True:
-                dictname = self.prepare_work(netdata, fformat)
+                dictname = self.prepare_work(netdata)
                 if not dictname:
                     self.pprint('Couldn\'t prepare data', 'WARNING')
                     self.sleepy(10)
