@@ -49,6 +49,7 @@ conf = {
     'key_file': 'help_crack.key',
     'additional': None,
     'format': None,
+    'coptions': '',
     'hc_ver': '0.9.0'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
@@ -555,7 +556,7 @@ class HelpCrack(object):
 
         return None
 
-    def run_cracker(self, tool, dictname, performance='', rule='', disablestdout=False):
+    def run_cracker(self, tool, dictname, disablestdout=False):
         '''run externel cracker process'''
         while True:
             try:
@@ -565,7 +566,7 @@ class HelpCrack(object):
                             fd = open(os.devnull, 'w')
                         else:
                             fd = None
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4} {5}'.format(tool, performance, self.conf['key_file'], rule, self.conf['net_file'], dictname)
+                        cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4}'.format(tool, self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
                         subprocess.check_call(shlex.split(cracker), stdout=fd)
                     except subprocess.CalledProcessError as ex:
                         if fd:
@@ -594,7 +595,7 @@ class HelpCrack(object):
                             fd = open(os.devnull, 'w')
                         else:
                             fd = None
-                        cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(tool, performance, self.conf['key_file'], dictname, self.conf['net_file'])
+                        cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(tool, self.conf['coptions'], self.conf['key_file'], dictname, self.conf['net_file'])
                         subprocess.check_call(shlex.split(cracker), stdout=fd)
                     except subprocess.CalledProcessError as ex:
                         if fd:
@@ -648,16 +649,11 @@ class HelpCrack(object):
         self.check_version()
         tool = self.check_tools()
 
-        #run hashcat in performance tune mode
-        performance = ''
-        if tool.find('ashcat') != -1:
-            performance = '-w 3'
-
         #challenge the cracker
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
-        rc = self.run_cracker(tool, netdata['dictname'], performance, disablestdout=True)
+        rc = self.run_cracker(tool, netdata['dictname'], disablestdout=True)
         key = self.get_key(tool)
 
         if rc != 0 or key != bytearray(netdata['key'], 'utf-8', errors='ignore'):
@@ -680,14 +676,9 @@ class HelpCrack(object):
                     continue
                 break
 
-            #check if we will use rules
-            rule = ''
-            if 'rule' in netdata and tool.find('ashcat') != -1 and os.path.exists(netdata['rule']):
-                rule = '-r' + netdata['rule']
-
             runadditional = True
             while True:
-                rc = self.run_cracker(tool, dictname, performance, rule)
+                rc = self.run_cracker(tool, dictname)
                 if rc == 0:
                     key = self.get_key(tool)
                     self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
@@ -719,12 +710,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='help_crack, distributed WPA cracker site: {0}'.format(conf['base_url']))
     parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
     parser.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
+    parser.add_argument('-co', '--coptions', type=str, help='custom options, that will be supplied to cracker. Those must be passed as -co="--your_option"')
     try:
         args = parser.parse_args()
     except IOError as e:
         parser.error(str(e))
 
     conf['additional'] = args.additional
+    if args.coptions:
+        conf['coptions'] = args.coptions
 
     hc = HelpCrack(conf)
     hc.run()
