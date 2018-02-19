@@ -249,7 +249,7 @@ class HelpCrack(object):
         if bits == '64bit':
             tools += run_hashcat(['hashcat64.bin', 'hashcat64', 'hashcat'])
         else:
-            tools += run_hashcat(['hashcat32.bin', 'hashcat32'])
+            tools += run_hashcat(['hashcat32.bin', 'hashcat32', 'hashcat'])
 
         #John the Ripper
         tools += run_jtr()
