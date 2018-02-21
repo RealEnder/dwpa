@@ -618,15 +618,13 @@ class HelpCrack(object):
 
     def get_key(self, tool):
         '''read key from file'''
+        key = ''
         try:
             if tool.find('ashcat') != -1:
                 if os.path.exists(self.conf['key_file']):
                     with open(self.conf['key_file'], 'rb') as fd:
                         key = fd.readline()
                     key = key.rstrip(b'\n')
-                    if len(key) >= 8:
-                        os.unlink(self.conf['key_file'])
-                        return key
 
             if tool.find('john') != -1:
                 if os.path.exists(self.conf['key_file']):
@@ -634,9 +632,11 @@ class HelpCrack(object):
                         key = fd.readline()
                     key = key.rstrip(b'\n')[100:]
                     key = key[key.find(b':')+1:]
-                    if len(key) >= 8:
-                        os.unlink(self.conf['key_file'])
-                        return key
+
+            if len(key) >= 8:
+                os.unlink(self.conf['key_file'])
+                return key
+
         except IOError as e:
             self.pprint('Couldn\'t read key', 'FAIL')
             self.pprint('Exception: {0}'.format(e), 'FAIL')
