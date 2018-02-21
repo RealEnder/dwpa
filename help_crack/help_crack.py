@@ -49,6 +49,7 @@ conf = {
     'key_file': 'help_crack.key',
     'additional': None,
     'format': None,
+    'cracker': '',
     'coptions': '',
     'hc_ver': '0.9.0'
 }
@@ -246,6 +247,7 @@ class HelpCrack(object):
 
         def set_format(tool):
             '''sets format based on selected tool'''
+            self.conf['cracker'] = tool
             if tool.find('hashcat') != -1:
                 self.conf['format'] = 'hccapx'
             else:
@@ -556,17 +558,17 @@ class HelpCrack(object):
 
         return None
 
-    def run_cracker(self, tool, dictname, disablestdout=False):
+    def run_cracker(self, dictname, disablestdout=False):
         '''run externel cracker process'''
         while True:
             try:
-                if tool.find('ashcat') != -1:
+                if self.conf['format'] == 'hccapx':
                     try:
                         if disablestdout:
                             fd = open(os.devnull, 'w')
                         else:
                             fd = None
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4}'.format(tool, self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
+                        cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
                         subprocess.check_call(shlex.split(cracker), stdout=fd)
                     except subprocess.CalledProcessError as ex:
                         if fd:
@@ -585,22 +587,22 @@ class HelpCrack(object):
                             self.pprint('User abort', 'FAIL')
                             exit(1)
                         if ex.returncode not in [-2, -1, 1, 2]:
-                            self.pprint('hashcat {0} died with code {1}'.format(tool, ex.returncode), 'FAIL')
+                            self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], ex.returncode), 'FAIL')
                             self.pprint('Check you have OpenCL support', 'FAIL')
                             exit(1)
 
-                if tool.find('john') != -1:
+                if self.conf['format'] == 'wpapsk':
                     try:
                         if disablestdout:
                             fd = open(os.devnull, 'w')
                         else:
                             fd = None
-                        cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(tool, self.conf['coptions'], self.conf['key_file'], dictname, self.conf['net_file'])
+                        cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], dictname, self.conf['net_file'])
                         subprocess.check_call(shlex.split(cracker), stdout=fd)
                     except subprocess.CalledProcessError as ex:
                         if fd:
                             fd.close()
-                        self.pprint('john {0} died with code {1}'.format(tool, ex.returncode), 'FAIL')
+                        self.pprint('john {0} died with code {1}'.format(self.conf['cracker'], ex.returncode), 'FAIL')
                         exit(1)
 
                     if not os.path.exists(self.conf['key_file']):
@@ -616,17 +618,17 @@ class HelpCrack(object):
 
             return 0
 
-    def get_key(self, tool):
+    def get_key(self):
         '''read key from file'''
         key = ''
         try:
-            if tool.find('ashcat') != -1:
+            if self.conf['format'] == 'hccapx':
                 if os.path.exists(self.conf['key_file']):
                     with open(self.conf['key_file'], 'rb') as fd:
                         key = fd.readline()
                     key = key.rstrip(b'\n')
 
-            if tool.find('john') != -1:
+            if self.conf['format'] == 'wpapsk':
                 if os.path.exists(self.conf['key_file']):
                     with open(self.conf['key_file'], 'rb') as fd:
                         key = fd.readline()
@@ -647,14 +649,14 @@ class HelpCrack(object):
     def run(self):
         '''entry point'''
         self.check_version()
-        tool = self.check_tools()
+        self.check_tools()
 
         #challenge the cracker
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
-        rc = self.run_cracker(tool, netdata['dictname'], disablestdout=True)
-        key = self.get_key(tool)
+        rc = self.run_cracker(netdata['dictname'], disablestdout=True)
+        key = self.get_key()
 
         if rc != 0 or key != bytearray(netdata['key'], 'utf-8', errors='ignore'):
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
@@ -665,7 +667,7 @@ class HelpCrack(object):
         while True:
             if netdata is None:
                 while True:
-                    netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'tool': os.path.basename(tool)}))
+                    netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'cracker': self.conf['cracker']}))
                     if not netdata:
                         self.sleepy()
                         continue
@@ -683,9 +685,9 @@ class HelpCrack(object):
 
             runadditional = True
             while True:
-                rc = self.run_cracker(tool, dictname)
+                rc = self.run_cracker(dictname)
                 if rc == 0:
-                    key = self.get_key(tool)
+                    key = self.get_key()
                     self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
                     while not self.put_work(netdata['hash'], key):
                         self.pprint('Couldn\'t submit key', 'WARNING')
