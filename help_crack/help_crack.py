@@ -664,9 +664,14 @@ class HelpCrack(object):
 
         while True:
             if netdata is None:
-                netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'tool': os.path.basename(tool)}))
-                if netdata:
-                    self.create_resume(netdata)
+                while True:
+                    netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'tool': os.path.basename(tool)}))
+                    if not netdata:
+                        self.sleepy()
+                        continue
+                    break
+
+            self.create_resume(netdata)
 
             while True:
                 dictname = self.prepare_work(netdata)
