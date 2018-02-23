@@ -113,13 +113,13 @@ class HelpCrack(object):
 
     def download(self, url, filename):
         '''download remote file'''
-        try:
-            urlretrieve(url, filename)
-        except IOError as e:
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
-            return False
-
-        return True
+        while True:
+            try:
+                urlretrieve(url, filename)
+                return True
+            except IOError as e:
+                self.pprint('Exception: {0}'.format(e), 'FAIL')
+                self.sleepy()
 
     def get_url(self, url, options=None):
         '''get remote content and return it in var'''
@@ -127,7 +127,7 @@ class HelpCrack(object):
             data = urlencode({'options': options}).encode()
             response = urlopen(url, data)
         except IOError as e:
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
+            self.pprint('Exception: {0}'.format(e), 'WARNING')
             return None
         remote = response.read()
         response.close()
@@ -289,28 +289,27 @@ class HelpCrack(object):
 
     def get_work_wl(self, options):
         '''pull handshake and dictionary'''
-        work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
-        try:
-            netdata = json.loads(work)
-            if len(netdata['hash']) != 32:
-                return False
-            if len(netdata['dhash']) != 32:
-                return False
-            if not self.valid_mac(netdata['bssid']):
-                return False
+        while True:
+            work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
+            try:
+                netdata = json.loads(work)
+                if len(netdata['hash']) != 32:
+                    raise ValueError
+                if len(netdata['dhash']) != 32:
+                    raise ValueError
+                if not self.valid_mac(netdata['bssid']):
+                    raise ValueError
 
-            return netdata
-        except (TypeError, ValueError, KeyError):
-            if work == 'Version':
-                self.pprint('Please update help_crack, the API has changed', 'FAIL')
-                exit(1)
-            if work == 'No nets':
-                self.pprint('No suitable net found', 'WARNING')
-                return False
+                return netdata
+            except (TypeError, ValueError, KeyError):
+                if work == 'Version':
+                    self.pprint('Please update help_crack, the API has changed', 'FAIL')
+                    exit(1)
+                if work == 'No nets!?':
+                    self.pprint('No suitable net found', 'WARNING')
 
             self.pprint('Server response error', 'WARNING')
-
-        return False
+            self.sleepy()
 
     @staticmethod
     def hccapx2john(hccapx):
@@ -435,35 +434,35 @@ class HelpCrack(object):
         if netdata is None:
             return False
 
+        if self.conf['format'] == 'hccapx':
+            handshake = binascii.a2b_base64(netdata['hccapx'])
+        else:
+            handshake = self.hccapx2john(binascii.a2b_base64(netdata['hccapx']))
+
+        #write net
         try:
-            if self.conf['format'] == 'hccapx':
-                handshake = binascii.a2b_base64(netdata['hccapx'])
-            else:
-                handshake = self.hccapx2john(binascii.a2b_base64(netdata['hccapx']))
+            with open(self.conf['net_file'], 'wb') as fd:
+                fd.write(handshake)
+        except OSError as e:
+            self.pprint('Handshake write failed', 'FAIL')
+            self.pprint('Exception: {0}'.format(e), 'FAIL')
+            exit(1)
 
-            #write net
-            try:
-                with open(self.conf['net_file'], 'wb') as fd:
-                    fd.write(handshake)
-            except OSError as e:
-                self.pprint('Handshake write failed', 'FAIL')
-                self.pprint('Exception: {0}'.format(e), 'FAIL')
-                return False
+        #check for dict and download it
+        if 'dpath' not in netdata:
+            return True
 
-            #check for dict and download it
-            if 'dpath' not in netdata:
-                return True
-            dictmd5 = ''
-            extract = False
-            gzdictname = netdata['dpath'].split('/')[-1]
-            dictname = gzdictname.rsplit('.', 1)[0]
+        dictmd5 = ''
+        extract = False
+        gzdictname = netdata['dpath'].split('/')[-1]
+        dictname = gzdictname.rsplit('.', 1)[0]
+
+        while True:
             if os.path.exists(gzdictname):
                 dictmd5 = self.md5file(gzdictname)
             if netdata['dhash'] != dictmd5:
                 self.pprint('Downloading ' + gzdictname, 'OKBLUE')
-                if not self.download(netdata['dpath'], gzdictname):
-                    self.pprint('Can\'t download dict ' + netdata['dpath'], 'FAIL')
-                    return False
+                self.download(netdata['dpath'], gzdictname)
                 if self.md5file(gzdictname) != netdata['dhash']:
                     self.pprint('Dict downloaded but hash mismatch dpath:{0} dhash:{1}'.format(netdata['dpath'], netdata['dhash']), 'WARNING')
 
@@ -485,17 +484,13 @@ class HelpCrack(object):
                 except (IOError, OSError, EOFError, zlib.error) as e:
                     self.pprint(gzdictname + ' extraction failed', 'FAIL')
                     self.pprint('Exception: {0}'.format(e), 'FAIL')
-                    return False
+                    self.sleepy()
+                    continue
 
             return dictname
 
-        except TypeError as e:
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
-
-        return False
-
     def prepare_challenge(self):
-        '''prepare chalenge files with known PSK'''
+        '''prepare chalenge with known PSK'''
         netdata = {'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
                                 x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
                                 I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
@@ -526,16 +521,16 @@ class HelpCrack(object):
 
     def put_work(self, handshakehash, pwkey):
         '''return results to server'''
-        try:
-            data = urlencode({handshakehash: pwkey}).encode()
-            response = urlopen(self.conf['put_work_url'], data)
-        except IOError as e:
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
-            return False
-
-        response.close()
-
-        return True
+        while True:
+            try:
+                data = urlencode({handshakehash: pwkey}).encode()
+                response = urlopen(self.conf['put_work_url'], data)
+                response.close()
+                return True
+            except IOError as e:
+                self.pprint('Couldn\'t submit key', 'WARNING')
+                self.pprint('Exception: {0}'.format(e), 'WARNING')
+                self.sleepy(10)
 
     def create_resume(self, netdata):
         '''create resume file'''
@@ -652,22 +647,11 @@ class HelpCrack(object):
 
         while True:
             if netdata is None:
-                while True:
-                    netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'cracker': self.conf['cracker']}))
-                    if not netdata:
-                        self.sleepy()
-                        continue
-                    break
+                netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'cracker': self.conf['cracker']}))
 
             self.create_resume(netdata)
 
-            while True:
-                dictname = self.prepare_work(netdata)
-                if not dictname:
-                    self.pprint('Couldn\'t prepare data', 'WARNING')
-                    self.sleepy(10)
-                    continue
-                break
+            dictname = self.prepare_work(netdata)
 
             runadditional = True
             while True:
@@ -675,9 +659,8 @@ class HelpCrack(object):
                 if rc == 0:
                     key = self.get_key()
                     self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
-                    while not self.put_work(netdata['hash'], key):
-                        self.pprint('Couldn\'t submit key', 'WARNING')
-                        self.sleepy()
+                    self.put_work(netdata['hash'], key)
+
                 if conf['additional'] is not None and runadditional:
                     dictname = conf['additional']
                     runadditional = False
