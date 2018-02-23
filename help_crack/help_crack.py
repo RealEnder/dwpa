@@ -85,7 +85,11 @@ class HelpCrack(object):
     def sleepy(self, sec=222):
         '''wait for calm down'''
         self.pprint('Sleeping...', 'WARNING')
-        time.sleep(sec)
+        try:
+            time.sleep(sec)
+        except KeyboardInterrupt:
+            self.pprint('\nKeyboard interrupt', 'OKBLUE')
+            exit(0)
 
     @staticmethod
     def valid_mac(mac):
@@ -595,7 +599,7 @@ class HelpCrack(object):
                 self.pprint('\nKeyboard interrupt', 'OKBLUE')
                 if os.path.exists(self.conf['key_file']):
                     os.unlink(self.conf['key_file'])
-                exit(1)
+                exit(0)
 
             return 0
 
