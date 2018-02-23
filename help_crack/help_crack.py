@@ -577,7 +577,6 @@ class HelpCrack(object):
                             self.sleepy()
                             continue
                         if ex.returncode == 1:
-                            self.pprint('Exausted', 'OKBLUE')
                             return 1
                         self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], ex.returncode), 'FAIL')
                         self.pprint('Check you have OpenCL support', 'FAIL')
@@ -664,6 +663,8 @@ class HelpCrack(object):
                     key = self.get_key()
                     self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
                     self.put_work(netdata['hash'], key)
+                    break
+                self.pprint('Exausted', 'OKBLUE')
 
                 if conf['additional'] is not None and runadditional:
                     dictname = conf['additional']
