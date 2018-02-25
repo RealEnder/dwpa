@@ -81,6 +81,19 @@ if (function_exists('hex2bin') == False) {
 */
 
 function check_key_hccapx($hccapx, $keys, $nc=32767) {
+    function hc_unhex($key) {
+        $k = substr($key, 5, -1);
+        if (( (bool) (~ strlen($k) & 1)) &&
+            (0 === substr_compare($key, '$HEX[', 0, 5)) &&
+            (0 === substr_compare($key, ']', -1)) &&
+            (ctype_xdigit($k))) {
+
+            return hex2bin($k);
+        } else {
+            return $key;
+        }
+    }
+
     if (strlen($hccapx) != 393)
         return False;
 
@@ -135,6 +148,7 @@ function check_key_hccapx($hccapx, $keys, $nc=32767) {
     $halfnc = ($nc >> 1) + 1;
 
     foreach ($keys as $key) {
+        $key = hc_unhex($key);
         $kl = strlen($key);
         if (($kl < 8) || ($kl > 64))
             continue;
@@ -579,7 +593,7 @@ function put_work($mysql, $candidates) {
         foreach ($nets as $net) {
             if ($res = check_key_hccapx($net['hccapx'], array($key))) {
                 $iip = ip2long($_SERVER['REMOTE_ADDR']);
-                submit($mysql, $submit_stmt, $key, $res[1], $res[2], $iip, $net['net_id']);
+                submit($mysql, $submit_stmt, $res[0], $res[1], $res[2], $iip, $net['net_id']);
                 delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
             }
         }

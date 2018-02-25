@@ -567,7 +567,7 @@ class HelpCrack(object):
             try:
                 if self.conf['format'] == 'hccapx':
                     try:
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --outfile-autohex-disable --potfile-disable --outfile-format=2 {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
+                        cracker = '{0} -m2500 --nonce-error-corrections=128 --potfile-disable --outfile-format=2 {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
                         subprocess.check_call(shlex.split(cracker), stdout=fd)
                     except subprocess.CalledProcessError as ex:
                         if fd:
