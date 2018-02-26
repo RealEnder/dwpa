@@ -51,6 +51,20 @@ if (function_exists('hex2bin') == False) {
     }
 }
 
+//implements hashcat $HEX[]
+function hc_unhex($key) {
+    $k = substr($key, 5, -1);
+    if (( (bool) (~ strlen($k) & 1)) &&
+        (0 === substr_compare($key, '$HEX[', 0, 5)) &&
+        (0 === substr_compare($key, ']', -1)) &&
+        (ctype_xdigit($k))) {
+
+        return hex2bin($k);
+    } else {
+        return $key;
+    }
+}
+
 /*
     check_key_hccapx(hccapx contents, array of keys)
     return:  False: bad format;
@@ -81,19 +95,6 @@ if (function_exists('hex2bin') == False) {
 */
 
 function check_key_hccapx($hccapx, $keys, $nc=32767) {
-    function hc_unhex($key) {
-        $k = substr($key, 5, -1);
-        if (( (bool) (~ strlen($k) & 1)) &&
-            (0 === substr_compare($key, '$HEX[', 0, 5)) &&
-            (0 === substr_compare($key, ']', -1)) &&
-            (ctype_xdigit($k))) {
-
-            return hex2bin($k);
-        } else {
-            return $key;
-        }
-    }
-
     if (strlen($hccapx) != 393)
         return False;
 
