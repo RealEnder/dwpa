@@ -49,6 +49,7 @@ conf = {
     'key_file': 'help_crack.key',
     'additional': None,
     'format': None,
+    'potfile': None,
     'cracker': '',
     'coptions': '',
     'hc_ver': '0.9.0'
@@ -567,7 +568,7 @@ class HelpCrack(object):
             try:
                 if self.conf['format'] == 'hccapx':
                     try:
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --potfile-disable --outfile-format=2 {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
+                        cracker = '{0} -m2500 --nonce-error-corrections=128 --potfile-disable {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
                         subprocess.check_call(shlex.split(cracker), stdout=fd)
                     except subprocess.CalledProcessError as ex:
                         if fd:
@@ -609,8 +610,15 @@ class HelpCrack(object):
             if os.path.exists(self.conf['key_file']):
                 with open(self.conf['key_file'], 'rb') as fd:
                     key = fd.readline()
+                    #check if we have user potfile. Don't write if it's the challenge
+                    if self.conf['potfile'] and not \
+                        (b'76c6eaf116d91cc1450561b00c98ea19' in key
+                         or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in key):
+                        with open(self.conf['potfile'], 'ab') as fdpot:
+                            fdpot.write(key)
 
             if self.conf['format'] == 'hccapx':
+                key = key[key.rfind(b':')+1:]
                 key = key.rstrip(b'\n')
 
             if self.conf['format'] == 'wpapsk':
@@ -690,6 +698,7 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
     parser.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
     parser.add_argument('-co', '--coptions', type=str, help='custom options, that will be supplied to cracker. Those must be passed as -co="--your_option"')
+    parser.add_argument('-pot', '--potfile', type=str, help='preserve cracked results in user supplied pot file')
     try:
         args = parser.parse_args()
     except IOError as e:
@@ -698,6 +707,8 @@ if __name__ == "__main__":
     conf['additional'] = args.additional
     if args.coptions:
         conf['coptions'] = args.coptions
+    if args.potfile:
+        conf['potfile'] = args.potfile
 
     hc = HelpCrack(conf)
     hc.run()
