@@ -606,18 +606,16 @@ class HelpCrack(object):
         '''read key from file'''
         key = ''
         try:
+            if os.path.exists(self.conf['key_file']):
+                with open(self.conf['key_file'], 'rb') as fd:
+                    key = fd.readline()
+
             if self.conf['format'] == 'hccapx':
-                if os.path.exists(self.conf['key_file']):
-                    with open(self.conf['key_file'], 'rb') as fd:
-                        key = fd.readline()
-                    key = key.rstrip(b'\n')
+                key = key.rstrip(b'\n')
 
             if self.conf['format'] == 'wpapsk':
-                if os.path.exists(self.conf['key_file']):
-                    with open(self.conf['key_file'], 'rb') as fd:
-                        key = fd.readline()
-                    key = key.rstrip(b'\n')[100:]
-                    key = key[key.find(b':')+1:]
+                key = key.rstrip(b'\n')[100:]
+                key = key[key.find(b':')+1:]
 
             if len(key) >= 8:
                 os.unlink(self.conf['key_file'])
