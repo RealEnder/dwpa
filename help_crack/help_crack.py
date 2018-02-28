@@ -48,6 +48,7 @@ conf = {
     'net_file': 'help_crack.net',
     'key_file': 'help_crack.key',
     'additional': None,
+    'custom': None,
     'format': None,
     'potfile': None,
     'cracker': '',
@@ -293,14 +294,12 @@ class HelpCrack(object):
                 self.pprint('Wrong index', 'WARNING')
 
     def get_work_wl(self, options):
-        '''pull handshake and dictionary'''
+        '''pull handshake and optionally dictionary location'''
         while True:
             work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
             try:
                 netdata = json.loads(work)
                 if len(netdata['hash']) != 32:
-                    raise ValueError
-                if len(netdata['dhash']) != 32:
                     raise ValueError
                 if not self.valid_mac(netdata['bssid']):
                     raise ValueError
@@ -550,6 +549,9 @@ class HelpCrack(object):
                     netdata = json.load(fd)
                     if len(netdata['hash']) != 32:
                         raise ValueError
+                    if 'dhash' not in netdata and self.conf['custom'] is None:
+                        self.pprint('Can\'t resume from custom dictionary attack', 'WARNING')
+                        return None
                     self.pprint('Session resume', 'OKBLUE')
                     return netdata
                 except (TypeError, ValueError, KeyError):
@@ -653,14 +655,21 @@ class HelpCrack(object):
             exit(1)
 
         netdata = self.resume_check()
+        nethash = None
 
         while True:
             if netdata is None:
-                netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'cracker': self.conf['cracker']}))
+                if self.conf['custom']:
+                    netdata = self.get_work_wl(json.JSONEncoder().encode({'hash': nethash, 'format': self.conf['format'], 'cracker': self.conf['cracker']}))
+                else:
+                    netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'cracker': self.conf['cracker']}))
 
             self.create_resume(netdata)
 
             dictname = self.prepare_work(netdata)
+            if dictname is True and self.conf['custom']:
+                dictname = self.conf['custom']
+                nethash = netdata['hash']
 
             runadditional = True
             while True:
@@ -696,15 +705,19 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='help_crack, distributed WPA cracker site: {0}'.format(conf['base_url']))
     parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
-    parser.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
     parser.add_argument('-co', '--coptions', type=str, help='custom options, that will be supplied to cracker. Those must be passed as -co="--your_option"')
     parser.add_argument('-pot', '--potfile', type=str, help='preserve cracked results in user supplied pot file')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
+    group.add_argument('-cd', '--custom', type=lambda x: is_valid_file(parser, x), help='custom user dictionary to be checked against all uncracked handshakes')
+
     try:
         args = parser.parse_args()
     except IOError as e:
         parser.error(str(e))
 
     conf['additional'] = args.additional
+    conf['custom'] = args.custom
     if args.coptions:
         conf['coptions'] = args.coptions
     if args.potfile:
