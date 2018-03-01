@@ -2,12 +2,10 @@ TODO
 ====
 * do heavy work in external process for submissions (10%)
 * restructure home with folding text sections/wizzards (not started)
-* add JtR support in help_crack
 * add WPA key precalculation infrastructure (RouterKeygenPC, etc.) (20%)
 * Split cracked dictionary for precalculation PSKs and others (not started)
 * write Android app with net scan and pass show from the site (not started)
 * implement json API for accessing own nets (30%)
-* add example external dictionary crack based on json API (20%)
 * unify records in stats table (not started)
 * implement js/asm.js based online crack vs random uncracked net
   and online generated, based on SSID wordlist (not started)
@@ -32,3 +30,5 @@ IMPLEMENTED
 * refactor help_crack as library
 * rework net selection for less CPU
 * add hashkill support in help_crack - tool abandoned, doesn't support AP nonce correction
+* add JtR support in help_crack
+* add example external dictionary crack based on json API

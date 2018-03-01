@@ -79,9 +79,19 @@ ver 0.8.8 / 2 Jul 2016
  * don't use ANSI cc on windows
  * detect hashcat 3.0
  
- ver 0.9.0 / 10 Feb 2018
+ver 0.9.0 / 10 Feb 2018
  * process hccapx struct and DWPA new API
  * require hashcat v4.0.1+
  * drop aircrack-ng and pyrit support since they
    don't currently support AP nonce corrections
  * python 2/3 compatability
+
+ver 0.9.1 / 1 Mar 2018
+ * add JtR support
+ * implement help_crack.py options for:
+   * external user dictionary
+   * additional user dictionary to system ones
+   * local potfile with cracked results
+ * ssl support
+ * python 2/3 compatability fixes
+ * various bugfixes

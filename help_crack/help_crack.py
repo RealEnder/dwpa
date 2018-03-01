@@ -2,7 +2,7 @@
 '''Clientside part of dwpa distributed cracker
 The source code is distributed under GPLv3+ license
 author: Alex Stanev, alex at stanev dot org
-web: http://wpa-sec.stanev.org'''
+web: https://wpa-sec.stanev.org'''
 
 from __future__ import print_function
 import argparse
@@ -43,7 +43,7 @@ except NameError:
 
 #configuration
 conf = {
-    'base_url': 'http://wpa-sec.stanev.org/',
+    'base_url': 'https://wpa-sec.stanev.org/',
     'res_file': 'help_crack.res',
     'net_file': 'help_crack.net',
     'key_file': 'help_crack.key',
@@ -53,7 +53,7 @@ conf = {
     'potfile': None,
     'cracker': '',
     'coptions': '',
-    'hc_ver': '0.9.0'
+    'hc_ver': '0.9.1'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
 conf['help_crack_cl'] = conf['base_url'] + 'hc/CHANGELOG'
