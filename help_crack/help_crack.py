@@ -354,7 +354,7 @@ class HelpCrack(object):
             #cut essid part and stuff correction
             newhccap = hccap[36:108] + corr + hccap[112:]
 
-            mac_sta = binascii.hexlify(hccap[42:47])
+            mac_sta = binascii.hexlify(hccap[42:48])
             mac_ap = binascii.hexlify(hccap[36:42])
             keyver = struct.unpack('<L', hccap[372:376])[0]
             if keyver == 1:
