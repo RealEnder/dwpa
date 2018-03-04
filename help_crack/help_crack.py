@@ -420,7 +420,7 @@ class HelpCrack(object):
             message_pair |= 0x20
 
         #prepare nonce correction
-        for i in range(1, 128):
+        for i in range(1, 129):
             if flip:
                 #this comes with LE set first time if we don't have endianness info
                 hccaps += pack_jtr(hccap, message_pair, i)
