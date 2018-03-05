@@ -323,12 +323,12 @@ class HelpCrack(object):
             JtR:    https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/wpapcap2john.c
         '''
 
-        def pack_jtr(hccap, message_pair, nc=0):
+        def pack_jtr(hccap, message_pair, ncorr=0):
             '''prepare handshake in JtR format'''
             jtr = b'%s:$WPAPSK$%s#%s:%s:%s:%s::%s:%s:/dev/null\n'
+            hccap_fmt = '< 36s 6s 6s 32x 28x 4s 256x 4x I 16x'
 
-            #get essid
-            essid = hccap[:36].rstrip(b'\0')
+            (essid, mac_ap, mac_sta, corr, keyver) = struct.unpack(hccap_fmt, hccap)
 
             #replay count checked
             if message_pair & 0x80 > 1:
@@ -337,26 +337,27 @@ class HelpCrack(object):
                 ver = b'not verified'
 
             #detect endian and apply nonce correction
-            corr = hccap[108:112]
-            if nc != 0:
+            if ncorr != 0:
                 try:
                     if message_pair & 0x40 > 1:
-                        ver += b', fuzz ' + str(nc).encode() + b' BE'
+                        ver += b', fuzz ' + str(ncorr).encode() + b' BE'
                         dcorr = struct.unpack('>L', corr)[0]
-                        corr = struct.pack('>L', dcorr + nc)
+                        corr = struct.pack('>L', dcorr + ncorr)
                     if message_pair & 0x20 > 1:
-                        ver += b', fuzz ' + str(nc).encode() + b' LE'
+                        ver += b', fuzz ' + str(ncorr).encode() + b' LE'
                         dcorr = struct.unpack('<L', corr)[0]
-                        corr = struct.pack('<L', dcorr + nc)
+                        corr = struct.pack('<L', dcorr + ncorr)
                 except struct.error:
                     pass
 
-            #cut essid part and stuff correction
+            # cut essid part and stuff correction
             newhccap = hccap[36:108] + corr + hccap[112:]
 
-            mac_sta = binascii.hexlify(hccap[42:48])
-            mac_ap = binascii.hexlify(hccap[36:42])
-            keyver = struct.unpack('<L', hccap[372:376])[0]
+            # prepare values for JtR
+            essid = essid.rstrip(b'\0')
+            mac_sta = binascii.hexlify(mac_sta)
+            mac_ap = binascii.hexlify(mac_ap)
+
             if keyver == 1:
                 keyver = b'WPA'
             elif keyver == 2:
@@ -379,33 +380,29 @@ class HelpCrack(object):
 
         def hccapx2hccap(hccapx):
             '''convert hccapx to hccap struct'''
-            #essid
-            hccap = hccapx[10:42] + b'\x00\x00\x00\x00'
-            #mac1 = mac_ap
-            hccap += hccapx[59:65]
-            #mac2 = mac_sta
-            hccap += hccapx[97:103]
-            #snonce = nonce_sta
-            hccap += hccapx[103:135]
-            #anonce = nonce_ap
-            hccap += hccapx[65:97]
-            #eapol
-            hccap += hccapx[137:393]
-            #eapol_size = eapol_len
-            hccap += hccapx[135:137] + b'\x00\x00'
-            #keyver
-            hccap += hccapx[42:43] + b'\x00\x00\x00'
-            #keymic
-            hccap += hccapx[43:59]
+            hccapx_fmt = '< 4x 4x B x 32s B 16s 6s 32s 6s 32s H 256s'
+            hccap_fmt = '< 36s 6s 6s 32s 32s 256s I I 16s'
 
-            return hccap
+            (message_pair,
+             essid,
+             keyver, keymic,
+             mac_ap, nonce_ap, mac_sta, nonce_sta,
+             eapol_len, eapol) = struct.unpack(hccapx_fmt, hccapx)
+
+            hccap = struct.pack(
+                hccap_fmt,
+                essid,
+                mac_ap, mac_sta,
+                nonce_sta, nonce_ap,
+                eapol, eapol_len,
+                keyver, keymic)
+
+            return (hccap, message_pair)
 
         hccapx = bytearray(hccapx)
-        #get message_pair
-        message_pair = hccapx[8]
 
-        #convert hccapx to hccap
-        hccap = hccapx2hccap(hccapx)
+        # convert hccapx to hccap and extract message_pair
+        (hccap, message_pair) = hccapx2hccap(hccapx)
 
         #exact handshake
         hccaps = pack_jtr(hccap, message_pair)
