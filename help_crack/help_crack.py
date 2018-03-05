@@ -63,7 +63,7 @@ conf['put_work_url'] = conf['base_url'] + '?put_work'
 
 class HelpCrack(object):
     '''Main helpcrack class'''
-    #decompression block size 64k
+    # decompression block size 64k
     blocksize = 1 << 16
     conf = None
 
@@ -161,7 +161,7 @@ class HelpCrack(object):
                             os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                         except OSError as e:
                             self.pprint('Exception: {0}'.format(e), 'FAIL')
-                            #TODO: think of workaround locking on win32
+                            # TODO: think of workaround locking on win32
                             if os.name == 'nt':
                                 self.pprint('You are running under win32, rename help_crack.py.new over help_crack.py', 'OKBLUE')
                         self.pprint('help_crack updated, run again', 'OKGREEN')
@@ -262,14 +262,14 @@ class HelpCrack(object):
 
         tools = []
 
-        #hashcat
+        # hashcat
         bits = platform.architecture()[0]
         if bits == '64bit':
             tools += run_hashcat(['hashcat64.bin', 'hashcat64', 'hashcat'])
         else:
             tools += run_hashcat(['hashcat32.bin', 'hashcat32', 'hashcat'])
 
-        #John the Ripper
+        # John the Ripper
         tools += run_jtr()
 
         if not tools:
@@ -330,13 +330,13 @@ class HelpCrack(object):
 
             (essid, mac_ap, mac_sta, corr, keyver) = struct.unpack(hccap_fmt, hccap)
 
-            #replay count checked
+            # replay count checked
             if message_pair & 0x80 > 1:
                 ver = b'verified'
             else:
                 ver = b'not verified'
 
-            #detect endian and apply nonce correction
+            # detect endian and apply nonce correction
             if ncorr != 0:
                 try:
                     if message_pair & 0x40 > 1:
@@ -365,7 +365,7 @@ class HelpCrack(object):
             elif keyver >= 3:
                 keyver = b'WPA CMAC'
 
-            #prepare translation to base64 alphabet used by JtR
+            # prepare translation to base64 alphabet used by JtR
             encode_trans = maketrans(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
                                      b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
 
@@ -404,25 +404,25 @@ class HelpCrack(object):
         # convert hccapx to hccap and extract message_pair
         (hccap, message_pair) = hccapx2hccap(hccapx)
 
-        #exact handshake
+        # exact handshake
         hccaps = pack_jtr(hccap, message_pair)
         if message_pair & 0x10 > 1:
             return hccaps
 
-        #detect if we have endianness info
+        # detect if we have endianness info
         flip = False
         if message_pair & 0x60 == 0:
             flip = True
-            #set flag for LE
+            # set flag for LE
             message_pair |= 0x20
 
-        #prepare nonce correction
+        # prepare nonce correction
         for i in range(1, 129):
             if flip:
-                #this comes with LE set first time if we don't have endianness info
+                # this comes with LE set first time if we don't have endianness info
                 hccaps += pack_jtr(hccap, message_pair, i)
                 hccaps += pack_jtr(hccap, message_pair, -i)
-                #toggle BE/LE bits
+                # toggle BE/LE bits
                 message_pair ^= 0x60
 
             hccaps += pack_jtr(hccap, message_pair, i)
@@ -440,7 +440,7 @@ class HelpCrack(object):
         else:
             handshake = self.hccapx2john(binascii.a2b_base64(netdata['hccapx']))
 
-        #write net
+        # write net
         try:
             with open(self.conf['net_file'], 'wb') as fd:
                 fd.write(handshake)
@@ -449,7 +449,7 @@ class HelpCrack(object):
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             exit(1)
 
-        #check for dict and download it
+        # check for dict and download it
         if 'dpath' not in netdata:
             return True
 
@@ -504,7 +504,7 @@ class HelpCrack(object):
                    'key': 'aaaa1234',
                    'dictname': 'challenge.txt'}
         try:
-            #create dict
+            # create dict
             try:
                 data = netdata['key'] + "\n"
                 with open(netdata['dictname'], 'wb') as fd:
@@ -609,7 +609,7 @@ class HelpCrack(object):
             if os.path.exists(self.conf['key_file']):
                 with open(self.conf['key_file'], 'rb') as fd:
                     key = fd.readline()
-                    #check if we have user potfile. Don't write if it's the challenge
+                    # check if we have user potfile. Don't write if it's the challenge
                     if self.conf['potfile'] and not \
                         (b'76c6eaf116d91cc1450561b00c98ea19' in key
                          or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in key):
@@ -640,7 +640,7 @@ class HelpCrack(object):
         self.check_version()
         self.check_tools()
 
-        #challenge the cracker
+        # challenge the cracker
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
@@ -684,7 +684,7 @@ class HelpCrack(object):
                     continue
                 break
 
-            #cleanup
+            # cleanup
             if os.path.exists(self.conf['net_file']):
                 os.unlink(self.conf['net_file'])
             if os.path.exists(self.conf['res_file']):
