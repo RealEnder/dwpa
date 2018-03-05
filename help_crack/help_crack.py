@@ -653,6 +653,7 @@ class HelpCrack(object):
 
         netdata = self.resume_check()
         nethash = None
+        hashcache = set()
 
         while True:
             if netdata is None:
@@ -678,7 +679,8 @@ class HelpCrack(object):
                     break
                 self.pprint('Exausted', 'OKBLUE')
 
-                if conf['additional'] is not None and runadditional:
+                if conf['additional'] is not None and runadditional and netdata['hash'] not in hashcache:
+                    hashcache.add(netdata['hash'])
                     dictname = conf['additional']
                     runadditional = False
                     continue
