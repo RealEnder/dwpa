@@ -184,13 +184,11 @@ CREATE TABLE IF NOT EXISTS `stats` (
 
 CREATE TABLE IF NOT EXISTS `submissions` (
   `s_id` bigint(15) NOT NULL AUTO_INCREMENT,
-  `u_id` bigint(15) DEFAULT NULL,
   `localfile` varchar(1024) NOT NULL COMMENT 'Local capture full path',
   `ip` int(10) UNSIGNED NOT NULL COMMENT 'Submission IP',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Submission timestamp',
   PRIMARY KEY (`s_id`),
-  UNIQUE KEY `IDX_UNC_localfile` (`localfile`) USING BTREE,
-  KEY `IDX_submissions_u_id` (`u_id`) USING BTREE
+  UNIQUE KEY `IDX_UNC_localfile` (`localfile`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Capture file submissions';
 
 --
