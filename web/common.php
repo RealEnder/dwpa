@@ -94,7 +94,7 @@ function hc_unhex($key) {
     } __attribute__((packed));
 */
 
-function check_key_hccapx($hccapx, $keys, $nc=32767) {
+function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
     if (strlen($hccapx) != 393)
         return False;
 
@@ -154,7 +154,9 @@ function check_key_hccapx($hccapx, $keys, $nc=32767) {
         if (($kl < 8) || ($kl > 64))
             continue;
 
-        $pmk = hash_pbkdf2('sha1', $key, $ahccap['essid'], 4096, 32, True);
+        if (! $pmk) {
+            $pmk = hash_pbkdf2('sha1', $key, $ahccap['essid'], 4096, 32, True);
+        }
 
         $ncarr = array(array('N', 0));
         do {
@@ -177,12 +179,12 @@ function check_key_hccapx($hccapx, $keys, $nc=32767) {
 
                 if (strncmp($testmic, $ahccap['keymic'], 16) == 0) {
                     if ($ncarr[0][1] == 0) {
-                        return array($key, 0, Null);
+                        return array($key, 0, Null, $pmk);
                     } else {
                         if ($j[0] == 'N') {
-                            return array($key, $j[1], 'BE');
+                            return array($key, $j[1], 'BE', $pmk);
                         } else {
-                            return array($key, $j[1], 'LE');
+                            return array($key, $j[1], 'LE', $pmk);
                         }
                     }
                     
@@ -449,13 +451,13 @@ function put_work($mysql, $candidates) {
         return $res;
     }
 
-    function submit(& $mysql, & $stmt, $pass, $nc, $endian, $sip, $net_id) {
+    function submit(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $net_id) {
         if ($stmt == Null) {
             $stmt = $mysql->stmt_init();
-            $stmt->prepare('UPDATE nets SET pass=?, nc=?, endian=?, sip=?, sts=NOW(), n_state=1 WHERE net_id=?');
+            $stmt->prepare('UPDATE nets SET pass=?, pmk=?, nc=?, endian=?, sip=?, sts=NOW(), n_state=1 WHERE net_id=?');
         }
 
-        $stmt->bind_param('sisii', $pass, $nc, $endian, $sip, $net_id);
+        $stmt->bind_param('ssisii', $pass, $pmk, $nc, $endian, $sip, $net_id);
         $stmt->execute();
 
         return;
@@ -497,7 +499,7 @@ function put_work($mysql, $candidates) {
         foreach ($nets as $net) {
             if ($res = check_key_hccapx($net['hccapx'], array($key))) {
                 $iip = ip2long($_SERVER['REMOTE_ADDR']);
-                submit($mysql, $submit_stmt, $res[0], $res[1], $res[2], $iip, $net['net_id']);
+                submit($mysql, $submit_stmt, $res[0], $res[3], $res[1], $res[2], $iip, $net['net_id']);
                 delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
             }
         }
