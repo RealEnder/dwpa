@@ -210,6 +210,48 @@ function hccapx_hash(& $hccapx) {
     return md5(substr($hccapx, 0x09), True);
 }
 
+// Get handshakes by ssid, bssid, mac_sta
+function get_handshakes(& $mysql, & $stmt, $ssid, $bssid, $mac_sta, $n_state) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('SELECT net_id, hccapx, ssid, pass, nc, bssid, mac_sta, pmk, sip FROM nets WHERE (ssid=? OR bssid=? OR mac_sta=?) AND n_state=?');
+    }
+
+    $stmt->bind_param('siii', $ssid, $bssid, $mac_sta, $n_state);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $res = $result->fetch_all(MYSQLI_ASSOC);
+    $result->free();
+
+    return $res;
+}
+
+// Update cracked handshake by hash
+function submit_by_hash(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $hash) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('UPDATE nets SET pass=?, pmk=?, nc=?, endian=?, sip=?, sts=NOW(), n_state=1 WHERE hash=?');
+    }
+
+    $stmt->bind_param('ssisis', $pass, $pmk, $nc, $endian, $sip, $hash);
+    $stmt->execute();
+
+    return;
+}
+
+// Delete from n2d by hash
+function delete_from_n2d_by_hash(& $mysql, & $stmt, $hash) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('DELETE FROM n2d WHERE net_id=(SELECT net_id FROM nets WHERE hash=?)');
+    }
+
+    $stmt->bind_param('s', $hash);
+    $stmt->execute();
+
+    return;
+}
+
 //Process submission
 function submission($mysql, $file) {
     //Internal functions
@@ -335,8 +377,10 @@ function submission($mysql, $file) {
     $ref = array('');
 
     //Insert identified handshakes
+    $pmkarr = array();
     if ($s_id != False) {
         $refi = array('');
+        $hs_stmt = Null;
         foreach ($nets as &$net) {
             //do we have a skip mark?
             if (array_key_exists(100, $net)) {
@@ -373,13 +417,30 @@ function submission($mysql, $file) {
             $refi[] = & $net[4];
             $refi[] = & $net[5];
 
+            // look for cracked handshakes with same features and try to crack current by PMK
+            $hss = get_handshakes($mysql, $hs_stmt, $essid, $mac_ap, $mac_sta, 1);
+            foreach ($hss as $hs) {
+                if ($reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])+128, $hs['pmk'])) {
+                    $pmkarr[$net[0]] = array('key' => $reshs[0],
+                                             'pmk' => $hs['pmk'],
+                                             'nc' => $reshs[1],
+                                             'endian' => $reshs[2],
+                                             'sip' => $hs['sip']);
+                    break;
+                }
+            }
+
             if (count($refi) > 1000) {
                 insert_nets($mysql, $refi);
                 $refi = array('');
             }
         }
+        if ($hs_stmt) {
+            $hs_stmt->close();
+        }
         insert_nets($mysql, $refi);
         $refi = array('');
+
     }
 
     //Associate handshakes to user if we have key submitted
@@ -408,27 +469,27 @@ function submission($mysql, $file) {
         }
     }
 
+    // Update handshakes cracked by PMK
+    if (!empty($pmkarr)) {
+        $submit_stmt = Null;
+        $n2d_stmt = Null;
+        foreach ($pmkarr as $hash => $val) {
+            submit_by_hash($mysql, $submit_stmt, $val['key'], $val['pmk'], $val['nc'], $val['endian'], $val['sip'], $hash);
+            delete_from_n2d_by_hash($mysql, $n2d_stmt, $hash);
+        }
+        $submit_stmt->close();
+        $n2d_stmt->close();
+
+        //update cracked net stats
+        $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
+        $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1) WHERE pname='cracked_unc'");
+    }
+
     //Update handshake stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets) WHERE pname='nets_unc'");
 
     return True;
-}
-
-// Get handshakes by ssid, bssid, mac_sta
-function get_handshakes(& $mysql, & $stmt, $ssid, $bssid, $mac_sta, $n_state) {
-    if ($stmt == Null) {
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta, pmk FROM wpadev.nets WHERE (ssid=? OR bssid=? OR mac_sta=?) AND n_state=?');
-    }
-
-    $stmt->bind_param('siii', $ssid, $bssid, $mac_sta, $n_state);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $res = $result->fetch_all(MYSQLI_ASSOC);
-    $result->free();
-
-    return $res;
 }
 
 //Put work
