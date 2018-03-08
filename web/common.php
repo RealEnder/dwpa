@@ -66,12 +66,16 @@ function hc_unhex($key) {
 }
 
 /*
-    check_key_hccapx(hccapx contents, array of keys)
+    check_key_hccapx(hccapx contents,
+                     array of keys,
+                     nonce correction to be used - positive integer,
+                     binary PMK to be used)
     return:  False: bad format;
              Null: not found
              array('key_found',
                     0, //nonce correction value if used
-                    'BE') //big endian(BE) or little endian(LE), if detected
+                    'BE', //big endian(BE) or little endian(LE), if detected
+                    PMK)
     hccapx structure https://hashcat.net/wiki/doku.php?id=hccapx
 
     #define HCCAPX_SIGNATURE 0x58504348 // HCPX
