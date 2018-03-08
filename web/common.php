@@ -256,61 +256,63 @@ function delete_from_n2d_by_hash(& $mysql, & $stmt, $hash) {
     return;
 }
 
+// Look for duplicate handshakes and mark submission array
+function duplicate_nets(& $mysql, & $ref, & $nets) {
+    if (count($ref) < 2) {
+        return;
+    }
+
+    //get all net_ids of networks already in the DB
+    $sql = 'SELECT hash FROM nets WHERE hash IN ('.implode(',', array_fill(0, count($ref)-1, '?')).')';
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+
+    $ref[0] = str_repeat('s', count($ref)-1);
+    call_user_func_array(array($stmt, 'bind_param'), $ref);
+    $stmt->execute();
+    stmt_bind_assoc($stmt, $data);
+    while ($stmt->fetch()) {
+        //place skip mark - we have it in the db
+        $nets[$data['hash']][100] = '';
+    }
+    $stmt->close();
+}
+
+// Handshake import
+function insert_nets(& $mysql, & $ref) {
+    if (count($ref) < 2) {
+        return;
+    }
+
+    $bindvars = 'iiisssii';
+    $sql = 'INSERT IGNORE INTO nets(s_id, bssid, mac_sta, ssid, hash, hccapx, message_pair, keyver) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+
+    $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
+    call_user_func_array(array($stmt, 'bind_param'), $ref);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Associate handshake to user
+function insert_n2u(& $mysql, & $ref, $u_id) {
+    if (count($ref) < 2) {
+        return;
+    }
+
+    $sql = "INSERT IGNORE INTO n2u(net_id, u_id) SELECT net_id, $u_id FROM nets WHERE hash IN (".implode(',', array_fill(0, count($ref)-1, '?')).')';
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+
+    $ref[0] = str_repeat('s', count($ref)-1);
+    call_user_func_array(array($stmt, 'bind_param'), $ref);
+    $stmt->execute();
+    $stmt->close();
+}
+
 //Process submission
 function submission($mysql, $file) {
-    //Internal functions
-    function duplicate_nets(& $mysql, & $ref, & $nets) {
-        if (count($ref) < 2) {
-            return;
-        }
-
-        //get all net_ids of networks already in the DB
-        $sql = 'SELECT hash FROM nets WHERE hash IN ('.implode(',', array_fill(0, count($ref)-1, '?')).')';
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare($sql);
-
-        $ref[0] = str_repeat('s', count($ref)-1);
-        call_user_func_array(array($stmt, 'bind_param'), $ref);
-        $stmt->execute();
-        stmt_bind_assoc($stmt, $data);
-        while ($stmt->fetch()) {
-            //place skip mark - we have it in the db
-            $nets[$data['hash']][100] = '';
-        }
-        $stmt->close();
-    }
-
-    function insert_nets(& $mysql, & $ref) {
-        if (count($ref) < 2) {
-            return;
-        }
-
-        $bindvars = 'iiisssii';
-        $sql = 'INSERT IGNORE INTO nets(s_id, bssid, mac_sta, ssid, hash, hccapx, message_pair, keyver) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare($sql);
-
-        $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
-        call_user_func_array(array($stmt, 'bind_param'), $ref);
-        $stmt->execute();
-        $stmt->close();
-    }
-
-    function insert_n2u(& $mysql, & $ref, $u_id) {
-        if (count($ref) < 2) {
-            return;
-        }
-
-        $sql = "INSERT IGNORE INTO n2u(net_id, u_id) SELECT net_id, $u_id FROM nets WHERE hash IN (".implode(',', array_fill(0, count($ref)-1, '?')).')';
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare($sql);
-
-        $ref[0] = str_repeat('s', count($ref)-1);
-        call_user_func_array(array($stmt, 'bind_param'), $ref);
-        $stmt->execute();
-        $stmt->close();
-    }
-
     //Extract handshakes from uploaded capture
     $hccapxfile = tempnam(SHM, 'hccapx');
     $res = '';
@@ -496,64 +498,68 @@ function submission($mysql, $file) {
     return True;
 }
 
+// Get uncracked handshake by bssid
+function by_bssid(& $mysql, & $stmt, $bssid) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta FROM nets WHERE bssid = ? AND n_state=0');
+    }
+
+    $ibssid = mac2long($bssid);
+    $stmt->bind_param('i', $ibssid);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $res = $result->fetch_all(MYSQLI_ASSOC);
+    $result->free();
+
+    return $res;
+}
+
+// Get uncracked handshake by hash
+function by_hash(& $mysql, & $stmt, $hash) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta FROM nets WHERE hash = UNHEX(?) AND n_state=0');
+    }
+    $stmt->bind_param('s', $hash);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $res = $result->fetch_all(MYSQLI_ASSOC);
+    $result->free();
+
+    return $res;
+}
+
+// Update results by net_id
+function submit_by_net_id(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $net_id) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('UPDATE nets SET pass=?, pmk=?, nc=?, endian=?, sip=?, sts=NOW(), n_state=1 WHERE net_id=?');
+    }
+
+    $stmt->bind_param('ssisii', $pass, $pmk, $nc, $endian, $sip, $net_id);
+    $stmt->execute();
+
+    return;
+}
+
+// Remove records from n2d for cracked handshake
+function delete_from_n2d(& $mysql, & $stmt, $net_id) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('DELETE FROM n2d WHERE net_id=?');
+    }
+
+    $stmt->bind_param('i', $net_id);
+    $stmt->execute();
+
+    return;
+}
+
 //Put work
 function put_work($mysql, $candidates) {
     if (empty($candidates)) {
         return False;
-    }
-
-    function by_bssid(& $mysql, & $stmt, $bssid) {
-        if ($stmt == Null) {
-            $stmt = $mysql->stmt_init();
-            $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta FROM nets WHERE bssid = ? AND n_state=0');
-        }
-
-        $ibssid = mac2long($bssid);
-        $stmt->bind_param('i', $ibssid);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $res = $result->fetch_all(MYSQLI_ASSOC);
-        $result->free();
-
-        return $res;
-    }
-
-    function by_hash(& $mysql, & $stmt, $hash) {
-        if ($stmt == Null) {
-            $stmt = $mysql->stmt_init();
-            $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta FROM nets WHERE hash = UNHEX(?) AND n_state=0');
-        }
-        $stmt->bind_param('s', $hash);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $res = $result->fetch_all(MYSQLI_ASSOC);
-        $result->free();
-
-        return $res;
-    }
-
-    function submit(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $net_id) {
-        if ($stmt == Null) {
-            $stmt = $mysql->stmt_init();
-            $stmt->prepare('UPDATE nets SET pass=?, pmk=?, nc=?, endian=?, sip=?, sts=NOW(), n_state=1 WHERE net_id=?');
-        }
-
-        $stmt->bind_param('ssisii', $pass, $pmk, $nc, $endian, $sip, $net_id);
-        $stmt->execute();
-
-        return;
-    }
-
-    function delete_from_n2d(& $mysql, & $stmt, $net_id) {
-        if ($stmt == Null) {
-            $stmt = $mysql->stmt_init();
-            $stmt->prepare('DELETE FROM n2d WHERE net_id=?');
-        }
-
-        $stmt->bind_param('i', $net_id);
-        $stmt->execute();
-
-        return;
     }
 
     $bybssid_stmt = Null;
@@ -581,14 +587,14 @@ function put_work($mysql, $candidates) {
         foreach ($nets as $net) {
             if ($res = check_key_hccapx($net['hccapx'], array($key))) {
                 $iip = ip2long($_SERVER['REMOTE_ADDR']);
-                submit($mysql, $submit_stmt, $res[0], $res[3], $res[1], $res[2], $iip, $net['net_id']);
+                submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $res[1], $res[2], $iip, $net['net_id']);
                 delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
 
                 // check for other crackable handshakes by PMK
                 $hss = get_handshakes($mysql, $hs_stmt, $net['ssid'], $net['bssid'], $net['mac_sta'], 0);
                 foreach ($hss as $hs) {
                     if ($reshs = check_key_hccapx($hs['hccapx'], array($key), abs($res[1])+128, $res[3])) {
-                        submit($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
+                        submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
                         delete_from_n2d($mysql, $n2d_stmt, $hs['net_id']);
                     }
                 }
