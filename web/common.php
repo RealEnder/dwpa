@@ -415,6 +415,22 @@ function submission($mysql, $file) {
     return True;
 }
 
+// Get handshakes by ssid, bssid, mac_sta
+function get_handshakes(& $mysql, & $stmt, $ssid, $bssid, $mac_sta, $n_state) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta, pmk FROM wpadev.nets WHERE (ssid=? OR bssid=? OR mac_sta=?) AND n_state=?');
+    }
+
+    $stmt->bind_param('siii', $ssid, $bssid, $mac_sta, $n_state);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $res = $result->fetch_all(MYSQLI_ASSOC);
+    $result->free();
+
+    return $res;
+}
+
 //Put work
 function put_work($mysql, $candidates) {
     if (empty($candidates)) {
@@ -424,7 +440,7 @@ function put_work($mysql, $candidates) {
     function by_bssid(& $mysql, & $stmt, $bssid) {
         if ($stmt == Null) {
             $stmt = $mysql->stmt_init();
-            $stmt->prepare('SELECT net_id, hccapx FROM nets WHERE bssid = ? AND n_state=0');
+            $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta FROM nets WHERE bssid = ? AND n_state=0');
         }
 
         $ibssid = mac2long($bssid);
@@ -440,7 +456,7 @@ function put_work($mysql, $candidates) {
     function by_hash(& $mysql, & $stmt, $hash) {
         if ($stmt == Null) {
             $stmt = $mysql->stmt_init();
-            $stmt->prepare('SELECT net_id, hccapx FROM nets WHERE hash = UNHEX(?) AND n_state=0');
+            $stmt->prepare('SELECT net_id, hccapx, ssid, bssid, mac_sta FROM nets WHERE hash = UNHEX(?) AND n_state=0');
         }
         $stmt->bind_param('s', $hash);
         $stmt->execute();
@@ -479,6 +495,7 @@ function put_work($mysql, $candidates) {
     $byhash_stmt = Null;
     $submit_stmt = Null;
     $n2d_stmt = Null;
+    $hs_stmt = Null;
 
     $mcount = 0;
     foreach ($candidates as $bssid_or_hash => $key) {
@@ -501,6 +518,15 @@ function put_work($mysql, $candidates) {
                 $iip = ip2long($_SERVER['REMOTE_ADDR']);
                 submit($mysql, $submit_stmt, $res[0], $res[3], $res[1], $res[2], $iip, $net['net_id']);
                 delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
+
+                // check for other crackable handshakes by PMK
+                $hss = get_handshakes($mysql, $hs_stmt, $net['ssid'], $net['bssid'], $net['mac_sta'], 0);
+                foreach ($hss as $hs) {
+                    if ($reshs = check_key_hccapx($hs['hccapx'], array($key), abs($res[1])+128, $res[3])) {
+                        submit($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
+                        delete_from_n2d($mysql, $n2d_stmt, $hs['net_id']);
+                    }
+                }
             }
         }
 
@@ -520,6 +546,9 @@ function put_work($mysql, $candidates) {
         return False;
     }
     $submit_stmt->close();
+    if ($hs_stmt) {
+        $hs_stmt->close();
+    }
     $n2d_stmt->close();
 
     //update cracked net stats
