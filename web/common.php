@@ -1,57 +1,5 @@
 <?php
-//php 5.5 has this one
-if (! function_exists('hash_pbkdf2')) {
-    // based on https://defuse.ca/php-pbkdf2.htm
-    function hash_pbkdf2($algorithm, $password, $salt, $count, $key_length, $raw_output = false)
-    {
-        $hash_length = array('sha1' => 20,
-                             'md5'  => 16,);
-
-        $block_count = ceil($key_length / $hash_length[$algorithm]);
-
-        $output = '';
-        for($i = 1; $i <= $block_count; $i++) {
-            // $i encoded as 4 bytes, big endian.
-            $last = $salt . pack("N", $i);
-            // first iteration
-            $last = $xorsum = hash_hmac($algorithm, $last, $password, true);
-            // perform the other $count - 1 iterations
-            for ($j = 1; $j < $count; $j++) {
-                $xorsum ^= ($last = hash_hmac($algorithm, $last, $password, true));
-            }
-            $output .= $xorsum;
-        }
-
-        if($raw_output)
-            return substr($output, 0, $key_length);
-        else
-            return bin2hex(substr($output, 0, $key_length));
-    }
-}
-
-// helper function for PHP version < 5.4.0
-if (function_exists('hex2bin') == False) {
-    /* Alternative working, but slow function
-    function hex2bin($h) {
-        if (strlen($h) % 2 != 0)
-            $h = '0'.$h;
-        if (!ctype_xdigit($h))
-            return '';
-        $r = '';
-        for ($i=0; $i<strlen($h); $i+=2)
-            $r .= chr(hexdec($h{$i}.$h{($i+1)}));
-        return $r;
-    }
-    */
-    function hex2bin($h) {
-        if (strlen($h) & 1)
-            $h = '0'.$h;
-
-        return pack('H*', $h);
-    }
-}
-
-//implements hashcat $HEX[]
+// Implements hashcat $HEX[]
 function hc_unhex($key) {
     $k = substr($key, 5, -1);
     if (( (bool) (~ strlen($k) & 1)) &&
@@ -103,11 +51,7 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
         return False;
 
     $ahccap = array();
-    if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
-        $ahccap['essid'] = unpack('Z32', substr($hccapx, 0x00a, 32));
-    } else {
-        $ahccap['essid'] = unpack('a32', substr($hccapx, 0x00a, 32));
-    }
+    $ahccap['essid'] = unpack('Z32', substr($hccapx, 0x00a, 32));
     $ahccap['essid_len'] =         ord(substr($hccapx, 0x009, 1));
     $ahccap['mac_ap']    =             substr($hccapx, 0x03b, 6);
     $ahccap['mac_sta']   =             substr($hccapx, 0x061, 6);

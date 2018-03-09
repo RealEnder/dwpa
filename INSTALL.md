@@ -8,7 +8,7 @@ Requirements
 
  - Linux OS - tested with Ubuntu 16.04
  - MySQL database 5.5 or better
- - PHP 5.3 or better. PHP 7.x recommended
+ - PHP 5.5 or better. PHP 7.x recommended
  - Apache or other webserver with PHP support
  - gcc toolchain
  - hcxpcaptool tool, part of hcxtools https://github.com/ZerBea/hcxtools
