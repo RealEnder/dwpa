@@ -359,7 +359,7 @@ function submission($mysql, $file) {
             // look for cracked handshakes with same features and try to crack current by PMK
             $hss = get_handshakes($mysql, $hs_stmt, $essid, $mac_ap, $mac_sta, 1);
             foreach ($hss as $hs) {
-                if ($reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])+128, $hs['pmk'])) {
+                if ($reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+128, $hs['pmk'])) {
                     $pmkarr[$net[0]] = array('key' => $reshs[0],
                                              'pmk' => $hs['pmk'],
                                              'nc' => $reshs[1],
@@ -526,7 +526,7 @@ function put_work($mysql, $candidates) {
                 // check for other crackable handshakes by PMK
                 $hss = get_handshakes($mysql, $hs_stmt, $net['ssid'], $net['bssid'], $net['mac_sta'], 0);
                 foreach ($hss as $hs) {
-                    if ($reshs = check_key_hccapx($hs['hccapx'], array($key), abs($res[1])+128, $res[3])) {
+                    if ($reshs = check_key_hccapx($hs['hccapx'], array($key), abs($res[1])*2+128, $res[3])) {
                         submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
                         delete_from_n2d($mysql, $n2d_stmt, $hs['net_id']);
                     }
