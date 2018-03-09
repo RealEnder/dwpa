@@ -50,48 +50,37 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
     if (strlen($hccapx) != 393)
         return False;
 
-    $ahccap = array();
-    $ahccap['essid'] = unpack('Z32', substr($hccapx, 0x00a, 32));
-    $ahccap['essid_len'] =         ord(substr($hccapx, 0x009, 1));
-    $ahccap['mac_ap']    =             substr($hccapx, 0x03b, 6);
-    $ahccap['mac_sta']   =             substr($hccapx, 0x061, 6);
-    $ahccap['nonce_ap']  =             substr($hccapx, 0x041, 32);
-    $ahccap['nonce_sta'] =             substr($hccapx, 0x067, 32);
-    $ahccap['eapol']     =             substr($hccapx, 0x089, 256);
-    $ahccap['eapol_len'] = unpack('S', substr($hccapx, 0x087, 2));
-    $ahccap['keyver']    =         ord(substr($hccapx, 0x02a, 1));
-    $ahccap['keymic']    =             substr($hccapx, 0x02b, 16);
+    $ahccapx = unpack('x8/Cmessage_pair/Cessid_len/a32essid/Ckeyver/a16keymic/a6mac_ap/a32nonce_ap/a6mac_sta/a32nonce_sta/veapol_len/a256eapol', $hccapx);
 
-    // fixup unpack
-    $ahccap['essid']      = substr($ahccap['essid'][1], 0, $ahccap['essid_len']);
-    $ahccap['eapol_len'] = $ahccap['eapol_len'][1];
-
-    // cut eapol to right size
-    $ahccap['eapol'] = substr($ahccap['eapol'], 0, $ahccap['eapol_len']);
+    // cut essid and eapol
+    if ($ahccapx['essid_len'] < 32) {
+        $ahccapx['essid'] = substr($ahccapx['essid'], 0, $ahccapx['essid_len']);
+    }
+    if ($ahccapx['eapol_len'] < 256) {
+        $ahccapx['eapol'] = substr($ahccapx['eapol'], 0, $ahccapx['eapol_len']);
+    }
 
     // fix order
-    if (strncmp($ahccap['mac_ap'], $ahccap['mac_sta'], 6) < 0)
-        $m = $ahccap['mac_ap'].$ahccap['mac_sta'];
+    if (strncmp($ahccapx['mac_ap'], $ahccapx['mac_sta'], 6) < 0)
+        $m = $ahccapx['mac_ap'].$ahccapx['mac_sta'];
     else
-        $m = $ahccap['mac_sta'].$ahccap['mac_ap'];
+        $m = $ahccapx['mac_sta'].$ahccapx['mac_ap'];
 
     $swap = False;
-
-    if (strncmp($ahccap['nonce_sta'], $ahccap['nonce_ap'], 6) < 0)
-        $n = $ahccap['nonce_sta'].$ahccap['nonce_ap'];
+    if (strncmp($ahccapx['nonce_sta'], $ahccapx['nonce_ap'], 6) < 0)
+        $n = $ahccapx['nonce_sta'].$ahccapx['nonce_ap'];
     else {
-        $n = $ahccap['nonce_ap'].$ahccap['nonce_sta'];
+        $n = $ahccapx['nonce_ap'].$ahccapx['nonce_sta'];
         $swap = True;
     }
 
-    $last1 = substr($ahccap['nonce_ap'], 24, 4);
-    $last2 = substr($ahccap['nonce_ap'], 28, 4);
-    
-    $last1le = unpack('V', $last1);
-    $last2le = unpack('V', $last2);
-    $last1be = unpack('N', $last1);
-    $last2be = unpack('N', $last2);
-    
+    // get nonce_ap last bytes for nonce correction
+    // TODO: unpack 64bit after April2019, this is PHP 5.6+
+    $last1le = unpack('x24/V', $ahccapx['nonce_ap']);
+    $last2le = unpack('x28/V', $ahccapx['nonce_ap']);
+    $last1be = unpack('x24/N', $ahccapx['nonce_ap']);
+    $last2be = unpack('x28/N', $ahccapx['nonce_ap']);
+
     $corr['V'] = ($last1le[1] << 32) | $last2le[1];
     $corr['N'] = ($last1be[1] << 32) | $last2be[1];
     $halfnc = ($nc >> 1) + 1;
@@ -103,7 +92,7 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
             continue;
 
         if (! $pmk) {
-            $pmk = hash_pbkdf2('sha1', $key, $ahccap['essid'], 4096, 32, True);
+            $pmk = hash_pbkdf2('sha1', $key, $ahccapx['essid'], 4096, 32, True);
         }
 
         $ncarr = array(array('N', 0));
@@ -120,12 +109,12 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
 
                 $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
 
-                if ($ahccap['keyver'] == 1)
-                    $testmic = hash_hmac('md5',  $ahccap['eapol'], substr($ptk, 0, 16), True);
+                if ($ahccapx['keyver'] == 1)
+                    $testmic = hash_hmac('md5',  $ahccapx['eapol'], substr($ptk, 0, 16), True);
                 else
-                    $testmic = hash_hmac('sha1', $ahccap['eapol'], substr($ptk, 0, 16), True);
+                    $testmic = hash_hmac('sha1', $ahccapx['eapol'], substr($ptk, 0, 16), True);
 
-                if (strncmp($testmic, $ahccap['keymic'], 16) == 0) {
+                if (strncmp($testmic, $ahccapx['keymic'], 16) == 0) {
                     if ($ncarr[0][1] == 0) {
                         return array($key, 0, Null, $pmk);
                     } else {
