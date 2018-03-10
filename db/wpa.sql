@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `ssid` varchar(32) NOT NULL COMMENT 'AP ESSID',
   `pass` varchar(64) DEFAULT NULL COMMENT 'Pre-Shared Key (PSK)',
   `pmk` binary(32) DEFAULT NULL COMMENT 'Pairwise Master Key (PMK)',
+  `algo` varchar(32) DEFAULT NULL,
   `hash` binary(16) NOT NULL COMMENT 'partial md5 on hccapx',
   `hccapx` varbinary(393) NOT NULL COMMENT 'hccapx struct',
   `message_pair` tinyint(3) UNSIGNED NOT NULL COMMENT 'message_pair from hccapx',
@@ -127,7 +128,8 @@ CREATE TABLE IF NOT EXISTS `nets` (
   KEY `FK_nets_submissions` (`s_id`),
   KEY `IDX_nets_mac_sta` (`mac_sta`),
   KEY `IDX_nets_hits_ts` (`hits`,`ts`) USING BTREE,
-  KEY `IDX_nets_ssid` (`ssid`)
+  KEY `IDX_nets_ssid` (`ssid`),
+  KEY `IDX_nets_algo` (`algo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
@@ -161,6 +163,22 @@ CREATE TABLE IF NOT EXISTS `onets_dicts` (
 ,`d_id` smallint(5) unsigned
 ,`hits` smallint(5)
 );
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `rkg`
+--
+
+CREATE TABLE `rkg` (
+  `net_id` bigint(15) NOT NULL,
+  `algo` varchar(32) NOT NULL COMMENT 'Identified algo',
+  `pass` varchar(64) NOT NULL COMMENT 'PSK candidate from rkg',
+  `n_state` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Successful PSK candidate',
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `UNC_rkg_net_id_algo_pass` (`net_id`,`algo`,`pass`) USING BTREE,
+  KEY `IDX_rkg_net_id` (`net_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -268,6 +286,12 @@ ALTER TABLE `n2u`
 --
 ALTER TABLE `nets`
   ADD CONSTRAINT `FK_nets_submissions_s_id` FOREIGN KEY (`s_id`) REFERENCES `submissions` (`s_id`);
+
+--
+-- Constraints for table `rkg`
+--
+ALTER TABLE `rkg`
+  ADD CONSTRAINT `FK_rkg_nets_net_id` FOREIGN KEY (`net_id`) REFERENCES `nets` (`net_id`);
 
 DELIMITER $$
 --
