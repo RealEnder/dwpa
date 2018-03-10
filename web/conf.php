@@ -14,6 +14,7 @@ $bosskey = '';
 
 //App specific defines
 define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
+define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
 
 define('CAP', '/var/www/wpa-sec/cap/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
