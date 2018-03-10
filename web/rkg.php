@@ -40,6 +40,8 @@ $n_state1 = 1;
 $submit_stmt = Null;
 $update_stmt = Null;
 
+$regenerate_rkg_dict = False;
+
 // fetch unchecked handshakes
 $result = $mysql->query('SELECT net_id, hccapx, ssid, bssid, pass FROM nets WHERE algo IS NULL ORDER BY net_id LIMIT 100');
 $nets = $result->fetch_all(MYSQLI_ASSOC);
@@ -90,6 +92,9 @@ foreach ($nets as $netkey => $net) {
     }
     // set algo name or just empty if not identified
     update_nets_algo($mysql, $update_stmt, $algo, $net['net_id']);
+    if ($algo != '') {
+        $regenerate_rkg_dict = True;
+    }
 }
 
 // cleanup DB connections
@@ -98,6 +103,28 @@ if ($submit_stmt) {
 }
 if ($update_stmt) {
     $update_stmt->close();
+}
+
+// regenerate rkg.txt.gz if we have hit
+if ($regenerate_rkg_dict) {
+    //pull rkg cracked wordlist
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare("SELECT DISTINCT pass FROM nets WHERE algo IS NOT NULL AND algo != ''");
+    $stmt->execute();
+    $stmt->bind_result($key);
+
+    //write compressed rkg wordlist
+    $wpakeys = tempnam(SHM, 'rkgkeys');
+    chmod($wpakeys, 0644);
+    $fd = gzopen($wpakeys, 'wb9');
+    while ($stmt->fetch()) {
+        gzwrite($fd, "$key\n");
+    }
+    $stmt->close();
+    fflush($fd);
+    gzclose($fd);
+
+    rename($wpakeys, dirname(CRACKED).'/rkg.txt.gz');
 }
 
 $mysql->close();
