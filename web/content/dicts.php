@@ -1,6 +1,6 @@
 <h1>Dictionaries</h1>
 <p>
-The wordlists are compilation from different sources and are stripped from duplicates. Created with <a href="http://sec.stanev.org/?download">wlc</a> tool.
+The wordlists are compilation from different sources and are stripped from duplicates. Created with <a href="https://sec.stanev.org/?download">wlc</a> tool.
 </p>
 <style>
 td {padding-left: 7px; padding-right: 7px}
@@ -17,5 +17,6 @@ $mysql->close();
 foreach ($datas as $data) {
     echo "<tr><td><a href=\"{$data['dpath']}\">{$data['dname']}</td><td align=\"right\">{$data['wcount']}</td><td align=\"right\">{$data['hits']}</td></tr>\n";
 }
+echo "</table>\n";
+echo "<br/>\nKeygen generated dict: <a href=\"dict/rkg.txt.gz\">rkg.txt.gz</a>\n";
 ?>
-</table>
