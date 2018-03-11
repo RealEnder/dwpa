@@ -13,6 +13,8 @@ INSERT INTO `stats` (`pname`, `pvalue`) VALUES
 ('nets_unc', '0'),
 ('cracked', '0'),
 ('cracked_unc', '0'),
+('cracked_rkg', '0'),
+('cracked_rkg_unc', '0'),
 ('24getwork', '0'),
 ('24psk', '0'),
 ('24sub', '0'),

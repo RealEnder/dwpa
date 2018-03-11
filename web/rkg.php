@@ -125,6 +125,10 @@ if ($regenerate_rkg_dict) {
     gzclose($fd);
 
     rename($wpakeys, dirname(CRACKED).'/rkg.txt.gz');
+
+    // update statistics
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE algo IS NOT NULL AND algo != '') WHERE pname='cracked_rkg'");
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE algo IS NOT NULL AND algo != '') WHERE pname='cracked_rkg_unc'");
 }
 
 $mysql->close();
