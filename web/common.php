@@ -8,9 +8,9 @@ function hc_unhex($key) {
         (ctype_xdigit($k))) {
 
         return hex2bin($k);
-    } else {
-        return $key;
     }
+
+    return $key;
 }
 
 /*
