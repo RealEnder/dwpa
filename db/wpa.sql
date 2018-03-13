@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `get_dict` (
 CREATE TABLE IF NOT EXISTS `n2d` (
   `net_id` bigint(15) NOT NULL,
   `d_id` smallint(5) UNSIGNED NOT NULL,
-  `hits` smallint(5) NOT NULL DEFAULT '1',
+  `hkey` binary(16) DEFAULT NULL COMMENT 'get_work key',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`net_id`,`d_id`),
   KEY `IDX_n2d_ts` (`ts`),
@@ -65,9 +65,21 @@ CREATE TABLE IF NOT EXISTS `n2d` (
 -- Triggers `n2d`
 --
 DELIMITER $$
-CREATE TRIGGER `TRG_n2d` BEFORE INSERT ON `n2d` FOR EACH ROW BEGIN
+CREATE TRIGGER `TRG_n2d` AFTER INSERT ON `n2d` FOR EACH ROW BEGIN
     UPDATE nets SET hits=hits+1 WHERE nets.net_id=NEW.net_id;
     UPDATE dicts SET hits=hits+1 WHERE dicts.d_id=NEW.d_id;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `TRG_n2d_delete` AFTER DELETE ON `n2d` FOR EACH ROW BEGIN
+    DECLARE vn_state tinyint(1);
+
+    SELECT n_state FROM nets WHERE net_id=OLD.net_id INTO vn_state;
+    IF (vn_state=0) THEN
+        UPDATE dicts SET hits=hits-1 WHERE d_id=OLD.d_id;
+        UPDATE nets SET hits=hits-1 WHERE net_id=OLD.net_id;
+    END IF;
 END
 $$
 DELIMITER ;
@@ -161,7 +173,6 @@ CREATE TABLE IF NOT EXISTS `onets` (
 CREATE TABLE IF NOT EXISTS `onets_dicts` (
 `net_id` bigint(15)
 ,`d_id` smallint(5) unsigned
-,`hits` smallint(5)
 );
 
 -- --------------------------------------------------------
@@ -243,7 +254,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 DROP TABLE IF EXISTS `get_dict`;
 
-CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount` ;
+CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by `d`.`wcount` ;
 
 -- --------------------------------------------------------
 
@@ -252,7 +263,7 @@ CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,h
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1 ;
+CREATE VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where ((`nets`.`n_state` = 0) and (`nets`.`ssid` = (select `nets`.`ssid` AS `ssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1))) ;
 
 -- --------------------------------------------------------
 
@@ -261,8 +272,7 @@ CREATE VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) A
 --
 DROP TABLE IF EXISTS `onets_dicts`;
 
-CREATE VIEW `onets_dicts`  AS  select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`) ;
-
+CREATE VIEW `onets_dicts`  AS  select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`) ;
 --
 -- Constraints for dumped tables
 --
