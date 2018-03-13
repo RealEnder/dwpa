@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `n2d` (
   PRIMARY KEY (`net_id`,`d_id`),
   KEY `IDX_n2d_ts` (`ts`),
   KEY `IDX_n2d_net_id` (`net_id`),
-  KEY `IDX_n2d_d_id` (`d_id`)
+  KEY `IDX_n2d_hkey` (`hkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
