@@ -561,7 +561,7 @@ function put_work($mysql, $candidates) {
 
     //pull cracked wordlist
     $stmt = $mysql->stmt_init();
-    $stmt->prepare("SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 GROUP BY pass) i ORDER BY i.c DESC");
+    $stmt->prepare("SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 AND (algo IS NULL OR algo = '') GROUP BY pass) i ORDER BY i.c DESC");
     $stmt->execute();
     $stmt->bind_result($key);
 
