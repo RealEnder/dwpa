@@ -17,6 +17,23 @@ function valid_hash($hash) {
     return preg_match('/^[a-f0-9]{32}$/', strtolower($hash));
 }
 
+// Associate handshakes to dict
+function insert_n2d(& $mysql, & $ref) {
+    if (count($ref) < 2) {
+        return;
+    }
+
+    $bindvars = 'iis';
+    $sql = 'INSERT ignore INTO n2d(net_id, d_id, hkey) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare($sql);
+
+    $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
+    call_user_func_array(array($stmt, 'bind_param'), $ref);
+    $stmt->execute();
+    $stmt->close();
+}
+
 //this is for user supplied dictionary
 $options = json_decode($_POST['options'], True);
 if (array_key_exists('hash', $options)) {
@@ -35,49 +52,58 @@ if (array_key_exists('hash', $options)) {
         $data = $result->fetch_all(MYSQLI_ASSOC);
     }
     $result->free();
-    $mysql->close();
 
     if (count($data) != 1) {
         die('No nets!?');
     }
     $data = $data[0];
+    $resnet = array();
 
     $json = array();
     $json['hash']  = strtolower($data['hash']);
     $json['bssid']  = long2mac($data['bssid']);
     $json['hccapx']  = base64_encode($data['hccapx']);
+    $resnet[] = $json;
+} else {
+    // critical section begin
+    create_lock('get_work.lock');
 
-    echo json_encode($json);
-    exit();
+    // generate get_work key
+    $hkey = gen_key();
+    $bhkey = hex2bin($hkey);
+
+    // get current dict
+    $result = $mysql->query('SELECT * FROM get_dict LIMIT 1');
+    $dict = $result->fetch_all(MYSQLI_ASSOC);
+    $result->free();
+
+    // add hkey and dict
+    $resnet = array();
+    $resnet[] = array('hkey' => $hkey);
+    $resnet[] = array('dhash' => strtolower($dict[0]['dhash']));
+    $resnet[] = array('dpath' => $dict[0]['dpath']);
+
+    // get handshakes and prepare
+    $result = $mysql->query('SELECT * FROM onets');
+    $handshakes = $result->fetch_all(MYSQLI_ASSOC);
+    $result->free();
+
+    $ref = array('');
+    foreach ($handshakes as $key => $handshake) {
+        $resnet[] = array('hash' => strtolower($handshake['hash']),
+                          'bssid' => long2mac($handshake['bssid']),
+                          'hccapx' => base64_encode($handshake['hccapx']));
+        $ref[] = & $handshakes[$key]['net_id'];
+        $ref[] = & $dict[0]['d_id'];
+        $ref[] = & $bhkey;
+    }
+
+    // populate in n2d
+    insert_n2d($mysql, $ref);
+
+    // critical section end
+    release_lock('get_work.lock');
 }
 
-//get next handshake/dict pair
-$result = $mysql->query('SELECT * FROM (SELECT * FROM onets LIMIT 1) a, (SELECT * FROM get_dict LIMIT 1) b');
-$data = $result->fetch_all(MYSQLI_ASSOC);
-$result->free();
-
-if (count($data) != 1) {
-    $mysql->close();
-    die('No nets!?');
-}
-$data = $data[0];
-
-//mark handshake/dict pair as returned for cracking
-$usql = 'INSERT INTO n2d(net_id, d_id) VALUES(?, ?) ON DUPLICATE KEY UPDATE Hits=Hits+1, ts=NOW()';
-$ustmt = $mysql->stmt_init();
-$ustmt->prepare($usql);
-$ustmt->bind_param('ii', $data['net_id'], $data['d_id']);
-$ustmt->execute();
-$ustmt->close();
-$mysql->close();
-
-//return to client
-$json = array();
-$json['hash']  = strtolower($data['hash']);
-$json['bssid']  = long2mac($data['bssid']);
-$json['dpath']  = $data['dpath'];
-$json['dhash']  = strtolower($data['dhash']);
-$json['hccapx']  = base64_encode($data['hccapx']);
-
-echo json_encode($json);
+echo json_encode($resnet);
 ?>
