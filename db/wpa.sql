@@ -263,7 +263,7 @@ CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,h
 --
 DROP TABLE IF EXISTS `onets`;
 
-CREATE VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where ((`nets`.`n_state` = 0) and (`nets`.`ssid` = (select `nets`.`ssid` AS `ssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1))) ;
+CREATE VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where ((`nets`.`n_state` = 0) and (`nets`.`ssid` = cast((select `nets`.`ssid` AS `ssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1) as char charset binary))) ;
 
 -- --------------------------------------------------------
 

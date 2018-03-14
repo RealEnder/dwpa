@@ -38,7 +38,7 @@ function insert_n2d(& $mysql, & $ref) {
 $options = json_decode($_POST['options'], True);
 if (array_key_exists('ssid', $options)) {
     $stmt = $mysql->stmt_init();
-    $stmt->prepare('SELECT HEX(ssid) AS ssid, hccapx FROM nets WHERE n_state=0 AND ssid = (SELECT ssid FROM nets WHERE n_state=0 AND ssid > UNHEX(?) GROUP BY ssid ASC LIMIT 1)');
+    $stmt->prepare('SELECT HEX(ssid) AS ssid, hccapx FROM nets WHERE n_state=0 AND ssid = BINARY (SELECT ssid FROM nets WHERE n_state=0 AND ssid > UNHEX(?) GROUP BY ssid ASC LIMIT 1)');
     $stmt->bind_param('s', $options['ssid']);
     $stmt->execute();
     $result = $stmt->get_result();
