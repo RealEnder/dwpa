@@ -283,7 +283,7 @@ class HelpCrack(object):
         for index, ttool in enumerate(tools):
             print('{0}: {1}'.format(index, ttool))
         print('9: Quit')
-        while 1:
+        while True:
             user = userinput('Index:')
             if user == '9':
                 exit(0)
@@ -292,28 +292,6 @@ class HelpCrack(object):
                 return tools[int(user)]
             except (ValueError, IndexError):
                 self.pprint('Wrong index', 'WARNING')
-
-    def get_work_wl(self, options):
-        '''pull handshake and optionally dictionary location'''
-        while True:
-            work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
-            try:
-                netdata = json.loads(work)
-                if len(netdata['hash']) != 32:
-                    raise ValueError
-                if not self.valid_mac(netdata['bssid']):
-                    raise ValueError
-
-                return netdata
-            except (TypeError, ValueError, KeyError):
-                if work == 'Version':
-                    self.pprint('Please update help_crack, the API has changed', 'FAIL')
-                    exit(1)
-                if work == 'No nets!?':
-                    self.pprint('No suitable net found', 'WARNING')
-
-            self.pprint('Server response error', 'WARNING')
-            self.sleepy()
 
     @staticmethod
     def hccapx2john(hccapx):
@@ -430,53 +408,89 @@ class HelpCrack(object):
 
         return hccaps
 
+    def get_work(self, options):
+        '''pull handshakes and optionally dictionary location/ssid'''
+        while True:
+            work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
+            try:
+                netdata = json.loads(work)
+                if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
+                    raise ValueError
+
+                return netdata
+            except (TypeError, ValueError, KeyError):
+                if work == 'Version':
+                    self.pprint('Please update help_crack, the API has changed', 'FAIL')
+                    exit(1)
+                if work == 'No nets!?':
+                    self.pprint('No suitable net found', 'WARNING')
+                if 'ssid' in options and work == 'No nets':
+                    self.pprint('User dictionary check finished', 'OKGREEN')
+                    exit(0)
+
+            self.pprint('Server response error', 'WARNING')
+            self.sleepy()
+
     def prepare_work(self, netdata):
-        '''prepare work based on netdata; returns dictname'''
+        '''prepare work based on netdata; returns dictname and ssid/hkey'''
         if netdata is None:
             return False
 
-        if self.conf['format'] == 'hccapx':
-            handshake = binascii.a2b_base64(netdata['hccapx'])
-        else:
-            handshake = self.hccapx2john(binascii.a2b_base64(netdata['hccapx']))
-
-        # write net
+        # extract ssid/hkey, handshakes and dict details
+        metadata = {}
         try:
             with open(self.conf['net_file'], 'wb') as fd:
-                fd.write(handshake)
+                for part in netdata:
+                    if 'hkey' in part:
+                        metadata['hkey'] = part['hkey']
+                    if 'dhash' in part:
+                        metadata['dhash'] = part['dhash']
+                    if 'dpath' in part:
+                        metadata['dpath'] = part['dpath']
+                    if 'ssid' in part:
+                        metadata['ssid'] = part['ssid']
+                    if 'hccapx' in part:
+                        if self.conf['format'] == 'hccapx':
+                            fd.write(binascii.a2b_base64(part['hccapx']))
+                        else:
+                            fd.write(self.hccapx2john(binascii.a2b_base64(part['hccapx'])))
+            if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
+                self.pprint('hkey or ssid not found in work package!', 'FAIL')
+                exit(1)
         except OSError as e:
             self.pprint('Handshake write failed', 'FAIL')
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             exit(1)
 
-        # check for dict and download it
-        if 'dpath' not in netdata:
-            return True
+        # do we have to process dictionary?
+        if 'dpath' not in metadata:
+            return metadata
 
+        # check for dict and download it
         dictmd5 = ''
         extract = False
-        gzdictname = netdata['dpath'].split('/')[-1]
-        dictname = gzdictname.rsplit('.', 1)[0]
+        gzdictname = metadata['dpath'].split('/')[-1]
+        metadata['dictname'] = gzdictname.rsplit('.', 1)[0]
 
         while True:
             if os.path.exists(gzdictname):
                 dictmd5 = self.md5file(gzdictname)
-            if netdata['dhash'] != dictmd5:
+            if metadata['dhash'] != dictmd5:
                 self.pprint('Downloading ' + gzdictname, 'OKBLUE')
-                self.download(netdata['dpath'], gzdictname)
-                if self.md5file(gzdictname) != netdata['dhash']:
-                    self.pprint('Dict downloaded but hash mismatch dpath:{0} dhash:{1}'.format(netdata['dpath'], netdata['dhash']), 'WARNING')
+                self.download(metadata['dpath'], gzdictname)
+                if self.md5file(gzdictname) != metadata['dhash']:
+                    self.pprint('Dict downloaded but hash mismatch', 'WARNING')
 
                 extract = True
 
-            if not os.path.exists(dictname):
+            if not os.path.exists(metadata['dictname']):
                 extract = True
 
             if extract:
                 self.pprint('Extracting ' + gzdictname, 'OKBLUE')
                 try:
                     with gzip.open(gzdictname, 'rb') as ftgz:
-                        with open(dictname, 'wb') as fd:
+                        with open(metadata['dictname'], 'wb') as fd:
                             while True:
                                 chunk = ftgz.read(self.blocksize)
                                 if not chunk:
@@ -488,29 +502,28 @@ class HelpCrack(object):
                     self.sleepy()
                     continue
 
-            return dictname
+            return metadata
 
     def prepare_challenge(self):
         '''prepare chalenge with known PSK'''
-        netdata = {'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
+        netdata = [{'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
                                 x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
                                 I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
                                 b1k+bcXjgjoy+9Svkp9RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
                                 AAAAAAAAABgwFgEAAA+sAgEAAA+sBAEAAA+sAjwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
                                 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
                                 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""",
-                   'bssid': '1c:7e:e5:e2:f2:d0',
-                   'hash': '0747af15ffbd5ce545c862dd1e36d727',
-                   'key': 'aaaa1234',
-                   'dictname': 'challenge.txt'}
+                    'key': 'aaaa1234',
+                    'dictname': 'challenge.txt'},
+                   {'ssid': ''}]
         try:
             # create dict
             try:
-                data = netdata['key'] + "\n"
-                with open(netdata['dictname'], 'wb') as fd:
+                data = netdata[0]['key'] + "\n"
+                with open(netdata[0]['dictname'], 'wb') as fd:
                     fd.write(data.encode())
             except OSError as e:
-                self.pprint(netdata['dictname'] + ' creation failed', 'FAIL')
+                self.pprint(netdata[0]['dictname'] + ' creation failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
                 exit(1)
 
@@ -520,11 +533,17 @@ class HelpCrack(object):
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             exit(1)
 
-    def put_work(self, handshakehash, pwkey):
+    def put_work(self, metadata, keypair):
         '''return results to server'''
+        keys = {}
+        if 'hkey' in metadata:
+            keys['hkey'] = metadata['hkey']
+        if keypair is not None:
+            for pad, k in enumerate(keypair):
+                keys[(b'z%03d' % pad) + k['bssid']] = k['key']
+        data = urlencode(keys).encode()
         while True:
             try:
-                data = urlencode({handshakehash: pwkey}).encode()
                 response = urlopen(self.conf['put_work_url'], data)
                 response.close()
                 return True
@@ -544,9 +563,9 @@ class HelpCrack(object):
             with open(self.conf['res_file']) as fd:
                 try:
                     netdata = json.load(fd)
-                    if len(netdata['hash']) != 32:
+                    if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
                         raise ValueError
-                    if 'dhash' not in netdata and self.conf['custom'] is None:
+                    if not any('hkey' in d for d in netdata) and self.conf['custom'] is None:
                         self.pprint('Can\'t resume from custom dictionary attack', 'WARNING')
                         return None
                     self.pprint('Session resume', 'OKBLUE')
@@ -603,33 +622,88 @@ class HelpCrack(object):
             return 0
 
     def get_key(self):
-        '''read key from file'''
-        key = ''
+        '''read bssid and key pairs from file'''
+
+        def parse_hashcat(pot):
+            '''parse hashcat potfile line'''
+            try:
+                arr = pot.split(b':', 4)
+                bssid = arr[1][:12]
+                bssid = bssid = bssid[0:2] + \
+                    b':' + bssid[2:4] + \
+                    b':' + bssid[4:6] + \
+                    b':' + bssid[6:8] + \
+                    b':' + bssid[8:10] + \
+                    b':' + bssid[10:12]
+                return {'bssid': bssid, 'key': arr[4].rstrip(b'\n')}
+            except (TypeError, ValueError, KeyError):
+                pass
+
+            return False
+
+        def parse_jtr(pot):
+            '''parse JtR potfile line'''
+            def jb64decode(jb64):
+                '''JtR b64 decode'''
+                encode_trans = maketrans(b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+                                         b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
+                b64 = jb64.translate(encode_trans) + b'='
+
+                return binascii.a2b_base64(b64)
+
+            arr = pot.split(b':', 1)
+            if len(arr) != 2:
+                return False
+            key = arr[1].rstrip(b'\n')
+
+            arr = arr[0].split(b'#', 1)
+            if len(arr) != 2:
+                return False
+
+            try:
+                phccap = jb64decode(arr[1])
+                bssid = binascii.hexlify(phccap[:6])
+                bssid = bssid[0:2] + \
+                    b':' + bssid[2:4] + \
+                    b':' + bssid[4:6] + \
+                    b':' + bssid[6:8] + \
+                    b':' + bssid[8:10] + \
+                    b':' + bssid[10:12]
+            except (binascii.Error, binascii.Incomplete):
+                return False
+
+            return {'bssid': bssid, 'key': key}
+
+        res = []
         try:
             if os.path.exists(self.conf['key_file']):
                 with open(self.conf['key_file'], 'rb') as fd:
-                    key = fd.readline()
-                    # check if we have user potfile. Don't write if it's the challenge
-                    if self.conf['potfile'] and not \
-                        (b'76c6eaf116d91cc1450561b00c98ea19' in key
-                         or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in key):
-                        with open(self.conf['potfile'], 'ab') as fdpot:
-                            fdpot.write(key)
+                    while True:
+                        line = fd.readline()
+                        if not line:
+                            break
 
-            if self.conf['format'] == 'hccapx':
-                key = key[key.rfind(b':')+1:]
-                key = key.rstrip(b'\n')
+                        # check if we have user potfile. Don't write if it's the challenge
+                        if self.conf['potfile'] and not \
+                            (b'76c6eaf116d91cc1450561b00c98ea19' in line
+                             or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in line):
+                            with open(self.conf['potfile'], 'ab') as fdpot:
+                                fdpot.write(line)
 
-            if self.conf['format'] == 'wpapsk':
-                key = key.rstrip(b'\n')[100:]
-                key = key[key.find(b':')+1:]
+                        if self.conf['format'] == 'hccapx':
+                            keypair = parse_hashcat(line)
 
-            if len(key) >= 8:
+                        if self.conf['format'] == 'wpapsk':
+                            keypair = parse_jtr(line)
+
+                        if keypair:
+                            res.append(keypair)
+
+            if res:
                 os.unlink(self.conf['key_file'])
-                return key
-
+                return res
         except IOError as e:
-            self.pprint('Couldn\'t read key', 'FAIL')
+            self.pprint('Couldn\'t read pot file', 'FAIL')
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             exit(1)
 
@@ -644,44 +718,45 @@ class HelpCrack(object):
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
-        rc = self.run_cracker(netdata['dictname'], disablestdout=True)
-        key = self.get_key()
+        rc = self.run_cracker(netdata[0]['dictname'], disablestdout=True)
+        keypair = self.get_key()
 
-        if rc != 0 or key != bytearray(netdata['key'], 'utf-8', errors='ignore'):
+        if rc != 0 or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
             exit(1)
 
         netdata = self.resume_check()
-        nethash = None
-        hashcache = set()
-
+        metadata = {'ssid': '00'}
+        options = {'format': self.conf['format'], 'cracker': self.conf['cracker']}
         while True:
             if netdata is None:
                 if self.conf['custom']:
-                    netdata = self.get_work_wl(json.JSONEncoder().encode({'hash': nethash, 'format': self.conf['format'], 'cracker': self.conf['cracker']}))
-                else:
-                    netdata = self.get_work_wl(json.JSONEncoder().encode({'format': self.conf['format'], 'cracker': self.conf['cracker']}))
+                    options['ssid'] = metadata['ssid']
+                netdata = self.get_work(json.JSONEncoder().encode(options))
 
             self.create_resume(netdata)
+            metadata = self.prepare_work(netdata)
 
-            dictname = self.prepare_work(netdata)
-            if dictname is True and self.conf['custom']:
-                dictname = self.conf['custom']
-                nethash = netdata['hash']
+            if self.conf['custom']:
+                metadata['dictname'] = self.conf['custom']
 
             runadditional = True
             while True:
-                rc = self.run_cracker(dictname)
+                keypair = None
+                rc = self.run_cracker(metadata['dictname'])
                 if rc == 0:
-                    key = self.get_key()
-                    self.pprint('Key for capture hash {0} is: {1}'.format(netdata['hash'], key.decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
-                    self.put_work(netdata['hash'], key)
-                    break
-                self.pprint('Exausted', 'OKBLUE')
+                    keypair = self.get_key()
+                    for k in keypair:
+                        self.pprint('Key for bssid {0} is: {1}'.format(k['bssid'].decode(sys.stdout.encoding or 'utf-8', errors='ignore'),
+                                                                       k['key'].decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
 
-                if conf['additional'] is not None and runadditional and netdata['hash'] not in hashcache:
-                    hashcache.add(netdata['hash'])
-                    dictname = conf['additional']
+                if not runadditional and rc != 0:
+                    break
+
+                self.put_work(metadata, keypair)
+
+                if conf['additional'] is not None and runadditional:
+                    metadata['dictname'] = conf['additional']
                     runadditional = False
                     continue
                 break
