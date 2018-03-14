@@ -1,10 +1,10 @@
 <?php
-//check incoming version string
+// check incoming version string
 if (version_compare($_GET['get_work'], MIN_HC_VER) < 0 ) {
     die('Version');
 }
 
-//check and validate options
+// check and validate options
 if (! array_key_exists('options', $_POST)) {
     die('Version');
 }
@@ -12,7 +12,7 @@ if (! array_key_exists('options', $_POST)) {
 require_once('db.php');
 require_once('common.php');
 
-//valid hex hash
+// Valid hex hash
 function valid_hash($hash) {
     return preg_match('/^[a-f0-9]{32}$/', strtolower($hash));
 }
@@ -34,7 +34,7 @@ function insert_n2d(& $mysql, & $ref) {
     $stmt->close();
 }
 
-//this is for user supplied dictionary
+// this is for user supplied dictionary
 $options = json_decode($_POST['options'], True);
 if (array_key_exists('ssid', $options)) {
     $stmt = $mysql->stmt_init();
