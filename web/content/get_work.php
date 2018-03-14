@@ -24,7 +24,7 @@ function insert_n2d(& $mysql, & $ref) {
     }
 
     $bindvars = 'iis';
-    $sql = 'INSERT ignore INTO n2d(net_id, d_id, hkey) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
+    $sql = 'INSERT IGNORE INTO n2d(net_id, d_id, hkey) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 
@@ -36,34 +36,26 @@ function insert_n2d(& $mysql, & $ref) {
 
 //this is for user supplied dictionary
 $options = json_decode($_POST['options'], True);
-if (array_key_exists('hash', $options)) {
-    if (valid_hash($options['hash'])) {
-        //this is for next uncracked net
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT HEX(hash) AS hash, bssid, hccapx FROM nets WHERE n_state=0 AND net_id > (SELECT net_id FROM nets WHERE hash=UNHEX(?)) ORDER BY net_id LIMIT 1');
-        $stmt->bind_param('s', $options['hash']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $data = $result->fetch_all(MYSQLI_ASSOC);
-        $stmt->close();
-    } else {
-        //this is for initial start
-        $result = $mysql->query('SELECT HEX(hash) AS hash, bssid, hccapx FROM nets WHERE n_state=0 ORDER BY net_id LIMIT 1');
-        $data = $result->fetch_all(MYSQLI_ASSOC);
-    }
+if (array_key_exists('ssid', $options)) {
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('SELECT HEX(ssid) AS ssid, hccapx FROM nets WHERE n_state=0 AND ssid = (SELECT ssid FROM nets WHERE n_state=0 AND ssid > UNHEX(?) GROUP BY ssid ASC LIMIT 1)');
+    $stmt->bind_param('s', $options['ssid']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $handshakes = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
     $result->free();
 
-    if (count($data) != 1) {
-        die('No nets!?');
+    if (count($handshakes) == 0) {
+        $mysql->close();
+        die('No nets');
     }
-    $data = $data[0];
-    $resnet = array();
 
-    $json = array();
-    $json['hash']  = strtolower($data['hash']);
-    $json['bssid']  = long2mac($data['bssid']);
-    $json['hccapx']  = base64_encode($data['hccapx']);
-    $resnet[] = $json;
+    $resnet = array();
+    $resnet[] = array('ssid' => $handshakes[0]['ssid']);
+    foreach ($handshakes as $key => $handshake) {
+        $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
+    }
 } else {
     // critical section begin
     create_lock('get_work.lock');
@@ -90,9 +82,7 @@ if (array_key_exists('hash', $options)) {
 
     $ref = array('');
     foreach ($handshakes as $key => $handshake) {
-        $resnet[] = array('hash' => strtolower($handshake['hash']),
-                          'bssid' => long2mac($handshake['bssid']),
-                          'hccapx' => base64_encode($handshake['hccapx']));
+        $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
         $ref[] = & $handshakes[$key]['net_id'];
         $ref[] = & $dict[0]['d_id'];
         $ref[] = & $bhkey;
