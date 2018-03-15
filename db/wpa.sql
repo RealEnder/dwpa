@@ -249,7 +249,7 @@ CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,hex(`d`.`dhash`) AS `dha
 --
 DROP TABLE IF EXISTS `get_nets`;
 
-CREATE VIEW `get_nets`  AS  select `n`.`net_id` AS `net_id`,`n`.`hccapx` AS `hccapx` from `nets` `n` where ((`n`.`ssid` = cast((select `nets`.`ssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1) as char charset binary)) and (`n`.`n_state` = 0) and (not(exists(select 1 from `n2d` where ((`n2d`.`d_id` = (select `d`.`d_id` from `dicts` `d` where (not(exists(select `n2d`.`d_id` from `n2d` where ((`d`.`d_id` = `n2d`.`d_id`) and exists(select `nets`.`net_id` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts`))))) order by `d`.`wcount` limit 1)) and (`n2d`.`net_id` = `n`.`net_id`)))))) ;
+CREATE VIEW `get_nets`  AS  select `n`.`net_id` AS `net_id`,`n`.`hccapx` AS `hccapx` from `nets` `n` where ((`n`.`ssid` = cast((select `nets`.`ssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1) as char charset binary)) and (`n`.`n_state` = 0) and (not(exists(select 1 from `n2d` where ((`n2d`.`d_id` = (select `d`.`d_id` from `dicts` `d` where (not(exists(select `n2d`.`d_id` from `n2d` where ((`d`.`d_id` = `n2d`.`d_id`) and (`n2d`.`net_id` = (select `nets`.`net_id` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1)))))) order by `d`.`wcount` limit 1)) and (`n2d`.`net_id` = `n`.`net_id`)))))) ;
 --
 -- Constraints for dumped tables
 --
