@@ -76,7 +76,7 @@ if (array_key_exists('ssid', $options)) {
     $resnet[] = array('dpath' => $dict[0]['dpath']);
 
     // get handshakes and prepare
-    $result = $mysql->query('SELECT * FROM onets');
+    $result = $mysql->query('SELECT * FROM onets WHERE NOT EXISTS (SELECT * FROM n2d WHERE d_id=(SELECT d_id FROM get_dict LIMIT 1) AND n2d.net_id = onets.net_id)');
     $handshakes = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
 
