@@ -422,11 +422,13 @@ class HelpCrack(object):
                 if work == 'Version':
                     self.pprint('Please update help_crack, the API has changed', 'FAIL')
                     exit(1)
-                if work == 'No nets!?':
-                    self.pprint('No suitable net found', 'WARNING')
                 if 'ssid' in options and work == 'No nets':
                     self.pprint('User dictionary check finished', 'OKGREEN')
                     exit(0)
+                if work == 'No nets':
+                    self.pprint('No suitable nets found', 'WARNING')
+                    self.sleepy()
+                    continue
 
             self.pprint('Server response error', 'WARNING')
             self.sleepy()
