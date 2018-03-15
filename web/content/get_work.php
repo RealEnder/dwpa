@@ -24,7 +24,7 @@ function insert_n2d(& $mysql, & $ref) {
     }
 
     $bindvars = 'iis';
-    $sql = 'INSERT IGNORE INTO n2d(net_id, d_id, hkey) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
+    $sql = 'INSERT INTO n2d(net_id, d_id, hkey) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 
@@ -36,9 +36,9 @@ function insert_n2d(& $mysql, & $ref) {
 
 // this is for user supplied dictionary
 $options = json_decode($_POST['options'], True);
-if (array_key_exists('ssid', $options)) {
+if ($options && array_key_exists('ssid', $options)) {
     $stmt = $mysql->stmt_init();
-    $stmt->prepare('SELECT HEX(ssid) AS ssid, hccapx FROM nets WHERE n_state=0 AND ssid = BINARY (SELECT ssid FROM nets WHERE n_state=0 AND ssid > UNHEX(?) GROUP BY ssid ASC LIMIT 1)');
+    $stmt->prepare('SELECT HEX(ssid) AS ssid, hccapx FROM nets WHERE n_state=0 AND ssid = BINARY (SELECT BINARY ssid FROM nets WHERE n_state=0 AND ssid > UNHEX(?) GROUP BY BINARY ssid ASC LIMIT 1)');
     $stmt->bind_param('s', $options['ssid']);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -65,9 +65,16 @@ if (array_key_exists('ssid', $options)) {
     $bhkey = hex2bin($hkey);
 
     // get current dict
-    $result = $mysql->query('SELECT * FROM get_dict LIMIT 1');
+    // SELECT d_id, HEX(dhash) as dhash, dpath FROM dicts d WHERE NOT EXISTS (SELECT d_id FROM n2d WHERE d.d_id=n2d.d_id AND n2d.net_id=(SELECT net_id FROM nets WHERE n_state = 0 ORDER BY hits, ts LIMIT 1)) ORDER BY d.wcount LIMIT 1
+    $result = $mysql->query('SELECT * FROM get_dict');
     $dict = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
+
+    if (count($dict) == 0) {
+        release_lock('get_work.lock');
+        $mysql->close();
+        die('No nets');
+    }
 
     // add hkey and dict
     $resnet = array();
@@ -76,9 +83,16 @@ if (array_key_exists('ssid', $options)) {
     $resnet[] = array('dpath' => $dict[0]['dpath']);
 
     // get handshakes and prepare
-    $result = $mysql->query('SELECT * FROM onets WHERE NOT EXISTS (SELECT * FROM n2d WHERE d_id=(SELECT d_id FROM get_dict LIMIT 1) AND n2d.net_id = onets.net_id)');
+    // SELECT net_id, hccapx FROM nets n WHERE ssid = BINARY (SELECT ssid FROM nets WHERE n_state = 0 ORDER BY hits, ts LIMIT 1) AND n_state=0 AND NOT EXISTS (SELECT * FROM n2d WHERE d_id=(SELECT d_id FROM dicts d WHERE NOT EXISTS (SELECT d_id FROM n2d WHERE d.d_id=n2d.d_id AND EXISTS (SELECT net_id FROM nets WHERE n_state = 0 ORDER BY hits, ts LIMIT 1)) ORDER BY d.wcount LIMIT 1) AND n2d.net_id = n.net_id)
+    $result = $mysql->query('SELECT * FROM get_nets');
     $handshakes = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
+
+    if (count($handshakes) == 0) {
+        release_lock('get_work.lock');
+        $mysql->close();
+        die('No nets');
+    }
 
     $ref = array('');
     foreach ($handshakes as $key => $handshake) {
