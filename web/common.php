@@ -147,6 +147,22 @@ function hccapx_hash(& $hccapx) {
     return md5(substr($hccapx, 0x09), True);
 }
 
+// Create filesystem lock file or wait until we can create one
+// Proceed if the lockfile is older than 1 minute
+function create_lock($lockfile) {
+    while (file_exists(SHM.$lockfile) && (time()-filemtime(SHM.$lockfile) <= 60)) {
+        sleep(1);
+    }
+    touch(SHM.$lockfile);
+}
+
+// Release filesystem lock file if exists
+function release_lock($lockfile) {
+    if (file_exists(SHM.$lockfile)) {
+        @unlink(SHM.$lockfile);
+    }
+}
+
 // Get handshakes by ssid, bssid, mac_sta
 function get_handshakes(& $mysql, & $stmt, $ssid, $bssid, $mac_sta, $n_state) {
     if ($stmt == Null) {

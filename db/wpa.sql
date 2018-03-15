@@ -30,10 +30,21 @@ CREATE TABLE IF NOT EXISTS `dicts` (
 -- Stand-in structure for view `get_dict`
 -- (See below for the actual view)
 --
-CREATE TABLE IF NOT EXISTS `get_dict` (
+CREATE TABLE `get_dict` (
 `d_id` smallint(5) unsigned
-,`dpath` varchar(256)
 ,`dhash` varchar(32)
+,`dpath` varchar(256)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `get_nets`
+-- (See below for the actual view)
+--
+CREATE TABLE `get_nets` (
+`net_id` bigint(15)
+,`hccapx` varbinary(393)
 );
 
 -- --------------------------------------------------------
@@ -45,12 +56,12 @@ CREATE TABLE IF NOT EXISTS `get_dict` (
 CREATE TABLE IF NOT EXISTS `n2d` (
   `net_id` bigint(15) NOT NULL,
   `d_id` smallint(5) UNSIGNED NOT NULL,
-  `hits` smallint(5) NOT NULL DEFAULT '1',
+  `hkey` binary(16) DEFAULT NULL COMMENT 'get_work key',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`net_id`,`d_id`),
   KEY `IDX_n2d_ts` (`ts`),
   KEY `IDX_n2d_net_id` (`net_id`),
-  KEY `IDX_n2d_d_id` (`d_id`)
+  KEY `IDX_n2d_hkey` (`hkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
@@ -65,9 +76,21 @@ CREATE TABLE IF NOT EXISTS `n2d` (
 -- Triggers `n2d`
 --
 DELIMITER $$
-CREATE TRIGGER `TRG_n2d` BEFORE INSERT ON `n2d` FOR EACH ROW BEGIN
+CREATE TRIGGER `TRG_n2d` AFTER INSERT ON `n2d` FOR EACH ROW BEGIN
     UPDATE nets SET hits=hits+1 WHERE nets.net_id=NEW.net_id;
     UPDATE dicts SET hits=hits+1 WHERE dicts.d_id=NEW.d_id;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `TRG_n2d_delete` AFTER DELETE ON `n2d` FOR EACH ROW BEGIN
+    DECLARE vn_state tinyint(1);
+
+    SELECT n_state FROM nets WHERE net_id=OLD.net_id INTO vn_state;
+    IF (vn_state=0) THEN
+        UPDATE dicts SET hits=hits-1 WHERE d_id=OLD.d_id;
+        UPDATE nets SET hits=hits-1 WHERE net_id=OLD.net_id;
+    END IF;
 END
 $$
 DELIMITER ;
@@ -137,32 +160,6 @@ CREATE TABLE IF NOT EXISTS `nets` (
 --   `s_id`
 --       `submissions` -> `s_id`
 --
-
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `onets`
--- (See below for the actual view)
---
-CREATE TABLE IF NOT EXISTS `onets` (
-`net_id` bigint(15)
-,`hash` varchar(32)
-,`hccapx` varbinary(393)
-,`bssid` bigint(15) unsigned
-,`hits` smallint(5) unsigned
-);
-
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `onets_dicts`
--- (See below for the actual view)
---
-CREATE TABLE IF NOT EXISTS `onets_dicts` (
-`net_id` bigint(15)
-,`d_id` smallint(5) unsigned
-,`hits` smallint(5)
-);
 
 -- --------------------------------------------------------
 
@@ -243,26 +240,16 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 DROP TABLE IF EXISTS `get_dict`;
 
-CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,`d`.`dpath` AS `dpath`,hex(`d`.`dhash`) AS `dhash` from (`dicts` `d` left join `onets_dicts` `od` on((`d`.`d_id` = `od`.`d_id`))) order by ifnull(`od`.`hits`,0),`d`.`wcount` ;
+CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,hex(`d`.`dhash`) AS `dhash`,`d`.`dpath` AS `dpath` from `dicts` `d` where (not(exists(select `n2d`.`d_id` from `n2d` where ((`d`.`d_id` = `n2d`.`d_id`) and (`n2d`.`net_id` = (select `nets`.`net_id` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1)))))) order by `d`.`wcount` limit 1 ;
 
 -- --------------------------------------------------------
 
 --
--- Structure for view `onets`
+-- Structure for view `get_nets`
 --
-DROP TABLE IF EXISTS `onets`;
+DROP TABLE IF EXISTS `get_nets`;
 
-CREATE VIEW `onets`  AS  select `nets`.`net_id` AS `net_id`,hex(`nets`.`hash`) AS `hash`,`nets`.`hccapx` AS `hccapx`,`nets`.`bssid` AS `bssid`,`nets`.`hits` AS `hits` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1 ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `onets_dicts`
---
-DROP TABLE IF EXISTS `onets_dicts`;
-
-CREATE VIEW `onets_dicts`  AS  select `n2d`.`net_id` AS `net_id`,`n2d`.`d_id` AS `d_id`,`n2d`.`hits` AS `hits` from (`n2d` join `onets` `o`) where (`n2d`.`net_id` = `o`.`net_id`) ;
-
+CREATE VIEW `get_nets`  AS  select `n`.`net_id` AS `net_id`,`n`.`hccapx` AS `hccapx` from `nets` `n` where ((`n`.`ssid` = cast((select `nets`.`ssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1) as char charset binary)) and (`n`.`n_state` = 0) and (not(exists(select 1 from `n2d` where ((`n2d`.`d_id` = (select `d`.`d_id` from `dicts` `d` where (not(exists(select `n2d`.`d_id` from `n2d` where ((`d`.`d_id` = `n2d`.`d_id`) and exists(select `nets`.`net_id` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts`))))) order by `d`.`wcount` limit 1)) and (`n2d`.`net_id` = `n`.`net_id`)))))) ;
 --
 -- Constraints for dumped tables
 --
@@ -304,3 +291,5 @@ UPDATE stats SET pvalue=(SELECT count(*) FROM nets WHERE date( ts ) = DATE_SUB( 
 UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, dicts WHERE nets.n_state=0) WHERE pname='words';
 UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, n2d, dicts WHERE nets.n_state=0 AND nets.net_id = n2d.net_id AND dicts.d_id = n2d.d_id) WHERE pname='triedwords';
 END$$
+
+CREATE EVENT `e_cleanup_n2d` ON SCHEDULE EVERY 1 HOUR ON COMPLETION NOT PRESERVE ENABLE DO DELETE FROM n2d WHERE hkey IS NOT NULL AND TIMESTAMPDIFF(DAY, ts, CURRENT_TIMESTAMP) > 0$$
