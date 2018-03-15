@@ -7,7 +7,6 @@ require_once('common.php');
 $result = $mysql->query('SELECT * FROM stats');
 $datas = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
-$mysql->close();
 
 $stats = array();
 foreach ($datas as $data) {
@@ -38,6 +37,13 @@ $perf = convert_num($stats['24psk']/(60*60*24));
 echo "Last day performance: $perf/s<br/>\n";
 echo "Last day submissions: {$stats['24sub']}<br/>\n";
 echo '<br/>';
+
+// current contributers
+$result = $mysql->query('SELECT COUNT(distinct hkey) AS CC FROM n2d WHERE hkey IS NOT NULL');
+$datas = $result->fetch_all(MYSQLI_ASSOC);
+$result->free();
+
+echo "Current contributers count: {$datas[0]['CC']}\n<br/>\n";
 
 // estimation and simple gaugage
 echo "Current round ends in: ";
