@@ -43,7 +43,7 @@ $result = $mysql->query('SELECT COUNT(distinct hkey) AS CC FROM n2d WHERE hkey I
 $datas = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 
-echo "Current contributers count: {$datas[0]['CC']}\n<br/>\n";
+echo "Current contributors count: {$datas[0]['CC']}\n<br/>\n";
 
 // estimation and simple gaugage
 echo "Current round ends in: ";
