@@ -95,3 +95,8 @@ ver 0.9.1 / 1 Mar 2018
  * ssl support
  * python 2/3 compatability fixes
  * various bugfixes
+ 
+ver 1.0.0 / 15 Mar 2018
+ * combine same essid handshakes
+ * disable hashcat log
+ * general bugfixes and improvements
