@@ -523,6 +523,11 @@ function put_work($mysql, $candidates) {
             continue;
         }
 
+        // remove bssid padding if found
+        if (strlen($bssid_or_hash) == 21) {
+            $bssid_or_hash = substr($bssid_or_hash, -17);
+        }
+
         //get hccapx structs by bssid or hash
         if (valid_mac($bssid_or_hash)) {
             $nets = by_bssid($mysql, $bybssid_stmt, $bssid_or_hash);
