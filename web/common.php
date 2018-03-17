@@ -86,12 +86,15 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
     $halfnc = ($nc >> 1) + 1;
 
     foreach ($keys as $key) {
-        $key = hc_unhex($key);
-        $kl = strlen($key);
-        if (($kl < 8) || ($kl > 64))
-            continue;
+        if (strlen($key) > 20) {
+            $key = hc_unhex($key);
+        }
 
         if (! $pmk) {
+            $kl = strlen($key);
+            if (($kl < 8) || ($kl > 64)) {
+                continue;
+            }
             $pmk = hash_pbkdf2('sha1', $key, $ahccapx['essid'], 4096, 32, True);
         }
 
@@ -582,7 +585,7 @@ function put_work($mysql, $candidates) {
 
     //pull cracked wordlist
     $stmt = $mysql->stmt_init();
-    $stmt->prepare("SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 AND (algo IS NULL OR algo = '') GROUP BY pass) i ORDER BY i.c DESC");
+    $stmt->prepare("SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 AND (algo IS NULL OR algo = '') AND LENGTH(pass) >= 8 GROUP BY pass) i ORDER BY i.c DESC");
     $stmt->execute();
     $stmt->bind_result($key);
 
@@ -739,7 +742,7 @@ td {padding-left: 7px; padding-right: 7px}
         $bssid = long2mac($data['bssid']);
         $hash = $data['hash'];
         $ssid = htmlspecialchars($data['ssid']);
-        if ($data['pass'] == '') {
+        if ($data['n_state'] == 0) {
             $pass = '<input class="input" type="text" name="'.$hash.'" size="20"/>';
             $has_input = True;
         } else {
