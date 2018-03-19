@@ -39,11 +39,11 @@ echo "Last day submissions: {$stats['24sub']}<br/>\n";
 echo '<br/>';
 
 // current contributers
-$result = $mysql->query('SELECT COUNT(distinct hkey) AS CC FROM n2d WHERE hkey IS NOT NULL');
+$result = $mysql->query('SELECT COUNT(DISTINCT hkey) AS dhkeyc, COUNT(hkey) AS hkeyc FROM n2d WHERE hkey IS NOT NULL');
 $datas = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 
-echo "Current contributors count: {$datas[0]['CC']}\n<br/>\n";
+echo "Current contributors count: {$datas[0]['dhkeyc']} working on {$datas[0]['hkeyc']} handshakes\n<br/>\n";
 
 // estimation and simple gaugage
 echo "Current round ends in: ";
