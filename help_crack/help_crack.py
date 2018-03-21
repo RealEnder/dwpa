@@ -587,41 +587,32 @@ class HelpCrack(object):
         while True:
             try:
                 if self.conf['format'] == 'hccapx':
-                    try:
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
-                        subprocess.check_call(shlex.split(cracker), stdout=fd)
-                    except subprocess.CalledProcessError as ex:
-                        if fd:
-                            fd.close()
-                        if ex.returncode == -2:
-                            self.pprint('Thermal watchdog barked', 'WARNING')
-                            self.sleepy()
-                            continue
-                        if ex.returncode == 1:
-                            return 1
-                        self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], ex.returncode), 'FAIL')
+                    cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
+                    rc = subprocess.call(shlex.split(cracker), stdout=fd)
+                    if rc == -2:
+                        self.pprint('Thermal watchdog barked', 'WARNING')
+                        self.sleepy()
+                        continue
+                    if rc >= 2:
+                        self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
                         self.pprint('Check you have OpenCL support', 'FAIL')
                         exit(1)
 
                 if self.conf['format'] == 'wpapsk':
-                    try:
-                        cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], dictname, self.conf['net_file'])
-                        subprocess.check_call(shlex.split(cracker), stdout=fd)
-                    except subprocess.CalledProcessError as ex:
-                        self.pprint('john {0} died with code {1}'.format(self.conf['cracker'], ex.returncode), 'FAIL')
+                    cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], dictname, self.conf['net_file'])
+                    rc = subprocess.call(shlex.split(cracker), stdout=fd)
+                    if rc != 0:
+                        self.pprint('john {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
                         exit(1)
 
-                    if not os.path.exists(self.conf['key_file']):
-                        return 1
-                    if os.path.getsize(self.conf['key_file']) == 0:
-                        return 1
-            except KeyboardInterrupt as ex:
+            except KeyboardInterrupt:
                 self.pprint('\nKeyboard interrupt', 'OKBLUE')
-                if os.path.exists(self.conf['key_file']):
-                    os.unlink(self.conf['key_file'])
                 exit(0)
 
-            return 0
+            if fd:
+                fd.close()
+
+            return
 
     def get_key(self):
         '''read bssid and key pairs from file'''
@@ -720,10 +711,10 @@ class HelpCrack(object):
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
-        rc = self.run_cracker(netdata[0]['dictname'], disablestdout=True)
+        self.run_cracker(netdata[0]['dictname'], disablestdout=True)
         keypair = self.get_key()
 
-        if rc != 0 or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
+        if not keypair or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
             exit(1)
 
@@ -745,14 +736,14 @@ class HelpCrack(object):
             runadditional = True
             while True:
                 keypair = None
-                rc = self.run_cracker(metadata['dictname'])
-                if rc == 0:
-                    keypair = self.get_key()
+                self.run_cracker(metadata['dictname'])
+                keypair = self.get_key()
+                if keypair:
                     for k in keypair:
                         self.pprint('Key for bssid {0} is: {1}'.format(k['bssid'].decode(sys.stdout.encoding or 'utf-8', errors='ignore'),
                                                                        k['key'].decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
 
-                if not runadditional and rc != 0:
+                if not runadditional and not keypair:
                     break
 
                 self.put_work(metadata, keypair)
