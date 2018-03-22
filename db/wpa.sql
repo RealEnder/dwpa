@@ -284,12 +284,13 @@ DELIMITER $$
 --
 -- Events
 --
-CREATE EVENT `e_stats` ON SCHEDULE EVERY 2 HOUR ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes last day stats' DO BEGIN
-UPDATE stats SET pvalue=(SELECT count(*) FROM n2d WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)) WHERE pname='24getwork';
-UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE date(ts) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
-UPDATE stats SET pvalue=(SELECT count(*) FROM nets WHERE date( ts ) = DATE_SUB( CURDATE() , INTERVAL 1 DAY)) WHERE pname='24sub';
-UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, dicts WHERE nets.n_state=0) WHERE pname='words';
-UPDATE stats SET pvalue=(SELECT sum(dicts.wcount) FROM nets, n2d, dicts WHERE nets.n_state=0 AND nets.net_id = n2d.net_id AND dicts.d_id = n2d.d_id) WHERE pname='triedwords';
+CREATE EVENT `e_stats` ON SCHEDULE EVERY 1 HOUR ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes stats' DO BEGIN
+UPDATE stats SET pvalue=(SELECT count(1) FROM n2d WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) WHERE pname='24getwork';
+UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
+UPDATE stats SET pvalue=(SELECT count(1) FROM nets WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY) AND n_state=1) WHERE pname='24founds';
+UPDATE stats SET pvalue=(SELECT count(1) FROM nets WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) WHERE pname='24sub';
+UPDATE stats SET pvalue=(SELECT nc*wc FROM (SELECT SUM(wcount) AS wc FROM dicts) d, (SELECT COUNT(1) AS nc FROM nets WHERE n_state=0) n) WHERE pname='words';
+UPDATE stats SET pvalue=(SELECT SUM(dicts.wcount) FROM n2d, dicts WHERE dicts.d_id = n2d.d_id) WHERE pname='triedwords';
 END$$
 
 CREATE EVENT `e_cleanup_n2d` ON SCHEDULE EVERY 1 HOUR ON COMPLETION NOT PRESERVE ENABLE DO DELETE FROM n2d WHERE hkey IS NOT NULL AND TIMESTAMPDIFF(DAY, ts, CURRENT_TIMESTAMP) > 0$$

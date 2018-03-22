@@ -32,10 +32,11 @@ if ((int) $stats['cracked'] > 0) {
 echo '<br/>';
 
 // last day stats
-echo "Last day getworks: {$stats['24getwork']}<br/>\n";
+echo "Last 24h getworks: {$stats['24getwork']}<br/>\n";
 $perf = convert_num($stats['24psk']/(60*60*24));
-echo "Last day performance: $perf/s<br/>\n";
-echo "Last day submissions: {$stats['24sub']}<br/>\n";
+echo "Last 24h performance: $perf/s<br/>\n";
+echo "Last 24h submissions: {$stats['24sub']}<br/>\n";
+echo "Last 24h founds: {$stats['24founds']}<br/>\n";
 echo '<br/>';
 
 // current contributers

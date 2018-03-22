@@ -18,5 +18,6 @@ INSERT INTO `stats` (`pname`, `pvalue`) VALUES
 ('24getwork', '0'),
 ('24psk', '0'),
 ('24sub', '0'),
+('24founds', '0'),
 ('words', '0'),
 ('triedwords', '0');
