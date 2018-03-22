@@ -39,7 +39,7 @@ echo "Last 24h submissions: {$stats['24sub']}<br/>\n";
 echo "Last 24h founds: {$stats['24founds']}<br/>\n";
 echo '<br/>';
 
-// current contributers
+// current contributors
 $result = $mysql->query('SELECT COUNT(DISTINCT hkey) AS dhkeyc, COUNT(hkey) AS hkeyc FROM n2d WHERE hkey IS NOT NULL');
 $datas = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
@@ -53,12 +53,14 @@ if ((int) $stats['24psk'] > 0)
 else
     echo 'infinity';
 echo "<br/>\n";
-if ($stats['words'] == 0)
+if ($stats['words'] == 0) {
     $stats['words'] = 1;
+}
+$pstat = round((int) $stats['triedwords'] / (int) $stats['words'] * 100, 2);
 ?>
 <br/>
 Current keyspace progress:
 <dl class="progress">
-    <dd class="done" style="width: <?php echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100); ?>%"><?php echo round((int) $stats['triedwords'] / (int) $stats['words'] * 100, 2); ?>%</dd>
+    <dd class="done" style="width: <?php echo $pstat; ?>%"><?php echo $pstat; ?>%</dd>
 </dl>
 </p>
