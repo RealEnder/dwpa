@@ -27,29 +27,6 @@ CREATE TABLE IF NOT EXISTS `dicts` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `get_dict`
--- (See below for the actual view)
---
-CREATE TABLE `get_dict` (
-`d_id` smallint(5) unsigned
-,`dhash` varchar(32)
-,`dpath` varchar(256)
-);
-
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `get_nets`
--- (See below for the actual view)
---
-CREATE TABLE `get_nets` (
-`net_id` bigint(15)
-,`hccapx` varbinary(393)
-);
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `n2d`
 --
 
@@ -236,21 +213,6 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- --------------------------------------------------------
 
 --
--- Structure for view `get_dict`
---
-DROP TABLE IF EXISTS `get_dict`;
-
-CREATE VIEW `get_dict`  AS  select `d`.`d_id` AS `d_id`,hex(`d`.`dhash`) AS `dhash`,`d`.`dpath` AS `dpath` from `dicts` `d` where (not(exists(select `n2d`.`d_id` from `n2d` where ((`d`.`d_id` = `n2d`.`d_id`) and (`n2d`.`net_id` = (select `nets`.`net_id` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1)))))) order by `d`.`wcount` limit 1 ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `get_nets`
---
-DROP TABLE IF EXISTS `get_nets`;
-
-CREATE VIEW `get_nets`  AS  select `n`.`net_id` AS `net_id`,`n`.`hccapx` AS `hccapx` from `nets` `n` where ((`n`.`ssid` = cast((select `nets`.`ssid` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1) as char charset binary)) and (`n`.`n_state` = 0) and (not(exists(select 1 from `n2d` where ((`n2d`.`d_id` = (select `d`.`d_id` from `dicts` `d` where (not(exists(select `n2d`.`d_id` from `n2d` where ((`d`.`d_id` = `n2d`.`d_id`) and (`n2d`.`net_id` = (select `nets`.`net_id` from `nets` where (`nets`.`n_state` = 0) order by `nets`.`hits`,`nets`.`ts` limit 1)))))) order by `d`.`wcount` limit 1)) and (`n2d`.`net_id` = `n`.`net_id`)))))) ;
---
 -- Constraints for dumped tables
 --
 
@@ -287,7 +249,7 @@ DELIMITER $$
 CREATE EVENT `e_stats` ON SCHEDULE EVERY 1 HOUR ON COMPLETION NOT PRESERVE ENABLE COMMENT 'Computes stats' DO BEGIN
 UPDATE stats SET pvalue=(SELECT count(1) FROM n2d WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) WHERE pname='24getwork';
 UPDATE stats SET pvalue=(SELECT sum(wcount) FROM n2d, dicts WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY) AND n2d.d_id=dicts.d_id) WHERE pname='24psk';
-UPDATE stats SET pvalue=(SELECT count(1) FROM nets WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY) AND n_state=1) WHERE pname='24founds';
+UPDATE stats SET pvalue=(SELECT count(1) FROM nets WHERE sts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY) AND n_state=1) WHERE pname='24founds';
 UPDATE stats SET pvalue=(SELECT count(1) FROM nets WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) WHERE pname='24sub';
 UPDATE stats SET pvalue=(SELECT nc*wc FROM (SELECT SUM(wcount) AS wc FROM dicts) d, (SELECT COUNT(1) AS nc FROM nets WHERE n_state=0) n) WHERE pname='words';
 UPDATE stats SET pvalue=(SELECT SUM(dicts.wcount) FROM n2d, dicts WHERE dicts.d_id = n2d.d_id) WHERE pname='triedwords';
