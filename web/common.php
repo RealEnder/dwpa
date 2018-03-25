@@ -139,6 +139,7 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
                 $ncarr[3][1] -= 1;
             }
         } while ($ncarr[0][1]<=$halfnc);
+        $pmk = False;
     }
 
     return Null;
