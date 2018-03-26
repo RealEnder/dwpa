@@ -127,9 +127,10 @@ CREATE TABLE IF NOT EXISTS `nets` (
   KEY `IDX_nets_n_state` (`n_state`),
   KEY `FK_nets_submissions` (`s_id`),
   KEY `IDX_nets_mac_sta` (`mac_sta`),
-  KEY `IDX_nets_hits_ts` (`hits`,`ts`) USING BTREE,
   KEY `IDX_nets_ssid` (`ssid`),
-  KEY `IDX_nets_algo` (`algo`)
+  KEY `IDX_nets_algo` (`algo`),
+  KEY `IDX_nets_sts` (`sts`),
+  KEY `IDX_nets_n_state_hits_ts_algo` (`n_state`,`hits`,`ts`,`algo`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
