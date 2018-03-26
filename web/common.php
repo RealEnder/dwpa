@@ -586,7 +586,15 @@ function put_work($mysql, $candidates) {
 
     //pull cracked wordlist
     $stmt = $mysql->stmt_init();
-    $stmt->prepare("SELECT pass FROM (SELECT pass, count(pass) AS c FROM nets WHERE n_state=1 AND (algo IS NULL OR algo = '') AND LENGTH(pass) >= 8 GROUP BY pass) i ORDER BY i.c DESC");
+    $stmt->prepare("SELECT BINARY pass AS pass
+FROM (SELECT bssid, BINARY pass AS pass
+      FROM nets
+      WHERE n_state=1 AND
+      (algo IS NULL OR algo = '') AND
+      LENGTH(pass) >= 8
+      GROUP BY bssid, BINARY pass) t
+GROUP BY BINARY pass
+ORDER BY count(pass) DESC");
     $stmt->execute();
     $stmt->bind_result($key);
 
