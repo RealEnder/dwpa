@@ -80,7 +80,7 @@ WHERE NOT EXISTS (SELECT d_id
                   WHERE d.d_id=n2d.d_id AND
                         n2d.net_id=(SELECT net_id
                                     FROM nets
-                                    WHERE n_state = 0 AND
+                                    WHERE n_state=0 AND
                                           algo=''
                                     ORDER BY hits, ts
                                     LIMIT 1))
@@ -102,11 +102,12 @@ WHERE NOT EXISTS (SELECT d_id
     $resnet[] = array('dpath' => $dict[0]['dpath']);
 
     // get handshakes and prepare
-    $result = $mysql->query("SELECT net_id, hccapx
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare("SELECT net_id, hccapx
 FROM nets n
 WHERE ssid = BINARY (SELECT ssid
                      FROM nets
-                     WHERE n_state = 0 AND
+                     WHERE n_state=0 AND
                            algo=''
                      ORDER BY hits, ts
                      LIMIT 1) AND
@@ -114,20 +115,11 @@ WHERE ssid = BINARY (SELECT ssid
       algo='' AND
       net_id NOT IN (SELECT net_id
                      FROM n2d
-                     WHERE d_id=(SELECT d_id
-                                 FROM dicts d
-                                 WHERE d_id NOT IN (SELECT d_id
-                                                    FROM n2d
-                                                    WHERE d.d_id=n2d.d_id AND
-                                                    net_id = (SELECT net_id
-                                                              FROM nets
-                                                              WHERE n_state = 0 AND
-                                                                    algo=''
-                                                              ORDER BY hits, ts
-                                                              LIMIT 1))
-                                                    ORDER BY d.wcount
-                                                    LIMIT 1) AND
-                                       n2d.net_id = n.net_id)");
+                     WHERE d_id=? AND
+                           n2d.net_id = n.net_id)");
+    $stmt->bind_param('i', $dict[0]['d_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
     $handshakes = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
 
