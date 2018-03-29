@@ -14,7 +14,7 @@ Requirements
  - hcxpcaptool tool, part of hcxtools https://github.com/ZerBea/hcxtools
  - git `sudo apt-get install git`
  - reCAPTCHA API keys for your domain, register here https://www.google.com/recaptcha
- - (optional) routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC
+ - routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC
 
 Compilation of external tools
 -
