@@ -349,7 +349,7 @@ class HelpCrack(object):
 
             return jtr % (essid,
                           essid,
-                          binascii.b2a_base64(newhccap).translate(encode_trans).rstrip(b'=\n'),
+                          binascii.b2a_base64(newhccap).translate(encode_trans).rstrip(b'=\r\n'),
                           mac_sta,
                           mac_ap,
                           mac_ap,
@@ -628,7 +628,7 @@ class HelpCrack(object):
                     b':' + bssid[6:8] + \
                     b':' + bssid[8:10] + \
                     b':' + bssid[10:12]
-                return {'bssid': bssid, 'key': arr[4].rstrip(b'\n')}
+                return {'bssid': bssid, 'key': arr[4].rstrip(b'\r\n')}
             except (TypeError, ValueError, KeyError):
                 pass
 
@@ -647,7 +647,7 @@ class HelpCrack(object):
             arr = pot.split(b':', 1)
             if len(arr) != 2:
                 return False
-            key = arr[1].rstrip(b'\n')
+            key = arr[1].rstrip(b'\r\n')
 
             arr = arr[0].split(b'#', 1)
             if len(arr) != 2:
