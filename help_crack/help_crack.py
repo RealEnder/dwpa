@@ -53,7 +53,7 @@ conf = {
     'potfile': None,
     'cracker': '',
     'coptions': '',
-    'hc_ver': '1.0.0'
+    'hc_ver': '1.0.1'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
 conf['help_crack_cl'] = conf['base_url'] + 'hc/CHANGELOG'

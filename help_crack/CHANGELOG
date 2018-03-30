@@ -100,3 +100,8 @@ ver 1.0.0 / 15 Mar 2018
  * combine same essid handshakes
  * disable hashcat log
  * general bugfixes and improvements
+
+ver 1.0.1 / 30 Mar 2018
+ * fix for potfile reading for essid combine
+ * skip user dict against same handshakes
+ * windows compatibility fix
