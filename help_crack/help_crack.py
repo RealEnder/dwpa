@@ -718,6 +718,7 @@ class HelpCrack(object):
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
             exit(1)
 
+        hashcache = set()
         netdata = self.resume_check()
         metadata = {'ssid': '00'}
         options = {'format': self.conf['format'], 'cracker': self.conf['cracker']}
@@ -748,7 +749,14 @@ class HelpCrack(object):
 
                 self.put_work(metadata, keypair)
 
-                if conf['additional'] is not None and runadditional:
+                # compute handshakes simple hash
+                ndhash = 0
+                for part in netdata:
+                    if 'hccapx' in part:
+                        ndhash ^= hash(part['hccapx'])
+
+                if conf['additional'] is not None and runadditional and ndhash not in hashcache:
+                    hashcache.add(ndhash)
                     metadata['dictname'] = conf['additional']
                     runadditional = False
                     continue
