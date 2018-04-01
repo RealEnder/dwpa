@@ -34,6 +34,37 @@ function update_nets_algo(& $mysql, & $stmt, $algo, $net_id) {
     $stmt->execute();
 }
 
+function single_mode_generator($bssid, $essid) {
+    $res = array();
+
+    // bssid gen
+    for ($i=-1; $i<=1; $i++) {
+        foreach (array(12, 10, 8) as $j) {
+            $curr = substr(dechex($bssid+$i), -$j);
+            $res[] = str_pad(           $curr , $j, '0', STR_PAD_LEFT);
+            $res[] = str_pad(strtoupper($curr), $j, '0', STR_PAD_LEFT);
+        }
+    }
+
+    // essid gen
+    foreach (array('', '1', '123', '!') as $j) {
+        $can = $essid.$j;
+        if (strlen($can) >= 8) {
+            $canuc = strtoupper($can);
+            $canlc = strtolower($can);
+            $res[] = $can;
+            if ($can != $canuc) {
+                $res[] = $canuc;
+            }
+            if ($can != $canlc) {
+                $res[] = $canlc;
+            }
+        }
+    }
+
+    return $res;
+}
+
 $n_state0 = 0;
 $n_state1 = 1;
 
@@ -73,7 +104,7 @@ foreach ($nets as $netkey => $net) {
                     $ref[] = & $n_state0;
                 } else {
                     // first verify if we've already cracked that handshake
-                    if ($candidates[$key][1] == $net['pass'] or ($cres = check_key_hccapx($net['hccapx'], array($candidates[$key][1])))) {
+                    if ($candidates[$key][1] == $net['pass'] or ($cres = check_key_hccapx($net['hccapx'], array($candidates[$key][1]), 256))) {
                         $ref[] = & $n_state1;
                         $algo = $candidates[$key][0];
                         $found = True;
@@ -90,8 +121,19 @@ foreach ($nets as $netkey => $net) {
         // fill rkg table with generated candidates
         insert_rkg($mysql, $ref);
     }
+
+    // single mode crack
+    if ($algo == '') {
+        $res = single_mode_generator($net['bssid'], $net['ssid']);
+        if ($cres = check_key_hccapx($net['hccapx'], $res, 256)) {
+            submit_by_net_id($mysql, $submit_stmt, $cres[0], $cres[3], $cres[1], $cres[2], 2130706433, $net['net_id']);
+            $algo = 'Single';
+        }
+    }
+
     // set algo name or just empty if not identified
     update_nets_algo($mysql, $update_stmt, $algo, $net['net_id']);
+
     if ($algo != '') {
         $regenerate_rkg_dict = True;
     }
