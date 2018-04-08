@@ -84,7 +84,7 @@ WHERE NOT EXISTS (SELECT d_id
                                           algo=''
                                     ORDER BY hits, ts
                                     LIMIT 1))
-                  ORDER BY d.wcount
+                  ORDER BY d.wcount, d.dname
                   LIMIT 1");
     $dict = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
