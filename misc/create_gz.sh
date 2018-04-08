@@ -4,7 +4,7 @@ echo "Compress dictionaries(*.txt) in current dir and create inserts for dwpa"
 
 # get base URL
 URL=""
-REGEX="http://[-A-Za-z0-9+/%~_!.]*/"
+REGEX="https?://[-A-Za-z0-9+/%~_!.]*/"
 while [[ ! $URL =~ $REGEX ]]
 do
   read -p "Enter base URL for dict with trailing /: " URL
