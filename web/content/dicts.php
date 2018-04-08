@@ -9,7 +9,7 @@ td {padding-left: 7px; padding-right: 7px}
 <tr><th>Dictionary</th><th>Word count</th><th>Hits</th></tr>
 <?php
 require_once('db.php');
-$result = $mysql->query('SELECT dpath, dname, wcount, hits FROM dicts ORDER BY wcount DESC');
+$result = $mysql->query('SELECT dpath, dname, wcount, hits FROM dicts ORDER BY wcount DESC, dname DESC');
 $datas = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 $mysql->close();
