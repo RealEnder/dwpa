@@ -13,6 +13,13 @@ function insert_rkg(& $mysql, & $ref) {
         return;
     }
 
+    // first remove records from rkg for this handshake
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('DELETE FROM rkg WHERE net_id=?');
+    $stmt->bind_param('i', $ref[1]); // this is net_id from first row
+    $stmt->execute();
+
+    // insert new ones
     $bindvars = 'issi';
     $sql = 'INSERT IGNORE INTO rkg(net_id, algo, pass, n_state) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
     $stmt = $mysql->stmt_init();
@@ -104,7 +111,7 @@ foreach ($nets as $netkey => $net) {
                     $ref[] = & $n_state0;
                 } else {
                     // first verify if we've already cracked that handshake
-                    if ($candidates[$key][1] == $net['pass'] or ($cres = check_key_hccapx($net['hccapx'], array($candidates[$key][1]), 256))) {
+                    if ($candidates[$key][1] == $net['pass'] || ($cres = check_key_hccapx($net['hccapx'], array($candidates[$key][1]), 256))) {
                         $ref[] = & $n_state1;
                         $algo = $candidates[$key][0];
                         $found = True;
