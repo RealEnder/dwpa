@@ -77,11 +77,12 @@ $n_state1 = 1;
 
 $submit_stmt = Null;
 $update_stmt = Null;
+$delete_n2d_stmt = Null;
 
 $regenerate_rkg_dict = False;
 
 // fetch unchecked handshakes
-$result = $mysql->query('SELECT net_id, hccapx, ssid, bssid, pass FROM nets WHERE algo IS NULL ORDER BY net_id LIMIT 100');
+$result = $mysql->query('SELECT net_id, hccapx, ssid, bssid, pass, hits FROM nets WHERE algo IS NULL ORDER BY net_id LIMIT 100');
 $nets = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 
@@ -138,6 +139,11 @@ foreach ($nets as $netkey => $net) {
         }
     }
 
+    // delete from n2d if we've found the PSK and we have hits
+    if ($algo != '' && $net['hits'] != 0) {
+        delete_from_n2d($mysql, $delete_n2d_stmt, $net['net_id']);
+    }
+
     // set algo name or just empty if not identified
     update_nets_algo($mysql, $update_stmt, $algo, $net['net_id']);
 
@@ -152,6 +158,9 @@ if ($submit_stmt) {
 }
 if ($update_stmt) {
     $update_stmt->close();
+}
+if ($delete_n2d_stmt) {
+    $delete_n2d_stmt->close();
 }
 
 // regenerate rkg.txt.gz if we have hit
