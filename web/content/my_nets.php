@@ -13,7 +13,7 @@ $page   = ($offset / $limit) + 1;
 
 if ($k != '') {
     $stmt = $mysql->stmt_init();
-    $stmt->prepare('SELECT SQL_CALC_FOUND_ROWS hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.hits, n2u.ts
+    $stmt->prepare('SELECT SQL_CALC_FOUND_ROWS hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.pass AS pass, nets.n_state AS n_state, nets.hits, n2u.ts
 FROM nets, n2u, users
 WHERE nets.net_id=n2u.net_id AND users.u_id=n2u.u_id AND users.userkey=UNHEX(?)
 ORDER BY nets.net_id DESC
