@@ -130,11 +130,14 @@ WHERE ssid = BINARY (SELECT ssid
     }
 
     $ref = array('');
+    $essid = substr($handshakes[0]['hccapx'], 10, 32);
     foreach ($handshakes as $key => $handshake) {
-        $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
-        $ref[] = & $handshakes[$key]['net_id'];
-        $ref[] = & $dict[0]['d_id'];
-        $ref[] = & $bhkey;
+        if (strcmp($essid, substr($handshake['hccapx'], 10, 32)) == 0) {
+            $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
+            $ref[] = & $handshakes[$key]['net_id'];
+            $ref[] = & $dict[0]['d_id'];
+            $ref[] = & $bhkey;
+        }
     }
 
     // populate in n2d
