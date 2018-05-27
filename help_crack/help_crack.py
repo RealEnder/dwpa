@@ -578,7 +578,7 @@ class HelpCrack(object):
 
         return None
 
-    def run_cracker(self, dictname, disablestdout=False):
+    def run_cracker(self, dictlist, disablestdout=False):
         '''run externel cracker process'''
         fd = None
         if disablestdout:
@@ -587,7 +587,9 @@ class HelpCrack(object):
         while True:
             try:
                 if self.conf['format'] == 'hccapx':
-                    cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'], dictname)
+                    cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'])
+                    for dn in dictlist:
+                        cracker = ''.join([cracker, ' ', dn])
                     rc = subprocess.call(shlex.split(cracker), stdout=fd)
                     if rc == -2:
                         self.pprint('Thermal watchdog barked', 'WARNING')
@@ -598,12 +600,19 @@ class HelpCrack(object):
                         self.pprint('Check you have OpenCL support', 'FAIL')
                         exit(1)
 
+                # TODO: use multiple -w:, when/if availible, see https://github.com/magnumripper/JohnTheRipper/issues/3262
                 if self.conf['format'] == 'wpapsk':
-                    cracker = '{0} {1} --pot={2} --wordlist={3} {4}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], dictname, self.conf['net_file'])
-                    rc = subprocess.call(shlex.split(cracker), stdout=fd)
-                    if rc != 0:
-                        self.pprint('john {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
-                        exit(1)
+                    if os.name == 'nt':
+                        dp = 'type '
+                    else:
+                        dp = 'cat '
+                    for dn in dictlist:
+                        dp = ''.join([dp, ' ', dn])
+                    cracker = '{0} {1} --stdin --pot={2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'])
+                    p1 = subprocess.Popen(shlex.split(dp), stdout=subprocess.PIPE)
+                    p2 = subprocess.Popen(shlex.split(cracker), stdin=p1.stdout, stdout=subprocess.PIPE)
+                    p1.stdout.close()
+                    p2.communicate()
 
             except KeyboardInterrupt:
                 self.pprint('\nKeyboard interrupt', 'OKBLUE')
@@ -711,7 +720,7 @@ class HelpCrack(object):
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
-        self.run_cracker(netdata[0]['dictname'], disablestdout=True)
+        self.run_cracker([netdata[0]['dictname']], disablestdout=True)
         keypair = self.get_key()
 
         if not keypair or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
@@ -734,33 +743,28 @@ class HelpCrack(object):
             if self.conf['custom']:
                 metadata['dictname'] = self.conf['custom']
 
-            runadditional = True
-            while True:
-                keypair = None
-                self.run_cracker(metadata['dictname'])
-                keypair = self.get_key()
-                if keypair:
-                    for k in keypair:
-                        self.pprint('Key for bssid {0} is: {1}'.format(k['bssid'].decode(sys.stdout.encoding or 'utf-8', errors='ignore'),
-                                                                       k['key'].decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
+            # add current dict or custom one
+            dictlist = list([metadata['dictname']])
 
-                if not runadditional and not keypair:
-                    break
-
-                self.put_work(metadata, keypair)
-
+            # do we have additional user dictionary supplied?
+            if conf['additional'] is not None:
                 # compute handshakes simple hash
                 ndhash = 0
                 for part in netdata:
                     if 'hccapx' in part:
                         ndhash ^= hash(part['hccapx'])
-
-                if conf['additional'] is not None and runadditional and ndhash not in hashcache:
+                if ndhash not in hashcache:
                     hashcache.add(ndhash)
-                    metadata['dictname'] = conf['additional']
-                    runadditional = False
-                    continue
-                break
+                    dictlist.append(conf['additional'])
+
+            # run cracker and collect results
+            self.run_cracker(dictlist)
+            keypair = self.get_key()
+            if keypair:
+                for k in keypair:
+                    self.pprint('Key for bssid {0} is: {1}'.format(k['bssid'].decode(sys.stdout.encoding or 'utf-8', errors='ignore'),
+                                                                   k['key'].decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
+            self.put_work(metadata, keypair)
 
             # cleanup
             if os.path.exists(self.conf['net_file']):
