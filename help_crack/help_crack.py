@@ -779,8 +779,7 @@ if __name__ == "__main__":
         '''check if it's a valid file'''
         if not os.path.isfile(arg):
             aparser.error('The file {} does not exist!'.format(arg))
-        else:
-            return arg
+        return arg
 
     parser = argparse.ArgumentParser(description='help_crack, distributed WPA cracker site: {0}'.format(conf['base_url']))
     parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
