@@ -24,7 +24,7 @@ function insert_n2d(& $mysql, & $ref) {
     }
 
     $bindvars = 'iis';
-    $sql = 'INSERT INTO n2d(net_id, d_id, hkey) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
+    $sql = 'INSERT IGNORE INTO n2d(net_id, d_id, hkey) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
     $stmt = $mysql->stmt_init();
     $stmt->prepare($sql);
 
@@ -36,7 +36,10 @@ function insert_n2d(& $mysql, & $ref) {
 
 // this is for user supplied dictionary
 $options = json_decode($_POST['options'], True);
-if ($options && array_key_exists('ssid', $options)) {
+if (!is_array($options) || json_last_error() !== JSON_ERROR_NONE) {
+    die('Options');
+}
+if (array_key_exists('ssid', $options)) {
     $stmt = $mysql->stmt_init();
     $stmt->prepare('SELECT HEX(ssid) AS ssid, hccapx
 FROM nets
@@ -65,6 +68,14 @@ WHERE n_state=0 AND
         $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
     }
 } else {
+    // check desired dict count
+    $dictcount = 1;
+    if ($options && array_key_exists('dictcount', $options)) {
+        $dictcount = filter_var($options['dictcount'],
+                                FILTER_VALIDATE_INT,
+                                array('default' => 1, 'min_range' => 1, 'max_range' => 10));
+    }
+
     // critical section begin
     create_lock('get_work.lock');
 
@@ -73,7 +84,8 @@ WHERE n_state=0 AND
     $bhkey = hex2bin($hkey);
 
     // get current dict
-    $result = $mysql->query("SELECT d_id, HEX(dhash) as dhash, dpath
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare("SELECT d_id, HEX(dhash) as dhash, dpath
 FROM dicts d
 WHERE NOT EXISTS (SELECT d_id
                   FROM n2d
@@ -84,22 +96,38 @@ WHERE NOT EXISTS (SELECT d_id
                                           algo=''
                                     ORDER BY hits, ts
                                     LIMIT 1))
-                  ORDER BY d.wcount, d.dname
-                  LIMIT 1");
-    $dict = $result->fetch_all(MYSQLI_ASSOC);
+ORDER BY d.wcount, d.dname
+LIMIT ?");
+    $stmt->bind_param('i', $dictcount);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $dicts = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
+    $dc = count($dicts);
 
-    if (count($dict) == 0) {
+    if ($dc == 0) {
         release_lock('get_work.lock');
         $mysql->close();
         die('No nets');
     }
 
     // add hkey and dict
+    // TODO: move single dict into dicts arr and increment API version
     $resnet = array();
+    $ref = array('');
     $resnet[] = array('hkey' => $hkey);
-    $resnet[] = array('dhash' => strtolower($dict[0]['dhash']));
-    $resnet[] = array('dpath' => $dict[0]['dpath']);
+    if ($dc == 1) {
+        $resnet[] = array('dhash' => strtolower($dicts[0]['dhash']));
+        $resnet[] = array('dpath' => $dicts[0]['dpath']);
+        $ref[] = & $dicts[0]['d_id'];
+    } else {
+        $jdicts = array();
+        for ($i = 0; $i < $dc; $i++) {
+            $jdicts[] = array('dhash' => strtolower($dicts[$i]['dhash']), 'dpath' => $dicts[$i]['dpath']);
+            $ref[] = & $dicts[$i]['d_id'];
+        }
+        $resnet[] = array('dicts' => $jdicts);
+    }
 
     // get handshakes and prepare
     $stmt = $mysql->stmt_init();
@@ -115,9 +143,10 @@ WHERE ssid = BINARY (SELECT ssid
       algo='' AND
       net_id NOT IN (SELECT net_id
                      FROM n2d
-                     WHERE d_id=? AND
+                     WHERE d_id IN (".implode(',', array_fill(0, $dc, '?')).") AND
                            n2d.net_id = n.net_id)");
-    $stmt->bind_param('i', $dict[0]['d_id']);
+    $ref[0] = str_repeat('i', $dc);
+    call_user_func_array(array($stmt, 'bind_param'), $ref);
     $stmt->execute();
     $result = $stmt->get_result();
     $handshakes = $result->fetch_all(MYSQLI_ASSOC);
@@ -134,9 +163,11 @@ WHERE ssid = BINARY (SELECT ssid
     foreach ($handshakes as $key => $handshake) {
         if (strcmp($essid, substr($handshake['hccapx'], 10, 32)) == 0) {
             $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
-            $ref[] = & $handshakes[$key]['net_id'];
-            $ref[] = & $dict[0]['d_id'];
-            $ref[] = & $bhkey;
+            for ($i = 0; $i < $dc; $i++) {
+                $ref[] = & $handshakes[$key]['net_id'];
+                $ref[] = & $dicts[$i]['d_id'];
+                $ref[] = & $bhkey;
+            }
         }
     }
 
