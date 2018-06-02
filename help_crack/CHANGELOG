@@ -109,3 +109,4 @@ ver 1.0.1 / 30 Mar 2018
 ver 1.0.2 / XX Xxx 2018
  * run additional dictionary in the same session,
    which allows for single GPU kernel init
+ * add option to fetch more than one dict

@@ -53,6 +53,7 @@ conf = {
     'potfile': None,
     'cracker': '',
     'coptions': '',
+    'dictcount': 1,
     'hc_ver': '1.0.1'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
@@ -434,21 +435,17 @@ class HelpCrack(object):
             self.sleepy()
 
     def prepare_work(self, netdata):
-        '''prepare work based on netdata; returns dictname and ssid/hkey'''
+        '''prepare work based on netdata; returns ssid/hkey'''
         if netdata is None:
             return False
 
-        # extract ssid/hkey, handshakes and dict details
+        # extract ssid/hkey and handshakes
         metadata = {}
         try:
             with open(self.conf['net_file'], 'wb') as fd:
                 for part in netdata:
                     if 'hkey' in part:
                         metadata['hkey'] = part['hkey']
-                    if 'dhash' in part:
-                        metadata['dhash'] = part['dhash']
-                    if 'dpath' in part:
-                        metadata['dpath'] = part['dpath']
                     if 'ssid' in part:
                         metadata['ssid'] = part['ssid']
                     if 'hccapx' in part:
@@ -464,47 +461,67 @@ class HelpCrack(object):
             self.pprint('Exception: {0}'.format(e), 'FAIL')
             exit(1)
 
-        # do we have to process dictionary?
-        if 'dpath' not in metadata:
-            return metadata
+        return metadata
 
-        # check for dict and download it
-        dictmd5 = ''
-        extract = False
-        gzdictname = metadata['dpath'].split('/')[-1]
-        metadata['dictname'] = gzdictname.rsplit('.', 1)[0]
+    def prepare_dicts(self, netdata):
+        '''download and check dictionaries'''
+        # pull dicts info from netdata
+        dicts = list()
+        dlist = list()
+        dhash = ''
+        dpath = ''
+        for part in netdata:
+            if 'dhash' in part:
+                dhash = part['dhash']
+            if 'dpath' in part:
+                dpath = part['dpath']
+            if 'dicts' in part:
+                for dpart in part['dicts']:
+                    #print(dpart)
+                    dicts.append({'dhash': dpart['dhash'], 'dpath': dpart['dpath']})
+        if dhash != '' and dpath != '':
+            dicts.append({'dhash': dhash, 'dpath': dpath})
 
-        while True:
-            if os.path.exists(gzdictname):
-                dictmd5 = self.md5file(gzdictname)
-            if metadata['dhash'] != dictmd5:
-                self.pprint('Downloading ' + gzdictname, 'OKBLUE')
-                self.download(metadata['dpath'], gzdictname)
-                if self.md5file(gzdictname) != metadata['dhash']:
-                    self.pprint('Dict downloaded but hash mismatch', 'WARNING')
+        # download and check
+        for d in dicts:
+            dictmd5 = ''
+            extract = False
+            gzdictname = d['dpath'].split('/')[-1]
+            dictname = gzdictname.rsplit('.', 1)[0]
+            dlist.append(dictname)
 
-                extract = True
+            while True:
+                if os.path.exists(gzdictname):
+                    dictmd5 = self.md5file(gzdictname)
+                if d['dhash'] != dictmd5:
+                    self.pprint('Downloading {0}'.format(gzdictname), 'OKBLUE')
+                    self.download(d['dpath'], gzdictname)
+                    if self.md5file(gzdictname) != d['dhash']:
+                        self.pprint('{0} downloaded but hash mismatch'.format(gzdictname), 'WARNING')
 
-            if not os.path.exists(metadata['dictname']):
-                extract = True
+                    extract = True
 
-            if extract:
-                self.pprint('Extracting ' + gzdictname, 'OKBLUE')
-                try:
-                    with gzip.open(gzdictname, 'rb') as ftgz:
-                        with open(metadata['dictname'], 'wb') as fd:
-                            while True:
-                                chunk = ftgz.read(self.blocksize)
-                                if not chunk:
-                                    break
-                                fd.write(chunk)
-                except (IOError, OSError, EOFError, zlib.error) as e:
-                    self.pprint(gzdictname + ' extraction failed', 'FAIL')
-                    self.pprint('Exception: {0}'.format(e), 'FAIL')
-                    self.sleepy()
-                    continue
+                if not os.path.exists(dictname):
+                    extract = True
 
-            return metadata
+                if extract:
+                    self.pprint('Extracting {0}'.format(gzdictname), 'OKBLUE')
+                    try:
+                        with gzip.open(gzdictname, 'rb') as ftgz:
+                            with open(dictname, 'wb') as fd:
+                                while True:
+                                    chunk = ftgz.read(self.blocksize)
+                                    if not chunk:
+                                        break
+                                    fd.write(chunk)
+                    except (IOError, OSError, EOFError, zlib.error) as e:
+                        self.pprint('{0} extraction failed'.format(gzdictname), 'FAIL')
+                        self.pprint('Exception: {0}'.format(e), 'FAIL')
+                        self.sleepy()
+                        continue
+                break
+
+        return dlist
 
     def prepare_challenge(self):
         '''prepare chalenge with known PSK'''
@@ -730,7 +747,7 @@ class HelpCrack(object):
         hashcache = set()
         netdata = self.resume_check()
         metadata = {'ssid': '00'}
-        options = {'format': self.conf['format'], 'cracker': self.conf['cracker']}
+        options = {'format': self.conf['format'], 'cracker': self.conf['cracker'], 'dictcount': self.conf['dictcount']}
         while True:
             if netdata is None:
                 if self.conf['custom']:
@@ -740,11 +757,11 @@ class HelpCrack(object):
             self.create_resume(netdata)
             metadata = self.prepare_work(netdata)
 
+            # add custom dict or prepare remote ones
             if self.conf['custom']:
-                metadata['dictname'] = self.conf['custom']
-
-            # add current dict or custom one
-            dictlist = list([metadata['dictname']])
+                dictlist = list([self.conf['custom']])
+            else:
+                dictlist = self.prepare_dicts(netdata)
 
             # do we have additional user dictionary supplied?
             if conf['additional'] is not None:
@@ -781,10 +798,18 @@ if __name__ == "__main__":
             aparser.error('The file {} does not exist!'.format(arg))
         return arg
 
+    def is_valid_dc(aparser, arg):
+        '''check if it's a valid dict count'''
+        iarg = int(arg)
+        if iarg <= 0 or iarg > 10:
+            aparser.error('dictionaries count must be between 1 and 10')
+        return arg
+
     parser = argparse.ArgumentParser(description='help_crack, distributed WPA cracker site: {0}'.format(conf['base_url']))
     parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
     parser.add_argument('-co', '--coptions', type=str, help='custom options, that will be supplied to cracker. Those must be passed as -co="--your_option"')
     parser.add_argument('-pot', '--potfile', type=str, help='preserve cracked results in user supplied pot file')
+    parser.add_argument('-dc', '--dictcount', type=lambda x: is_valid_dc(parser, x), help='count of dictionaries to be downloaded and checked against')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
     group.add_argument('-cd', '--custom', type=lambda x: is_valid_file(parser, x), help='custom user dictionary to be checked against all uncracked handshakes')
@@ -800,6 +825,8 @@ if __name__ == "__main__":
         conf['coptions'] = args.coptions
     if args.potfile:
         conf['potfile'] = args.potfile
+    if args.dictcount:
+        conf['dictcount'] = args.dictcount
 
     hc = HelpCrack(conf)
     hc.run()
