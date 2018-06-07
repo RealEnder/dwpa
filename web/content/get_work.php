@@ -73,7 +73,7 @@ WHERE n_state=0 AND
     if ($options && array_key_exists('dictcount', $options)) {
         $dictcount = filter_var($options['dictcount'],
                                 FILTER_VALIDATE_INT,
-                                array('default' => 1, 'min_range' => 1, 'max_range' => 10));
+                                array('default' => 1, 'min_range' => 1, 'max_range' => 15));
     }
 
     // critical section begin

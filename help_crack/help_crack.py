@@ -54,6 +54,7 @@ conf = {
     'cracker': '',
     'coptions': '',
     'dictcount': 1,
+    'autodictcount': True,
     'hc_ver': '1.0.1'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
@@ -775,7 +776,17 @@ class HelpCrack(object):
                     dictlist.append(conf['additional'])
 
             # run cracker and collect results
+            cstart = time.time()
             self.run_cracker(dictlist)
+            cdiff = int(time.time() - cstart)
+            if self.conf['autodictcount']:
+                if options['dictcount'] < 15 and cdiff < 300: # 5 min
+                    options['dictcount'] += 1
+                    self.pprint('Incrementing dictcount to {0}, last duration {1}s'.format(options['dictcount'], cdiff), 'OKBLUE')
+                if options['dictcount'] > 1 and cdiff > 300:
+                    options['dictcount'] -= 1
+                    self.pprint('Decrementing dictcount to {0}, last duration {1}s'.format(options['dictcount'], cdiff), 'OKBLUE')
+
             keypair = self.get_key()
             if keypair:
                 for k in keypair:
@@ -801,7 +812,7 @@ if __name__ == "__main__":
     def is_valid_dc(aparser, arg):
         '''check if it's a valid dict count'''
         iarg = int(arg)
-        if iarg <= 0 or iarg > 10:
+        if iarg <= 0 or iarg > 15:
             aparser.error('dictionaries count must be between 1 and 10')
         return arg
 
@@ -827,6 +838,7 @@ if __name__ == "__main__":
         conf['potfile'] = args.potfile
     if args.dictcount:
         conf['dictcount'] = args.dictcount
+        conf['autodictcount'] = False
 
     hc = HelpCrack(conf)
     hc.run()
