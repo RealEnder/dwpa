@@ -55,7 +55,7 @@ conf = {
     'coptions': '',
     'dictcount': 1,
     'autodictcount': True,
-    'hc_ver': '1.0.1'
+    'hc_ver': '1.0.2'
 }
 conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
 conf['help_crack_cl'] = conf['base_url'] + 'hc/CHANGELOG'
