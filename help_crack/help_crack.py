@@ -588,6 +588,9 @@ class HelpCrack(object):
                     if not any('hkey' in d for d in netdata) and self.conf['custom'] is None:
                         self.pprint('Can\'t resume from custom dictionary attack', 'WARNING')
                         return None
+                    if any('hkey' in d for d in netdata) and self.conf['custom'] is not None:
+                        self.pprint('Can\'t resume from classic aatack to custom dictionary', 'WARNING')
+                        return None
                     self.pprint('Session resume', 'OKBLUE')
                     return netdata
                 except (TypeError, ValueError, KeyError):
