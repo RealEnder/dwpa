@@ -213,8 +213,13 @@ class HelpCrack(object):
                     return False
 
                 output = re.sub(r'[^\d\.]', '', output.decode())
-                if StrictVersion(output) >= StrictVersion('4.0.1'):
-                    return True
+                try:
+                    if StrictVersion(output) >= StrictVersion('4.0.1'):
+                        return True
+                except ValueError as e:
+                    self.pprint('Unsupported hashcat version', 'FAIL')
+                    self.pprint('Exception: {0}'.format(e), 'FAIL')
+                    exit(1)
 
                 return False
 
