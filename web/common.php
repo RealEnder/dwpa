@@ -145,6 +145,61 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
     return Null;
 }
 
+/*
+    check_key_pmkid(pmkidline contents,
+                     array of keys,
+                     binary PMK to be used)
+    return:  False: bad format;
+             Null: not found
+             array('key_found',
+                    PMK)
+    PMKID = HMAC-SHA1-128(PMK, "PMK Name" | MAC_AP | MAC_STA)
+    $pmkidline = PMKID*MAC AP*MAC Station*ESSID
+    All is hex encoded
+*/
+
+function check_key_pmkid($pmkidline, $keys, $pmk=False) {
+    // split and check
+    $apmkid = explode('*', $pmkidline, 4);
+    if (count($apmkid) != 4)
+        return False;
+
+    // unhex
+    for ($i=0; $i <= 3; $i++) {
+        if (( (bool) (~ strlen($apmkid[$i]) & 1)) &&
+            (ctype_xdigit($apmkid[$i]))) {
+
+            $apmkid[$i] = hex2bin($apmkid[$i]);
+        } else {
+            return False;
+        }
+    }
+
+    foreach ($keys as $key) {
+        if (strlen($key) > 20) {
+            $key = hc_unhex($key);
+        }
+
+        if (! $pmk) {
+            $kl = strlen($key);
+            if (($kl < 8) || ($kl > 64)) {
+                continue;
+            }
+            $pmk = hash_pbkdf2('sha1', $key, $apmkid[3], 4096, 32, True);
+        }
+
+        // compute PMKID candidate
+        $testpmkid = hash_hmac('sha1', 'PMK Name' . $apmkid[1] . $apmkid[2], $pmk, True);
+
+        if (strncmp($testpmkid, $apmkid[0], 16) == 0) {
+            return array($key, $pmk);
+        }
+        $pmk = False;
+    }
+
+    return Null;
+}
+
 //Extract partial md5 hash over hccapx struct
 function hccapx_hash(& $hccapx) {
     //TODO: implement partial md5_64()
