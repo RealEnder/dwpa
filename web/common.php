@@ -839,7 +839,7 @@ function convert_num($num) {
     return $size;
 }
 
-//convert seconds to text
+// Convert seconds to text
 function convert_sec($secs) {
     $units = array (
         'year'   => 29030400, // seconds in a year   (12 months)
@@ -856,11 +856,11 @@ function convert_sec($secs) {
             $secs -= intval($secs / $mult) * $mult;
         }
 
-    //remove leading ,
+    // remove leading ,
     return substr($output, 2);
 }
 
-//Write nets table
+// Write nets table
 function write_nets($datas) {
     $has_input = False;
     echo '
@@ -869,7 +869,7 @@ td {padding-left: 7px; padding-right: 7px}
 </style>
 <form class="form" method="post" action="?nets" enctype="multipart/form-data">
 <table style="border: 1;">
-<tr><th>BSSID</th><th>SSID</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
+<tr><th>BSSID</th><th>SSID</th><th>Type</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
     foreach ($datas as $data) {
         $bssid = long2mac($data['bssid']);
         $hash = $data['hash'];
@@ -880,7 +880,20 @@ td {padding-left: 7px; padding-right: 7px}
         } else {
             $pass = htmlspecialchars($data['pass']);
         }
-        echo "<tr><td style=\"font-family:monospace; font-size: 12px; cursor: pointer; \"><a title=\"Wigle geo query. You must be logged in.\" href=\"https://wigle.net/search?netid=$bssid\">$bssid</a></td><td>$ssid</td><td>$pass</td><td align=\"right\">{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
+        switch ($data['keyver']) {
+            case 1:
+                $type = 'WPA';
+                break;
+            case 2:
+                $type = 'WPA2';
+                break;
+            case 100:
+                $type = 'PMKID';
+                break;
+            default:
+                $type = 'UNC';
+        }
+        echo "<tr><td style=\"font-family:monospace; font-size: 12px; cursor: pointer; \"><a title=\"Wigle geo query. You must be logged in.\" href=\"https://wigle.net/search?netid=$bssid\">$bssid</a></td><td>$ssid</td><td>$type</td><td>$pass</td><td align=\"right\">{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
     }
     echo '</table>';
     if ($has_input) {
