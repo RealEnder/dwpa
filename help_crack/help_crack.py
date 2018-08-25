@@ -46,6 +46,7 @@ conf = {
     'base_url': 'https://wpa-sec.stanev.org/',
     'res_file': 'help_crack.res',
     'net_file': 'help_crack.net',
+    'pmkid_file': 'help_crack.pmkid',
     'key_file': 'help_crack.key',
     'additional': None,
     'custom': None,
@@ -214,7 +215,7 @@ class HelpCrack(object):
 
                 output = re.sub(r'[^\d\.]', '', output.decode())
                 try:
-                    if StrictVersion(output) >= StrictVersion('4.0.1'):
+                    if StrictVersion(output) >= StrictVersion('4.2.1'):
                         return True
                 except ValueError as e:
                     self.pprint('Unsupported hashcat version', 'FAIL')
@@ -241,7 +242,7 @@ class HelpCrack(object):
                 except OSError:
                     return False
 
-                if output.find(b'PASS') != -1:
+                if output.find(b'PASS') != -1 and output.find(b'PMKID') != -1:
                     return True
 
                 return False
@@ -459,6 +460,13 @@ class HelpCrack(object):
                             fd.write(binascii.a2b_base64(part['hccapx']))
                         else:
                             fd.write(self.hccapx2john(binascii.a2b_base64(part['hccapx'])))
+                    if 'pmkid' in part:
+                        if self.conf['format'] == 'hccapx':
+                            with open(self.conf['pmkid_file'], 'ab') as fd1:
+                                fd1.write(part['pmkid'] + b'\n')
+                        else:
+                            fd.write(part['pmkid'] + b'\n')
+
             if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
                 self.pprint('hkey or ssid not found in work package!', 'FAIL')
                 exit(1)
@@ -530,7 +538,7 @@ class HelpCrack(object):
         return dlist
 
     def prepare_challenge(self):
-        '''prepare chalenge with known PSK'''
+        '''prepare challenge with known PSK'''
         netdata = [{'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
                                 x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
                                 I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
@@ -538,6 +546,7 @@ class HelpCrack(object):
                                 AAAAAAAAABgwFgEAAA+sAgEAAA+sBAEAAA+sAjwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
                                 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
                                 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""",
+                    'pmkid': '8ac36b891edca8eef49094b1afe061ac*1c7ee5e2f2d0*0026c72e4900*646c696e6b',
                     'key': 'aaaa1234',
                     'dictname': 'challenge.txt'},
                    {'ssid': ''}]
@@ -612,19 +621,34 @@ class HelpCrack(object):
 
         while True:
             try:
+                # TODO: fix this code duplication
                 if self.conf['format'] == 'hccapx':
-                    cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'])
-                    for dn in dictlist:
-                        cracker = ''.join([cracker, ' ', dn])
-                    rc = subprocess.call(shlex.split(cracker), stdout=fd)
-                    if rc == -2:
-                        self.pprint('Thermal watchdog barked', 'WARNING')
-                        self.sleepy()
-                        continue
-                    if rc >= 2:
-                        self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
-                        self.pprint('Check you have OpenCL support', 'FAIL')
-                        exit(1)
+                    if os.path.exists(self.conf['net_file']):
+                        cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'])
+                        for dn in dictlist:
+                            cracker = ''.join([cracker, ' ', dn])
+                        rc = subprocess.call(shlex.split(cracker), stdout=fd)
+                        if rc == -2:
+                            self.pprint('Thermal watchdog barked', 'WARNING')
+                            self.sleepy()
+                            continue
+                        if rc >= 2 or rc == -1:
+                            self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
+                            self.pprint('Check you have OpenCL support', 'FAIL')
+                            exit(1)
+                    if os.path.exists(self.conf['pmkid_file']):
+                        cracker = '{0} -m16800 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file'])
+                        for dn in dictlist:
+                            cracker = ''.join([cracker, ' ', dn])
+                        rc = subprocess.call(shlex.split(cracker), stdout=fd)
+                        if rc == -2:
+                            self.pprint('Thermal watchdog barked', 'WARNING')
+                            self.sleepy()
+                            continue
+                        if rc >= 2 or rc == -1:
+                            self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
+                            self.pprint('Check you have OpenCL support', 'FAIL')
+                            exit(1)
 
                 # TODO: use multiple -w:, when/if availible, see https://github.com/magnumripper/JohnTheRipper/issues/3262
                 if self.conf['format'] == 'wpapsk':
@@ -657,14 +681,14 @@ class HelpCrack(object):
             try:
                 arr = pot.split(b':', 4)
                 bssid = arr[1][:12]
-                bssid = bssid = bssid[0:2] + \
+                bssid = bssid[0:2] + \
                     b':' + bssid[2:4] + \
                     b':' + bssid[4:6] + \
                     b':' + bssid[6:8] + \
                     b':' + bssid[8:10] + \
                     b':' + bssid[10:12]
                 return {'bssid': bssid, 'key': arr[4].rstrip(b'\r\n')}
-            except (TypeError, ValueError, KeyError):
+            except (TypeError, ValueError, KeyError, IndexError):
                 pass
 
             return False
@@ -702,6 +726,24 @@ class HelpCrack(object):
 
             return {'bssid': bssid, 'key': key}
 
+        def parse_pmkid(pot):
+            '''parse PMKID potfile line'''
+            try:
+                arr = pot.split(b':', 1)
+                arr1 = arr[0].split('*', 3)
+                bssid = arr1[1]
+                bssid = bssid[0:2] + \
+                    b':' + bssid[2:4] + \
+                    b':' + bssid[4:6] + \
+                    b':' + bssid[6:8] + \
+                    b':' + bssid[8:10] + \
+                    b':' + bssid[10:12]
+                return {'bssid': bssid, 'key': arr[1].rstrip(b'\r\n')}
+            except (TypeError, ValueError, KeyError, IndexError):
+                pass
+
+            return False
+
         res = []
         try:
             if os.path.exists(self.conf['key_file']):
@@ -714,18 +756,23 @@ class HelpCrack(object):
                         # check if we have user potfile. Don't write if it's the challenge
                         if self.conf['potfile'] and not \
                             (b'76c6eaf116d91cc1450561b00c98ea19' in line
-                             or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in line):
+                             or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in line
+                             or b'8ac36b891edca8eef49094b1afe061acd0*1c7ee5e2f2d0' in line):
                             with open(self.conf['potfile'], 'ab') as fdpot:
                                 fdpot.write(line)
 
-                        if self.conf['format'] == 'hccapx':
-                            keypair = parse_hashcat(line)
-
-                        if self.conf['format'] == 'wpapsk':
-                            keypair = parse_jtr(line)
-
+                        keypair = parse_hashcat(line)
                         if keypair:
                             res.append(keypair)
+                            continue
+                        keypair = parse_jtr(line)
+                        if keypair:
+                            res.append(keypair)
+                            continue
+                        keypair = parse_pmkid(line)
+                        if keypair:
+                            res.append(keypair)
+                            continue
 
             if res:
                 os.unlink(self.conf['key_file'])
@@ -749,10 +796,13 @@ class HelpCrack(object):
         self.run_cracker([netdata[0]['dictname']], disablestdout=True)
         keypair = self.get_key()
 
-        if not keypair or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
+        if not keypair \
+                or len(keypair) != 2 \
+                or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore') \
+                or keypair[1]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
             exit(1)
-
+        quit()
         hashcache = set()
         netdata = self.resume_check()
         metadata = {'ssid': '00'}
@@ -788,7 +838,7 @@ class HelpCrack(object):
             self.run_cracker(dictlist)
             cdiff = int(time.time() - cstart)
             if self.conf['autodictcount']:
-                if options['dictcount'] < 15 and cdiff < 300: # 5 min
+                if options['dictcount'] < 15 and cdiff < 300:  # 5 min
                     options['dictcount'] += 1
                     self.pprint('Incrementing dictcount to {0}, last duration {1}s'.format(options['dictcount'], cdiff), 'OKBLUE')
                 if options['dictcount'] > 1 and cdiff > 300:
@@ -805,6 +855,8 @@ class HelpCrack(object):
             # cleanup
             if os.path.exists(self.conf['net_file']):
                 os.unlink(self.conf['net_file'])
+            if os.path.exists(self.conf['pmkid_file']):
+                os.unlink(self.conf['pmkid_file'])
             if os.path.exists(self.conf['res_file']):
                 os.unlink(self.conf['res_file'])
             netdata = None
@@ -821,7 +873,7 @@ if __name__ == "__main__":
         '''check if it's a valid dict count'''
         iarg = int(arg)
         if iarg <= 0 or iarg > 15:
-            aparser.error('dictionaries count must be between 1 and 10')
+            aparser.error('dictionaries count must be between 1 and 15')
         return arg
 
     parser = argparse.ArgumentParser(description='help_crack, distributed WPA cracker site: {0}'.format(conf['base_url']))
