@@ -9,12 +9,29 @@ if (! array_key_exists('options', $_POST)) {
     die('Version');
 }
 
-require_once('db.php');
-require_once('common.php');
+require_once('../db.php');
+require_once('../common.php');
 
 // Valid hex hash
 function valid_hash($hash) {
     return preg_match('/^[a-f0-9]{32}$/', strtolower($hash));
+}
+
+// Exctract essid from hccapx or PMKID structs
+function get_essid($net) {
+    if ($net['keyver'] == 100) {
+        $apmkid = explode('*', $net['struct'], 4);
+        return hex2bin($apmkid[3]);
+    } else {
+        // TODO: fix this bloody sht
+        $essid_len = ord(substr($net['struct'], 0x09, 1));
+        if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
+            $essid = unpack('Z32', substr($net['struct'], 0x0a, 32));
+        } else {
+            $essid = unpack('a32', substr($net['struct'], 0x0a, 32));
+        }
+        return substr($essid[1], 0, $essid_len);
+    }
 }
 
 // Associate handshakes to dict
@@ -41,7 +58,7 @@ if (!is_array($options) || json_last_error() !== JSON_ERROR_NONE) {
 }
 if (array_key_exists('ssid', $options)) {
     $stmt = $mysql->stmt_init();
-    $stmt->prepare('SELECT HEX(ssid) AS ssid, hccapx
+    $stmt->prepare('SELECT HEX(ssid) AS ssid, struct, keyver
 FROM nets
 WHERE n_state=0 AND
       ssid = BINARY (SELECT BINARY ssid
@@ -131,7 +148,7 @@ LIMIT ?");
 
     // get handshakes and prepare
     $stmt = $mysql->stmt_init();
-    $stmt->prepare("SELECT net_id, hccapx
+    $stmt->prepare("SELECT net_id, struct, keyver
 FROM nets n
 WHERE ssid = BINARY (SELECT ssid
                      FROM nets
@@ -159,10 +176,16 @@ WHERE ssid = BINARY (SELECT ssid
     }
 
     $ref = array('');
-    $essid = substr($handshakes[0]['hccapx'], 10, 32);
+    $essid = get_essid($handshakes[0]);
     foreach ($handshakes as $key => $handshake) {
-        if (strcmp($essid, substr($handshake['hccapx'], 10, 32)) == 0) {
-            $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
+        // TODO: essid compare here will be unneeded when we move to binary storage
+        $curr_essid = get_essid($handshake);
+        if ($essid === $curr_essid) {
+            if ($handshake['keyver'] == 100) {
+                $resnet[] = array('pmkid' => $handshake['struct']);
+            } else {
+                $resnet[] = array('hccapx' => base64_encode($handshake['struct']));
+            }
             for ($i = 0; $i < $dc; $i++) {
                 $ref[] = & $handshakes[$key]['net_id'];
                 $ref[] = & $dicts[$i]['d_id'];
