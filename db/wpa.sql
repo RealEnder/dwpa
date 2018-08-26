@@ -106,14 +106,14 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `s_id` bigint(15) NOT NULL,
   `bssid` bigint(15) UNSIGNED NOT NULL COMMENT 'AP BSSID unsigned integer',
   `mac_sta` bigint(15) UNSIGNED NOT NULL COMMENT 'Station mac address',
-  `ssid` varchar(32) NOT NULL COMMENT 'AP ESSID',
-  `pass` varchar(64) DEFAULT NULL COMMENT 'Pre-Shared Key (PSK)',
+  `ssid` varbinary(32) NOT NULL COMMENT 'AP ESSID',
+  `pass` varbinary(64) DEFAULT NULL COMMENT 'Pre-Shared Key (PSK)',
   `pmk` binary(32) DEFAULT NULL COMMENT 'Pairwise Master Key (PMK)',
   `algo` varchar(32) DEFAULT NULL,
-  `hash` binary(16) NOT NULL COMMENT 'partial md5 on hccapx',
-  `hccapx` varbinary(393) NOT NULL COMMENT 'hccapx struct',
+  `hash` binary(16) NOT NULL COMMENT 'Partial md5 on hccapx or full md5 over PMKID line',
+  `struct` varbinary(393) NOT NULL COMMENT 'hccapx or pmkid struct',
   `message_pair` tinyint(3) UNSIGNED NOT NULL COMMENT 'message_pair from hccapx',
-  `keyver` tinyint(3) UNSIGNED NOT NULL COMMENT 'keyver from hccapx 1-WPA 2-WPA2 3-WPA2 AES-128-CMAC',
+  `keyver` tinyint(3) UNSIGNED NOT NULL COMMENT 'keyver from hccapx 1-WPA 2-WPA2 3-WPA2 AES-128-CMAC 100-PMKID',
   `nc` smallint(6) DEFAULT NULL COMMENT 'Nonce correction',
   `endian` enum('BE','LE') DEFAULT NULL COMMENT 'Endianness if detected from nonce correction',
   `sip` int(10) UNSIGNED DEFAULT NULL COMMENT 'PSK submitter IP',
@@ -130,6 +130,8 @@ CREATE TABLE IF NOT EXISTS `nets` (
   KEY `IDX_nets_ssid` (`ssid`),
   KEY `IDX_nets_algo` (`algo`),
   KEY `IDX_nets_sts` (`sts`),
+  KEY `IDX_nets_keyver` (`keyver`),
+  KEY `IDX_nets_keyver_n_state` (`keyver`, `n_state`),
   KEY `IDX_nets_n_state_hits_ts_algo` (`n_state`,`hits`,`ts`,`algo`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -148,7 +150,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
 CREATE TABLE `rkg` (
   `net_id` bigint(15) NOT NULL,
   `algo` varchar(32) NOT NULL COMMENT 'Identified algo',
-  `pass` varchar(64) NOT NULL COMMENT 'PSK candidate from rkg',
+  `pass` varbinary(64) NOT NULL COMMENT 'PSK candidate from rkg',
   `n_state` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Successful PSK candidate',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `UNC_rkg_net_id_algo_pass` (`net_id`,`algo`,`pass`) USING BTREE,
