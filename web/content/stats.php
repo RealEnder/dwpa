@@ -28,7 +28,7 @@ echo "Cracked PMKIDs: {$stats['cracked_pmkid']} / {$stats['cracked_pmkid_unc']} 
 if ((int) $stats['pmkid'] > 0) {
     $srate = round((int) $stats['cracked_pmkid'] / (int) $stats['pmkid'] * 100, 2);
     $srate_unc = round((int) $stats['cracked_pmkid_unc'] / (int) $stats['pmkid_unc'] * 100, 2);
-    echo "PMKID Success rate: $srate% / $srate_unc% unique BSSIDs<br/>\n";
+    echo "PMKID success rate: $srate% / $srate_unc% unique BSSIDs<br/>\n";
 }
 echo '<br/>';
 
@@ -54,7 +54,7 @@ $result = $mysql->query('SELECT COUNT(DISTINCT hkey) AS dhkeyc, COUNT(hkey) AS h
 $datas = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 
-echo "Current contributors count: {$datas[0]['dhkeyc']} working on {$datas[0]['hkeyc']} handshakes\n<br/>\n";
+echo "Current contributors count: {$datas[0]['dhkeyc']} working on {$datas[0]['hkeyc']} nets\n<br/>\n";
 
 // estimation and simple gaugage
 echo "Current round ends in: ";
