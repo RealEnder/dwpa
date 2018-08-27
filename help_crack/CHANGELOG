@@ -112,3 +112,7 @@ ver 1.0.2 / 17 Jun 2018
  * add option to fetch more than one dict
  * automatically set appropriate dict count based
    on client performance
+
+ver 1.1.0 / 27 Jul 2018
+ * add PMKID support
+ * bump req to latest hashcat and JtR

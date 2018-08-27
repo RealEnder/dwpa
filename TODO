@@ -8,7 +8,6 @@ TODO
 * implement js/asm.js based online crack vs random uncracked net
   and online generated, based on SSID wordlist (not started)
 * functionality to remove/hide network from the site (10%)
-* log tools output from submission into DB and show it to users (started)
 
 IMPLEMENTED
 ===========
@@ -32,3 +31,4 @@ IMPLEMENTED
 * add example external dictionary crack based on json API
 * add WPA key precalculation infrastructure (RouterKeygenPC, etc.)
 * split cracked dictionary for precalculation PSKs and others
+* log tools output from submission into DB and show it to users - show capture parse result on submit
