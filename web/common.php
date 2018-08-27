@@ -559,8 +559,8 @@ function submission($mysql, $file) {
     // update handshake stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets) WHERE pname='nets_unc'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE keyver=100) WHERE pname='nets_pmkid'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE keyver=100) WHERE pname='nets_pmkid_unc'");
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE keyver=100) WHERE pname='pmkid'");
+    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE keyver=100) WHERE pname='pmkid_unc'");
 
     return implode("\n", $res);
 }
