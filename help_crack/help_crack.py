@@ -45,7 +45,7 @@ except NameError:
 conf = {
     'base_url': 'https://wpa-sec.stanev.org/',
     'res_file': 'help_crack.res',
-    'net_file': 'help_crack.net',
+    'hccapx_file': 'help_crack.hccapx',
     'pmkid_file': 'help_crack.pmkid',
     'key_file': 'help_crack.key',
     'additional': None,
@@ -447,8 +447,8 @@ class HelpCrack(object):
             return False
 
         # cleanup
-        if os.path.exists(self.conf['net_file']):
-            os.unlink(self.conf['net_file'])
+        if os.path.exists(self.conf['hccapx_file']):
+            os.unlink(self.conf['hccapx_file'])
         if os.path.exists(self.conf['pmkid_file']):
             os.unlink(self.conf['pmkid_file'])
 
@@ -461,7 +461,7 @@ class HelpCrack(object):
                 if 'ssid' in part:
                     metadata['ssid'] = part['ssid']
                 if 'hccapx' in part:
-                    with open(self.conf['net_file'], 'ab') as fd:
+                    with open(self.conf['hccapx_file'], 'ab') as fd:
                         if self.conf['format'] == 'hccapx':
                             fd.write(binascii.a2b_base64(part['hccapx']))
                         else:
@@ -471,7 +471,7 @@ class HelpCrack(object):
                         with open(self.conf['pmkid_file'], 'ab') as fd:
                             fd.write(part['pmkid'] + b'\n')
                     else:
-                        with open(self.conf['net_file'], 'ab') as fd:
+                        with open(self.conf['hccapx_file'], 'ab') as fd:
                             fd.write(part['pmkid'] + b'\n')
 
             if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
@@ -630,8 +630,8 @@ class HelpCrack(object):
             try:
                 # TODO: fix this code duplication
                 if self.conf['format'] == 'hccapx':
-                    if os.path.exists(self.conf['net_file']):
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'])
+                    if os.path.exists(self.conf['hccapx_file']):
+                        cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
                         for dn in dictlist:
                             cracker = ''.join([cracker, ' ', dn])
                         rc = subprocess.call(shlex.split(cracker), stdout=fd)
@@ -665,7 +665,7 @@ class HelpCrack(object):
                         dp = 'cat '
                     for dn in dictlist:
                         dp = ''.join([dp, ' ', dn])
-                    cracker = '{0} {1} --stdin --pot={2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['net_file'])
+                    cracker = '{0} {1} --stdin --pot={2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
                     p1 = subprocess.Popen(shlex.split(dp), stdout=subprocess.PIPE)
                     p2 = subprocess.Popen(shlex.split(cracker), stdin=p1.stdout, stdout=subprocess.PIPE)
                     p1.stdout.close()
