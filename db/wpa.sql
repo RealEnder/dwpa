@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
   `algo` varchar(32) DEFAULT NULL,
   `hash` binary(16) NOT NULL COMMENT 'Partial md5 on hccapx or full md5 over PMKID line',
   `struct` varbinary(393) NOT NULL COMMENT 'hccapx or pmkid struct',
-  `message_pair` tinyint(3) UNSIGNED NOT NULL COMMENT 'message_pair from hccapx',
+  `message_pair` tinyint(3) UNSIGNED DEFAULT NULL COMMENT 'message_pair from hccapx',
   `keyver` tinyint(3) UNSIGNED NOT NULL COMMENT 'keyver from hccapx 1-WPA 2-WPA2 3-WPA2 AES-128-CMAC 100-PMKID',
   `nc` smallint(6) DEFAULT NULL COMMENT 'Nonce correction',
   `endian` enum('BE','LE') DEFAULT NULL COMMENT 'Endianness if detected from nonce correction',
