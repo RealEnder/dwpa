@@ -2,8 +2,8 @@
 <?php
 $search = $_GET['search'];
 if (strlen($search) >= 3) {
-    require_once('../db.php');
-    require_once('../common.php');
+    require_once('db.php');
+    require_once('common.php');
 
     $k = '';
     if (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) {

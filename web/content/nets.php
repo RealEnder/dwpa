@@ -1,6 +1,6 @@
 <?php
-require_once('../db.php');
-require_once('../common.php');
+require_once('db.php');
+require_once('common.php');
 
 put_work($mysql, $_POST);
 

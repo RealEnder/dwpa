@@ -31,8 +31,8 @@ function check_key() {
 </form>
 <?php else:
     if ($_FILES['webfile']['tmp_name'] != '') {
-        require_once('../db.php');
-        require_once('../common.php');
+        require_once('db.php');
+        require_once('common.php');
         if ($res = submission($mysql, $_FILES['webfile']['tmp_name']))
             echo "<pre>$res</pre>";
         else

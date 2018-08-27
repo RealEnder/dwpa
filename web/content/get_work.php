@@ -9,8 +9,8 @@ if (! array_key_exists('options', $_POST)) {
     die('Version');
 }
 
-require_once('../db.php');
-require_once('../common.php');
+require_once('db.php');
+require_once('common.php');
 
 // Valid hex hash
 function valid_hash($hash) {
