@@ -469,10 +469,10 @@ class HelpCrack(object):
                 if 'pmkid' in part:
                     if self.conf['format'] == 'hccapx':
                         with open(self.conf['pmkid_file'], 'ab') as fd:
-                            fd.write(part['pmkid'] + b'\n')
+                            fd.write(str(part['pmkid']).encode() + b'\n')
                     else:
                         with open(self.conf['hccapx_file'], 'ab') as fd:
-                            fd.write(part['pmkid'] + b'\n')
+                            fd.write(str(part['pmkid']).encode() + b'\n')
 
             if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
                 self.pprint('hkey or ssid not found in work package!', 'FAIL')
@@ -567,6 +567,10 @@ class HelpCrack(object):
                 self.pprint(netdata[0]['dictname'] + ' creation failed', 'FAIL')
                 self.pprint('Exception: {0}'.format(e), 'FAIL')
                 exit(1)
+
+            # clean old keyfile
+            if os.path.exists(self.conf['key_file']):
+                os.unlink(self.conf['key_file'])
 
             return netdata
         except TypeError as e:
@@ -737,7 +741,7 @@ class HelpCrack(object):
             '''parse PMKID potfile line'''
             try:
                 arr = pot.split(b':', 1)
-                arr1 = arr[0].split('*', 3)
+                arr1 = arr[0].split(b'*', 3)
                 bssid = arr1[1]
                 bssid = bssid[0:2] + \
                     b':' + bssid[2:4] + \
