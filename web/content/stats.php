@@ -14,11 +14,11 @@ foreach ($datas as $data) {
 }
 // this is for all nets stats
 echo "Total nets: {$stats['nets']} / {$stats['nets_unc']} unique BSSIDs<br/>\n";
-echo "Cracked nets: {$stats['cracked']} / {$stats['cracked_unc']} unique BSSIDs<br/>\n";
+echo "Total cracked nets: {$stats['cracked']} / {$stats['cracked_unc']} unique BSSIDs<br/>\n";
 if ((int) $stats['nets'] > 0) {
     $srate = round((int) $stats['cracked'] / (int) $stats['nets'] * 100, 2);
     $srate_unc = round((int) $stats['cracked_unc'] / (int) $stats['nets_unc'] * 100, 2);
-    echo "Success rate: $srate% / $srate_unc% unique BSSIDs<br/>\n";
+    echo "Total success rate: $srate% / $srate_unc% unique BSSIDs<br/>\n";
 }
 echo '<br/>';
 
@@ -28,7 +28,7 @@ echo "Cracked PMKIDs: {$stats['cracked_pmkid']} / {$stats['cracked_pmkid_unc']} 
 if ((int) $stats['pmkid'] > 0) {
     $srate = round((int) $stats['cracked_pmkid'] / (int) $stats['pmkid'] * 100, 2);
     $srate_unc = round((int) $stats['cracked_pmkid_unc'] / (int) $stats['pmkid_unc'] * 100, 2);
-    echo "Success rate: $srate% / $srate_unc% unique BSSIDs<br/>\n";
+    echo "PMKID Success rate: $srate% / $srate_unc% unique BSSIDs<br/>\n";
 }
 echo '<br/>';
 
@@ -42,7 +42,7 @@ if ((int) $stats['cracked'] > 0) {
 echo '<br/>';
 
 // last day stats
-echo "Last 24h processed handshakes: {$stats['24getwork']}<br/>\n";
+echo "Last 24h processed nets: {$stats['24getwork']}<br/>\n";
 $perf = convert_num($stats['24psk']/(60*60*24));
 echo "Last 24h performance: $perf/s<br/>\n";
 echo "Last 24h submissions: {$stats['24sub']}<br/>\n";
