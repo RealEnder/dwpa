@@ -446,25 +446,32 @@ class HelpCrack(object):
         if netdata is None:
             return False
 
+        # cleanup
+        if os.path.exists(self.conf['net_file']):
+            os.unlink(self.conf['net_file'])
+        if os.path.exists(self.conf['pmkid_file']):
+            os.unlink(self.conf['pmkid_file'])
+
         # extract ssid/hkey and handshakes
         metadata = {}
         try:
-            with open(self.conf['net_file'], 'wb') as fd:
-                for part in netdata:
-                    if 'hkey' in part:
-                        metadata['hkey'] = part['hkey']
-                    if 'ssid' in part:
-                        metadata['ssid'] = part['ssid']
-                    if 'hccapx' in part:
+            for part in netdata:
+                if 'hkey' in part:
+                    metadata['hkey'] = part['hkey']
+                if 'ssid' in part:
+                    metadata['ssid'] = part['ssid']
+                if 'hccapx' in part:
+                    with open(self.conf['net_file'], 'ab') as fd:
                         if self.conf['format'] == 'hccapx':
                             fd.write(binascii.a2b_base64(part['hccapx']))
                         else:
                             fd.write(self.hccapx2john(binascii.a2b_base64(part['hccapx'])))
-                    if 'pmkid' in part:
-                        if self.conf['format'] == 'hccapx':
-                            with open(self.conf['pmkid_file'], 'ab') as fd1:
-                                fd1.write(part['pmkid'] + b'\n')
-                        else:
+                if 'pmkid' in part:
+                    if self.conf['format'] == 'hccapx':
+                        with open(self.conf['pmkid_file'], 'ab') as fd:
+                            fd.write(part['pmkid'] + b'\n')
+                    else:
+                        with open(self.conf['net_file'], 'ab') as fd:
                             fd.write(part['pmkid'] + b'\n')
 
             if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
@@ -853,10 +860,6 @@ class HelpCrack(object):
             self.put_work(metadata, keypair)
 
             # cleanup
-            if os.path.exists(self.conf['net_file']):
-                os.unlink(self.conf['net_file'])
-            if os.path.exists(self.conf['pmkid_file']):
-                os.unlink(self.conf['pmkid_file'])
             if os.path.exists(self.conf['res_file']):
                 os.unlink(self.conf['res_file'])
             netdata = None
