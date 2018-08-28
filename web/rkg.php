@@ -95,7 +95,8 @@ foreach ($nets as $netkey => $net) {
     $res = '';
     $rc  = 0;
     $mac = long2mac($net['bssid']);
-    exec(RKG." -q -k -m $mac -s ".escapeshellarg($net['ssid']), $res, $rc);
+    $ssid = str_replace("\x00", '', $net['ssid']);
+    exec(RKG." -q -k -m $mac -s ".escapeshellarg($ssid), $res, $rc);
 
     if ($rc == 0) {
         // process rkg output
