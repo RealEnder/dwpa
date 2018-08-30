@@ -398,7 +398,18 @@ function submission($mysql, $file) {
         $fp = fopen($pmkidfile, 'r');
         while (($pmkidline = fgets($fp)) != False) {
             $pmkidline = rtrim($pmkidline);
-            $hash = md5($pmkidline, True);
+            // validate PMKID line
+            $apmkid = explode('*', $pmkidline, 4);
+            if (count($apmkid) != 4) {
+                continue;
+            }
+            for ($i=0; $i <= 3; $i++) {
+                if ( !(((bool) (~ strlen($apmkid[$i]) & 1)) && (ctype_xdigit($apmkid[$i]))) ) {
+                    continue;
+                }
+            }
+            // set hash to PMKID directly
+            $hash = hex2bin($apmkid[0]);
             if (isset($nets[$hash])) {
                 continue;
             }
@@ -448,15 +459,6 @@ function submission($mysql, $file) {
             // read from pmkid hash line
             if ($net[2] == 1) {
                 $apmkid = explode('*', $net[1], 4);
-                if (count($apmkid) != 4) {
-                    continue;
-                }
-
-                for ($i=0; $i <= 3; $i++) {
-                    if ( !(((bool) (~ strlen($apmkid[$i]) & 1)) && (ctype_xdigit($apmkid[$i]))) ) {
-                        continue;
-                    }
-                }
 
                 $mac_ap = hexdec($apmkid[1]);
                 $mac_sta = hexdec($apmkid[2]);
