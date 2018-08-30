@@ -634,8 +634,8 @@ class HelpCrack(object):
             try:
                 # TODO: fix this code duplication
                 if self.conf['format'] == 'hccapx':
-                    if os.path.exists(self.conf['hccapx_file']):
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
+                    if os.path.exists(self.conf['pmkid_file']):
+                        cracker = '{0} -m16800 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file'])
                         for dn in dictlist:
                             cracker = ''.join([cracker, ' ', dn])
                         rc = subprocess.call(shlex.split(cracker), stdout=fd)
@@ -647,8 +647,9 @@ class HelpCrack(object):
                             self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
                             self.pprint('Check you have OpenCL support', 'FAIL')
                             exit(1)
-                    if os.path.exists(self.conf['pmkid_file']):
-                        cracker = '{0} -m16800 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file'])
+
+                    if os.path.exists(self.conf['hccapx_file']):
+                        cracker = '{0} -m2500 --nonce-error-corrections=128 --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
                         for dn in dictlist:
                             cracker = ''.join([cracker, ' ', dn])
                         rc = subprocess.call(shlex.split(cracker), stdout=fd)
