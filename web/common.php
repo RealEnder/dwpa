@@ -222,14 +222,17 @@ function release_lock($lockfile) {
     }
 }
 
-// Get handshakes/PMKIDs by ssid
-function get_handshakes(& $mysql, & $stmt, $ssid, $n_state) {
+// Get handshakes/PMKIDs by ssid, bssid, mac_sta
+function get_handshakes(& $mysql, & $stmt, $ssid, $bssid, $mac_sta, $n_state) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT net_id, struct, ssid, pass, nc, bssid, mac_sta, pmk, sip, keyver FROM nets WHERE ssid=? AND n_state=?');
+        $stmt->prepare('SELECT net_id, struct, ssid, pass, nc, bssid, mac_sta, pmk, sip, keyver
+FROM nets
+WHERE (ssid=? OR bssid=? OR mac_sta=?)
+AND n_state=?');
     }
 
-    $stmt->bind_param('si', $ssid, $n_state);
+    $stmt->bind_param('siii', $ssid, $bssid, $mac_sta, $n_state);
     $stmt->execute();
     $result = $stmt->get_result();
     $res = $result->fetch_all(MYSQLI_ASSOC);
@@ -474,6 +477,37 @@ function submission($mysql, $file) {
             $net[4] = $message_pair;
             $net[5] = $keyver;
             $net[6] = $mac_sta;
+
+            // look for cracked handshakes/PMKIDs with same features and try to crack current by PMK
+            $broken_essid=False;
+            $hss = get_handshakes($mysql, $hs_stmt, $essid, $mac_ap, $mac_sta, 1);
+            foreach ($hss as $hs) {
+                if ($keyver == 100) {
+                    $reshs = check_key_pmkid($net[1], array($hs['pass']), $hs['pmk']);
+                } else {
+                    $reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+128, $hs['pmk']);
+                }
+                if ($reshs) {
+                    // we cracked that by PMK, now let's check if essid matches
+                    // if this not pass, we have broken essid and we'll skip this net.
+                    if ($essid === $hs['ssid']) {
+                        $pmkarr[$net[0]] = array('key' => $reshs[0],
+                                                 'pmk' => $hs['pmk'],
+                                                 'nc' => $reshs[1],
+                                                 'endian' => $reshs[2],
+                                                 'sip' => $hs['sip']);
+                    } else {
+                        $broken_essid = True;
+                    }
+                    break;
+                }
+            }
+
+            if ($broken_essid) {
+                continue;
+            }
+
+            // prepare values for insert
             $refi[] = & $s_id;
             $refi[] = & $net[2];
             $refi[] = & $net[6];
@@ -482,24 +516,6 @@ function submission($mysql, $file) {
             $refi[] = & $net[1];
             $refi[] = & $net[4];
             $refi[] = & $net[5];
-
-            // look for cracked handshakes/PMKIDs with same features and try to crack current by PMK
-            $hss = get_handshakes($mysql, $hs_stmt, $essid, 1);
-            foreach ($hss as $hs) {
-                if ($keyver == 100) {
-                    $reshs = check_key_pmkid($net[1], array($hs['pass']), $hs['pmk']);
-                } else {
-                    $reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+128, $hs['pmk']);
-                }
-                if ($reshs) {
-                    $pmkarr[$net[0]] = array('key' => $reshs[0],
-                                             'pmk' => $hs['pmk'],
-                                             'nc' => $reshs[1],
-                                             'endian' => $reshs[2],
-                                             'sip' => $hs['sip']);
-                    break;
-                }
-            }
 
             if (count($refi) > 1000) {
                 insert_nets($mysql, $refi);
@@ -625,6 +641,33 @@ function delete_from_n2d(& $mysql, & $stmt, $net_id) {
     return;
 }
 
+// Deletes from rkg, n2u, n2d, and nets by net_id
+// This is used to remove handshakes/PMKIDs with broken essids
+function delete_cascade_by_net_id(& $mysql, $net_id) {
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('DELETE FROM rkg WHERE net_id=?');
+    $stmt->bind_param('i', $net_id);
+    $stmt->execute();
+    $stmt->close();
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('DELETE FROM n2u WHERE net_id=?');
+    $stmt->bind_param('i', $net_id);
+    $stmt->execute();
+    $stmt->close();
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('DELETE FROM n2d WHERE net_id=?');
+    $stmt->bind_param('i', $net_id);
+    $stmt->execute();
+    $stmt->close();
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('DELETE FROM nets WHERE net_id=?');
+    $stmt->bind_param('i', $net_id);
+    $stmt->execute();
+    $stmt->close();
+
+    return;
+}
+
 // Put work
 function put_work($mysql, $candidates) {
     if (empty($candidates)) {
@@ -671,7 +714,8 @@ function put_work($mysql, $candidates) {
                 delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
 
                 // check for other crackable nets by PMK
-                $hss = get_handshakes($mysql, $hs_stmt, $net['ssid'], 0);
+                $broken_essid = False;
+                $hss = get_handshakes($mysql, $hs_stmt, $net['ssid'], $net['bssid'], $net['mac_sta'], 0);
                 foreach ($hss as $hs) {
                     if ($hs['keyver'] == 100) {
                         $reshs = check_key_pmkid($hs['struct'], array($key), $res[3]);
@@ -679,8 +723,14 @@ function put_work($mysql, $candidates) {
                         $reshs = check_key_hccapx($hs['struct'], array($key), abs($res[1])*2+128, $res[3]);
                     }
                     if ($reshs) {
-                        submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
-                        delete_from_n2d($mysql, $n2d_stmt, $hs['net_id']);
+                        // we cracked that by PMK, now let's check if essid matches
+                        // if this not pass, we have broken essid and we'll delete this net.
+                        if ($net['ssid'] === $hs['ssid']) {
+                            submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
+                            delete_from_n2d($mysql, $n2d_stmt, $hs['net_id']);
+                        } else {
+                            delete_cascade_by_net_id($mysql, $hs['net_id']);
+                        }
                     }
 
                 }
