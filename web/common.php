@@ -411,8 +411,8 @@ function submission($mysql, $file) {
                     continue;
                 }
             }
-            // set hash to PMKID directly
-            $hash = hex2bin($apmkid[0]);
+            // get hash from PMKID*mac_ap*mac_sta
+            $hash = md5(substr($pmkidline, 0, 58), True);
             if (isset($nets[$hash])) {
                 continue;
             }
