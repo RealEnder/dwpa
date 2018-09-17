@@ -7,8 +7,8 @@ Source code is available at <a href="https://github.com/RealEnder/dwpa">GitHub</
 <p>
 <h4>Usage</h4>
 First step is to <a href="?get_key">issue your own key</a>. This is nessesary if you want to see the results from your uploaded handshakes.
-To obtain the WPA handshake, use <a href="https://github.com/ZerBea/hcxdumptool">hcxdumptool</a> or wlandump-ng from <a href="https://github.com/ZerBea/hcxtools">hcxtools</a> repo.
-hcxtools is new generation sophisticated set of tools for WPA audit and penetration tests.
+To obtain the WPA handshake, use <a href="https://github.com/ZerBea/hcxdumptool">hcxdumptool</a>.
+<a href="https://github.com/ZerBea/hcxtools">hcxtools</a> is new generation sophisticated set of tools for WPA audit and penetration tests.
 You can then <a href="?submit">upload</a> valid pcap format captures via the web interface.<br/>
 Note: please do not use any additional tools to strip or modify the capture files, since they can mangle handshakes and lead to uncrackable results.
 </p>
