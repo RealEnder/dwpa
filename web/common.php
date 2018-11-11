@@ -1015,6 +1015,9 @@ td {padding-left: 7px; padding-right: 7px}
             case 2:
                 $type = 'WPA2';
                 break;
+            case 3:
+                $type = 'WPA2_11w';
+                break;
             case 100:
                 $type = 'PMKID';
                 break;
