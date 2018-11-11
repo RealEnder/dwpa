@@ -13,6 +13,65 @@ function hc_unhex($key) {
     return $key;
 }
 
+// Used by omac1_aes_128()
+function omac1_aes_128_leftShift($data, $bits) {
+    $mask   = (0xff << (8 - $bits)) & 0xff;
+    $state  = 0;
+    $result = '';
+    $length = strlen($data);
+    for ($i = $length - 1; $i >= 0; $i--) {
+        $tmp     = ord($data[$i]);
+        $result .= chr(($tmp << $bits) | $state);
+        $state   = ($tmp & $mask) >> (8 - $bits);
+    }
+
+    return strrev($result);
+}
+
+// Implements omac1_aes_128 (cmac)
+// Based on https://github.com/ircmaxell/PHP-CryptLib
+function omac1_aes_128($data, $key) {
+    // generate keys
+    $keys      = array();
+    $blockSize = 16;
+    // this is based on blocksize * 8
+    //   64:  str_repeat(chr(0), 7) . chr(0x1B)
+    //   128: str_repeat(chr(0), 15) . chr(0x87)
+    $rVal      = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x87";
+    // this must be block size in length
+    $cBlock    = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    $lVal      = openssl_encrypt($cBlock, 'aes-128-ecb', $key, OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING);
+
+    $keys[0] = omac1_aes_128_leftShift($lVal, 1);
+    if (ord($lVal[0]) > 127) {
+        $keys[0] = $keys[0] ^ $rVal;
+    }
+    $keys[1] = omac1_aes_128_leftShift($keys[0], 1);
+    if (ord($keys[0][0]) > 127) {
+        $keys[1] = $keys[1] ^ $rVal;
+    }
+
+    // split data into mBlocks
+    $mBlocks = str_split($data, $blockSize);
+    $last = end($mBlocks);
+    if (strlen($last) != $blockSize) {
+        // pad the last element
+        $last .= "\x80" . str_repeat("\0", $blockSize - 1 - strlen($last));
+        $last  = $last ^ $keys[1];
+    } else {
+        $last = $last ^ $keys[0];
+    }
+    $mBlocks[count($mBlocks) - 1] = $last;
+
+    // work on all blocks
+    foreach ($mBlocks as $block) {
+        $cBlock = openssl_encrypt($cBlock ^ $block, 'aes-128-ecb', $key, OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING);
+    }
+
+    // for other block sizes we must cut: substr($cBlock, 0, $blockSize)
+    return $cBlock;
+}
+
 /*
     check_key_hccapx(hccapx contents,
                      array of keys,
@@ -110,12 +169,23 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
                     $n = substr_replace($n, $rawlast1.$rawlast2, 56, 8);
                 }
 
-                $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
-
-                if ($ahccapx['keyver'] == 1)
-                    $testmic = hash_hmac('md5',  $ahccapx['eapol'], substr($ptk, 0, 16), True);
-                else
-                    $testmic = hash_hmac('sha1', $ahccapx['eapol'], substr($ptk, 0, 16), True);
+                switch ($ahccapx['keyver']) {
+                    case 1:
+                        $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
+                        $testmic = hash_hmac('md5',  $ahccapx['eapol'], substr($ptk, 0, 16), True);
+                        break;
+                    case 2:
+                        $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
+                        $testmic = hash_hmac('sha1', $ahccapx['eapol'], substr($ptk, 0, 16), True);
+                        break;
+                    case 3:
+                        $ptk = hash_hmac('sha256', "\1\0Pairwise key expansion".$m.$n."\x80\1", $pmk, True);
+                        $testmic = omac1_aes_128($ahccapx['eapol'], substr($ptk, 0, 16));
+                        break;
+                    default:
+                        // unknown keyver
+                        return Null;
+                }
 
                 if (strncmp($testmic, $ahccapx['keymic'], 16) == 0) {
                     if ($ncarr[0][1] == 0) {
