@@ -222,6 +222,8 @@ function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
     return:  False: bad format;
              Null: not found
              array('key_found',
+                    Null,
+                    Null,
                     PMK)
     PMKID = HMAC-SHA1-128(PMK, "PMK Name" | MAC_AP | MAC_STA)
     $pmkidline = PMKID*MAC AP*MAC Station*ESSID
@@ -296,7 +298,7 @@ function release_lock($lockfile) {
 function get_handshakes(& $mysql, & $stmt, $ssid, $bssid, $mac_sta, $n_state) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT net_id, struct, ssid, pass, nc, bssid, mac_sta, pmk, sip, keyver
+        $stmt->prepare('SELECT net_id, struct, ssid, pass, nc, bssid, mac_sta, pmk, sip, keyver, algo
 FROM nets
 WHERE (ssid=? OR bssid=? OR mac_sta=?)
 AND n_state=?');
@@ -312,13 +314,13 @@ AND n_state=?');
 }
 
 // Update cracked handshake by hash
-function submit_by_hash(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $hash) {
+function submit_by_hash(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $algo, $hash) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
-        $stmt->prepare('UPDATE nets SET pass=?, pmk=?, nc=?, endian=?, sip=?, sts=NOW(), n_state=1 WHERE hash=?');
+        $stmt->prepare('UPDATE nets SET pass=?, pmk=?, nc=?, endian=?, sip=?, algo=?, sts=NOW(), n_state=1 WHERE hash=?');
     }
 
-    $stmt->bind_param('ssisis', $pass, $pmk, $nc, $endian, $sip, $hash);
+    $stmt->bind_param('ssisiss', $pass, $pmk, $nc, $endian, $sip, $algo, $hash);
     $stmt->execute();
 
     return;
@@ -500,6 +502,7 @@ function submission($mysql, $file) {
     }
 
     // insert identified handshakes/PMKIDs
+    $zpmk = str_repeat("\0", 32);
     $pmkarr = array();
     if ($s_id != False) {
         $refi = array('');
@@ -548,33 +551,50 @@ function submission($mysql, $file) {
             $net[5] = $keyver;
             $net[6] = $mac_sta;
 
-            // look for cracked handshakes/PMKIDs with same features and try to crack current by PMK
-            $broken_essid=False;
-            $hss = get_handshakes($mysql, $hs_stmt, $essid, $mac_ap, $mac_sta, 1);
-            foreach ($hss as $hs) {
-                if ($keyver == 100) {
-                    $reshs = check_key_pmkid($net[1], array($hs['pass']), $hs['pmk']);
-                } else {
-                    $reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+128, $hs['pmk']);
-                }
-                if ($reshs) {
-                    // we cracked that by PMK, now let's check if essid matches
-                    // if this not pass, we have broken essid and we'll skip this net.
-                    if ($essid === $hs['ssid']) {
-                        $pmkarr[$net[0]] = array('key' => $reshs[0],
-                                                 'pmk' => $hs['pmk'],
-                                                 'nc' => $reshs[1],
-                                                 'endian' => $reshs[2],
-                                                 'sip' => $hs['sip']);
-                    } else {
-                        $broken_essid = True;
-                    }
-                    break;
-                }
+            // check for zeroed PMK
+            if ($keyver == 100) {
+                $reshs = check_key_pmkid($net[1], array(''), $zpmk);
+            } else {
+                $reshs = check_key_hccapx($net[1], array(''), 128*2, $zpmk);
             }
+            if ($reshs) {
+                // this is zeroed PMK
+                $pmkarr[$net[0]] = array('key' => '',
+                                         'pmk' => $zpmk,
+                                         'nc' => $reshs[1],
+                                         'endian' => $reshs[2],
+                                         'sip' => 2130706433,
+                                         'algo' => 'ZeroPMK');
+            } else {
+                // look for cracked handshakes/PMKIDs with same features and try to crack current by PMK
+                $broken_essid = False;
+                $hss = get_handshakes($mysql, $hs_stmt, $essid, $mac_ap, $mac_sta, 1);
+                foreach ($hss as $hs) {
+                    if ($keyver == 100) {
+                        $reshs = check_key_pmkid($net[1], array($hs['pass']), $hs['pmk']);
+                    } else {
+                        $reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+128, $hs['pmk']);
+                    }
+                    if ($reshs) {
+                        // we cracked that by PMK, now let's check if essid matches
+                        // if this not pass, we have broken essid and we'll skip this net.
+                        if ($essid === $hs['ssid']) {
+                            $pmkarr[$net[0]] = array('key' => $reshs[0],
+                                                     'pmk' => $hs['pmk'],
+                                                     'nc' => $reshs[1],
+                                                     'endian' => $reshs[2],
+                                                     'sip' => $hs['sip'],
+                                                     'algo' => $hs['algo']);
+                        } else {
+                            $broken_essid = True;
+                        }
+                        break;
+                    }
+                }
 
-            if ($broken_essid) {
-                continue;
+                if ($broken_essid) {
+                    continue;
+                }
             }
 
             // prepare values for insert
@@ -631,7 +651,7 @@ function submission($mysql, $file) {
         $submit_stmt = Null;
         $n2d_stmt = Null;
         foreach ($pmkarr as $hash => $val) {
-            submit_by_hash($mysql, $submit_stmt, $val['key'], $val['pmk'], $val['nc'], $val['endian'], $val['sip'], $hash);
+            submit_by_hash($mysql, $submit_stmt, $val['key'], $val['pmk'], $val['nc'], $val['endian'], $val['sip'], $val['algo'], $hash);
             delete_from_n2d_by_hash($mysql, $n2d_stmt, $hash);
         }
         $submit_stmt->close();
