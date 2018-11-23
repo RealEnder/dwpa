@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS `nets` (
   KEY `IDX_nets_ssid` (`ssid`),
   KEY `IDX_nets_algo` (`algo`),
   KEY `IDX_nets_sts` (`sts`),
+  KEY `IDX_nets_ts` (`ts`),
   KEY `IDX_nets_keyver` (`keyver`),
   KEY `IDX_nets_keyver_n_state` (`keyver`, `n_state`),
   KEY `IDX_nets_n_state_hits_ts_algo` (`n_state`,`hits`,`ts`,`algo`) USING BTREE
