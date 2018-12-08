@@ -4,16 +4,9 @@ require('conf.php');
 if (isset($_FILES['file'])) {
     require('db.php');
     require('common.php');
-    $status = submission($mysql, $_FILES['file']['tmp_name']);
+    @submission($mysql, $_FILES['file']['tmp_name']);
     $mysql->close();
-
-    if ($status === True) {
-        echo 2;
-    } else {
-        echo $status;
-    }
-
-    exit;
+    exit('2');
 }
 
 // User key actions
