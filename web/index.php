@@ -1,6 +1,6 @@
 <?php
 require('conf.php');
-//Check for submission from besside-ng
+// Check for direct submission from besside-ng
 if (isset($_FILES['file'])) {
     require('db.php');
     require('common.php');
@@ -16,13 +16,13 @@ if (isset($_FILES['file'])) {
     exit;
 }
 
-//User key actions
-$rec_valid = false;
+// User key actions
+$rec_valid = False;
 if (isset($_POST['g-recaptcha-response'])) {
-    //Check reCAPTCHA
+    // check reCAPTCHA
     $handle = curl_init('https://www.google.com/recaptcha/api/siteverify');
     $options = array(
-        CURLOPT_POST => true,
+        CURLOPT_POST => True,
         CURLOPT_POSTFIELDS => http_build_query(array(
             'secret' => $privatekey,
             'response' => $_POST['g-recaptcha-response'],
@@ -31,32 +31,32 @@ if (isset($_POST['g-recaptcha-response'])) {
         CURLOPT_HTTPHEADER => array(
             'Content-Type: application/x-www-form-urlencoded'
         ),
-        CURLINFO_HEADER_OUT => false,
-        CURLOPT_HEADER => false,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_SSL_VERIFYPEER => true
+        CURLINFO_HEADER_OUT => False,
+        CURLOPT_HEADER => False,
+        CURLOPT_RETURNTRANSFER => True,
+        CURLOPT_SSL_VERIFYPEER => True
     );
     curl_setopt_array($handle, $options);
     $response = curl_exec($handle);
     curl_close($handle);
 
-    //Validate reCAPTCHA response
-    $responseData = json_decode($response, true);
-    if (isset($responseData['success']) && $responseData['success'] == true) {
-        $rec_valid = true;
+    // validate reCAPTCHA response
+    $responseData = json_decode($response, True);
+    if (isset($responseData['success']) && $responseData['success'] == True) {
+        $rec_valid = True;
     }
 
     if ($rec_valid) {
         require_once('db.php');
         require_once('common.php');
 
-        //if we have email, validate it
+        // if we have email, validate it
         $mail = Null;
         if (isset($_POST['mail']) && validEmail($_POST['mail'])) {
             $mail = trim($_POST['mail']);
         }
 
-        //put new key in db
+        // put new key in db
         $sql = 'INSERT INTO users(userkey, mail, ip) VALUES(UNHEX(?), ?, ?)
                 ON DUPLICATE KEY UPDATE userkey=UNHEX(?), ip=?, ts=CURRENT_TIMESTAMP()';
         $stmt = $mysql->stmt_init();
@@ -67,11 +67,11 @@ if (isset($_POST['g-recaptcha-response'])) {
         $stmt->execute();
         $stmt->close();
 
-        //set cookie
-        setcookie('key', $userkey, 2147483647, '', '', false, true);
+        // set cookie
+        setcookie('key', $userkey, 2147483647, '', '', False, True);
         $_COOKIE['key'] = $userkey;
-        
-        //send mail with the key
+
+        // send mail with the key
         if (isset($mail)) {
             require_once('mail.php');
             try {
@@ -85,12 +85,12 @@ if (isset($_POST['g-recaptcha-response'])) {
     }
 }
 
-//validate 32 char key
+// Validate 32 char key
 function valid_key($key) {
     return preg_match('/^[a-f0-9]{32}$/', strtolower($key));
 }
 
-//Set key
+// Set key
 if (isset($_POST['key']) && valid_key($_POST['key'])) {
     require_once('db.php');
     $sql = 'SELECT u_id FROM users WHERE userkey=UNHEX(?)';
@@ -101,26 +101,26 @@ if (isset($_POST['key']) && valid_key($_POST['key'])) {
     $stmt->store_result();
 
     if ($stmt->num_rows == 1) {
-        setcookie('key', $_POST['key'], 2147483647, '', '', false, true);
+        setcookie('key', $_POST['key'], 2147483647, '', '', False, True);
         $_COOKIE['key'] = $_POST['key'];
     } else
         $_POST['remkey'] = '1';
     $stmt->close();
 }
 
-//Remove key
+// Remove key
 if (isset($_POST['remkey'])) {
-    setcookie('key', '', 1, '', '', false, true);
+    setcookie('key', '', 1, '', '', False, True);
     unset($_COOKIE['key']);
 }
 
-//CMS
+// CMS
 $content = 'content/';
 $keys = array('home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work');
 $keys_if = array('get_work', 'put_work');
 
 list($key) = each($_GET);
-if (!in_array($key,$keys)) {
+if (!in_array($key, $keys)) {
 	$key = 'home';
 }
 
