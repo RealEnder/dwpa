@@ -13,6 +13,17 @@ function hc_unhex($key) {
     return $key;
 }
 
+// Is valid hex string
+function valid_hex($str) {
+    if (( (bool) (~ strlen($str) & 1)) &&
+        (ctype_xdigit($str))) {
+
+        return True;
+    }
+
+    return False;
+}
+
 // Used by omac1_aes_128()
 function omac1_aes_128_leftShift($data, $bits) {
     $mask   = (0xff << (8 - $bits)) & 0xff;
@@ -672,7 +683,7 @@ function submission($mysql, $file) {
     return implode("\n", $res);
 }
 
-// Get uncracked net by bssid
+// Get uncracked nets by bssid
 function by_bssid(& $mysql, & $stmt, $bssid) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
@@ -696,6 +707,21 @@ function by_hash(& $mysql, & $stmt, $hash) {
         $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta, keyver FROM nets WHERE hash = UNHEX(?) AND n_state=0');
     }
     $stmt->bind_param('s', $hash);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $res = $result->fetch_all(MYSQLI_ASSOC);
+    $result->free();
+
+    return $res;
+}
+
+// Get uncracked nets by essid
+function by_essid(& $mysql, & $stmt, $essid) {
+    if ($stmt == Null) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta, keyver FROM nets WHERE ssid = UNHEX(?) AND n_state=0');
+    }
+    $stmt->bind_param('s', $essid);
     $stmt->execute();
     $result = $stmt->get_result();
     $res = $result->fetch_all(MYSQLI_ASSOC);
@@ -765,6 +791,7 @@ function put_work($mysql, $candidates) {
 
     $bybssid_stmt = Null;
     $byhash_stmt = Null;
+    $byessid_stmt = Null;
     $submit_stmt = Null;
     $n2d_stmt = Null;
     $hs_stmt = Null;
@@ -776,15 +803,18 @@ function put_work($mysql, $candidates) {
         }
 
         // remove bssid padding if found
-        if (strlen($bssid_or_hash) == 21) {
+        if (strlen($bssid_or_hash) == 21 && valid_mac(substr($bssid_or_hash, -17))) {
             $bssid_or_hash = substr($bssid_or_hash, -17);
         }
 
-        // get nets by bssid or hash
+        // get nets by bssid, hash or essid
         if (valid_mac($bssid_or_hash)) {
             $nets = by_bssid($mysql, $bybssid_stmt, $bssid_or_hash);
         } elseif (valid_key($bssid_or_hash)) {
             $nets = by_hash($mysql, $byhash_stmt, $bssid_or_hash);
+        } elseif (strlen($bssid_or_hash) > 4 && valid_hex(substr($bssid_or_hash, 4))) {
+            $bssid_or_hash = substr($bssid_or_hash, 4);
+            $nets = by_essid($mysql, $byessid_stmt, $bssid_or_hash);
         } else {
             continue;
         }
