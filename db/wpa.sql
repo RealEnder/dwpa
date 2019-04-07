@@ -201,13 +201,16 @@ CREATE TABLE IF NOT EXISTS `submissions` (
 
 CREATE TABLE IF NOT EXISTS `users` (
   `u_id` bigint(15) NOT NULL AUTO_INCREMENT,
-  `userkey` binary(16) NOT NULL,
+  `userkey` binary(16) NOT NULL COMMENT 'User key to access results and API',
+  `linkkey` binary(16) DEFAULT NULL COMMENT 'Confirmation link key',
+  `linkkeyts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp of last link sending',
   `mail` varchar(500) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,
   `ip` int(10) UNSIGNED NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`u_id`),
   UNIQUE KEY `IDX_users_userkey` (`userkey`),
-  UNIQUE KEY `IDX_users_mail` (`mail`)
+  UNIQUE KEY `IDX_users_mail` (`mail`),
+  UNIQUE KEY `IDX_users_linkkey` (`linkkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
