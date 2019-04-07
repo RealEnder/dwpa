@@ -272,9 +272,8 @@ function check_key_pmkid($pmkidline, $keys, $pmk=False) {
     return Null;
 }
 
-//Extract partial md5 hash over hccapx struct
+// Extract md5 hash over partial hccapx struct
 function hccapx_hash(& $hccapx) {
-    //TODO: implement partial md5_64()
     return md5(substr($hccapx, 0x09), True);
 }
 
