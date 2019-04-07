@@ -11,6 +11,7 @@ if (isset($_FILES['file'])) {
 
 // User key actions
 $rec_valid = False;
+$mess = False;
 if (isset($_POST['g-recaptcha-response'])) {
     // check reCAPTCHA
     $handle = curl_init('https://www.google.com/recaptcha/api/siteverify');
@@ -43,37 +44,64 @@ if (isset($_POST['g-recaptcha-response'])) {
         require_once('db.php');
         require_once('common.php');
 
-        // if we have email, validate it
-        $mail = Null;
-        if (isset($_POST['mail']) && validEmail($_POST['mail'])) {
+        // validate e-mail
+        $mail = False;
+        if (isset($_POST['mail']) && validEmail(trim($_POST['mail']))) {
             $mail = trim($_POST['mail']);
         }
 
-        // put new key in db
-        $sql = 'INSERT INTO users(userkey, mail, ip) VALUES(UNHEX(?), ?, ?)
-                ON DUPLICATE KEY UPDATE userkey=UNHEX(?), ip=?, ts=CURRENT_TIMESTAMP()';
-        $stmt = $mysql->stmt_init();
-        $ip = ip2long($_SERVER['REMOTE_ADDR']);
-        $userkey = gen_key();
-        $stmt->prepare($sql);
-        $stmt->bind_param('ssisi', $userkey, $mail, $ip, $userkey, $ip);
-        $stmt->execute();
-        $stmt->close();
+        if ($mail) {
+            // put new key in db and send confirmation mail
+            $sql = 'INSERT INTO users(userkey, linkkey, mail, ip) VALUES(UNHEX(?), UNHEX(?), ?, ?)';
+            $stmt = $mysql->stmt_init();
+            $ip = ip2long($_SERVER['REMOTE_ADDR']);
+            $key = gen_key();
+            $stmt->prepare($sql);
+            $stmt->bind_param('sssi', $key, $key, $mail, $ip);
+            $res = $stmt->execute();
+            $stmt->close();
 
-        // set cookie
-        setcookie('key', $userkey, 2147483647, '', '', False, True);
-        $_COOKIE['key'] = $userkey;
+            // if we succeeded the insert
+            if ($res) {
+                // set cookie
+                setcookie('key', $key, 2147483647, '', '', False, True);
+                $_COOKIE['key'] = $key;
 
-        // send mail with the key
-        if (isset($mail)) {
-            require_once('mail.php');
-            try {
-                $mailer->AddAddress($mail);
-		        $mailer->Subject = 'wpa-sec.stanev.org key';
-		        $mailer->Body    = "Key to access results is: $userkey";
-		        $mailer->Send();
-		        $mailer->SmtpClose();
-		    } catch (Exception $e) { }
+                // send mail with the key
+                require_once('mail.php');
+                try {
+                    $mailer->AddAddress($mail);
+                    $mailer->Subject = "{$_SERVER['HTTP_HOST']} key";
+                    $mailer->Body    = "Key to access results is: $key";
+                    $mailer->Send();
+                    $mailer->SmtpClose();
+                } catch (Exception $e) { }
+                $mess = 'User key issued. Make sure you keep it to access the results.';
+            } else {
+                // send key reset confirmation e-mail - once in 24h
+                $sql = 'UPDATE users SET linkkey = UNHEX(?), linkkeyts = CURRENT_TIMESTAMP() WHERE mail = ? AND DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY) > linkkeyts';
+                $stmt = $mysql->stmt_init();
+                $stmt->prepare($sql);
+                $stmt->bind_param('ss', $key, $mail);
+                $res = $stmt->execute();
+                $uc = $stmt->affected_rows;
+                $stmt->close();
+
+                // if update passed, send mail, else user should wait 24h
+                if ($uc == 1) {
+                    require_once('mail.php');
+                    try {
+                        $mailer->AddAddress($mail);
+                        $mailer->Subject = "{$_SERVER['HTTP_HOST']} key change";
+                        $mailer->Body    = "A request for a new user key was submitted. Please follow this link to confirm: {$_SERVER['REQUEST_SCHEME']}://{$_SERVER['HTTP_HOST']}/?get_key=$key";
+                        $mailer->Send();
+                        $mailer->SmtpClose();
+                    } catch (Exception $e) { }
+                    $mess = 'New key request was submitted. Please check you e-mail to confirm.';
+                } else {
+                    $mess = 'User key request was already submitted. Please try again tomorrow.';
+                }
+            }
         }
     }
 }
@@ -96,9 +124,13 @@ if (isset($_POST['key']) && valid_key($_POST['key'])) {
     if ($stmt->num_rows == 1) {
         setcookie('key', $_POST['key'], 2147483647, '', '', False, True);
         $_COOKIE['key'] = $_POST['key'];
-    } else
+    } else {
         $_POST['remkey'] = '1';
+    }
     $stmt->close();
+
+    header('Location: /');
+    die();
 }
 
 // Remove key
