@@ -4,9 +4,10 @@ require('conf.php');
 if (isset($_FILES['file'])) {
     require('db.php');
     require('common.php');
-    @submission($mysql, $_FILES['file']['tmp_name']);
+    $status = @submission($mysql, $_FILES['file']['tmp_name']);
     $mysql->close();
-    exit('2');
+    echo $status;
+    die();
 }
 
 // User key actions
