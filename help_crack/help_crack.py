@@ -41,7 +41,7 @@ try:
 except NameError:
     userinput = input
 
-#configuration
+# configuration
 conf = {
     'base_url': 'https://wpa-sec.stanev.org/',
     'res_file': 'help_crack.res',
@@ -498,7 +498,6 @@ class HelpCrack(object):
                 dpath = part['dpath']
             if 'dicts' in part:
                 for dpart in part['dicts']:
-                    #print(dpart)
                     dicts.append({'dhash': dpart['dhash'], 'dpath': dpart['dpath']})
         if dhash != '' and dpath != '':
             dicts.append({'dhash': dhash, 'dpath': dpath})
@@ -625,7 +624,7 @@ class HelpCrack(object):
         return None
 
     def run_cracker(self, dictlist, disablestdout=False):
-        '''run externel cracker process'''
+        '''run external cracker process'''
         fd = None
         if disablestdout:
             fd = open(os.devnull, 'w')
