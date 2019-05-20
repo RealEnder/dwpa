@@ -32,7 +32,7 @@ LIMIT ?,?');
 
     write_nets($datas);
 
-    //paging
+    // paging
     $total = $total[0][0];
     for ($i=1; $i<ceil($total / $limit) + 1; ++$i) {
         if ($page == $i) {
@@ -41,5 +41,8 @@ LIMIT ?,?');
             echo "<a href='?my_nets&page=$i' class='pagging'>$i</a>";
         }
     }
+
+    // download all found
+    echo "<br/><br/><a href='?api&dl=1' class='pagging'>Download all founds</a>";
 }
 ?>
