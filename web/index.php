@@ -212,7 +212,7 @@ else
 
 <div id="footer">
 <div class="hr"><hr /></div>
-Contact: alex at stanev dot org
+Contact: alex at stanev dot org Twitter:<a href="https://twitter.com/RealEnderSec">@RealEnderSec</a>
 </div>
 
 </div>
