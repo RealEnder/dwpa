@@ -756,6 +756,23 @@ class HelpCrack(object):
 
             return False
 
+        def parse_hashcat_combined(pot):
+            '''parse hashcat combined potfile line'''
+            try:
+                arr = pot.split(b':', 3)
+                bssid = arr[0]
+                bssid = bssid[0:2] + \
+                    b':' + bssid[2:4] + \
+                    b':' + bssid[4:6] + \
+                    b':' + bssid[6:8] + \
+                    b':' + bssid[8:10] + \
+                    b':' + bssid[10:12]
+                return {'bssid': bssid, 'key': arr[3].rstrip(b'\r\n')}
+            except (TypeError, ValueError, KeyError, IndexError):
+                pass
+
+            return False
+
         res = []
         try:
             if os.path.exists(self.conf['key_file']):
@@ -769,10 +786,15 @@ class HelpCrack(object):
                         if self.conf['potfile'] and not \
                             (b'76c6eaf116d91cc1450561b00c98ea19' in line
                              or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in line
-                             or b'8ac36b891edca8eef49094b1afe061acd0*1c7ee5e2f2d0' in line):
+                             or b'8ac36b891edca8eef49094b1afe061acd0*1c7ee5e2f2d0' in line
+                             or b'1c7ee5e2f2d0:0026c72e4900:dlink:aaaa1234' in line):
                             with open(self.conf['potfile'], 'ab') as fdpot:
                                 fdpot.write(line)
 
+                        keypair = parse_hashcat_combined(line)
+                        if keypair:
+                            res.append(keypair)
+                            continue
                         keypair = parse_hashcat(line)
                         if keypair:
                             res.append(keypair)

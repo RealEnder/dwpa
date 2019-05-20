@@ -116,3 +116,6 @@ ver 1.0.2 / 17 Jun 2018
 ver 1.1.0 / 27 Jul 2018
  * add PMKID support
  * bump req to latest hashcat and JtR
+
+ver 1.x.x / xx Xxx xxx
+ * addsupport for new hashcat potfile format
