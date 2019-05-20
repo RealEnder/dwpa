@@ -759,6 +759,8 @@ class HelpCrack(object):
             '''parse hashcat combined potfile line'''
             try:
                 arr = pot.split(b':', 3)
+                if len(arr[0]) != 12:
+                    raise ValueError
                 bssid = arr[0]
                 bssid = bssid[0:2] + \
                     b':' + bssid[2:4] + \
