@@ -774,6 +774,24 @@ function delete_cascade_by_net_id(& $mysql, $net_id) {
     $stmt->bind_param('i', $net_id);
     $stmt->execute();
     $stmt->close();
+
+    // check how many bssids with deleted net_id bssid we have
+    $n_count = Null;
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('SELECT count(*) FROM nets WHERE bssid = (SELECT bssid FROM nets WHERE net_id=?)');
+    $stmt->bind_param('i', $net_id);
+    $stmt->execute();
+    $stmt->bind_result($n_count);
+    $stmt->fetch();
+    $stmt->close();
+    // delete from bssids if we have only one such net
+    if (n_count == 1) {
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare('DELETE FROM bssids WHERE bssid = (SELECT bssid FROM nets WHERE net_id=?)');
+        $stmt->bind_param('i', $net_id);
+        $stmt->execute();
+        $stmt->close();
+    }
     $stmt = $mysql->stmt_init();
     $stmt->prepare('DELETE FROM nets WHERE net_id=?');
     $stmt->bind_param('i', $net_id);
