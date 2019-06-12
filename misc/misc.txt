@@ -28,7 +28,7 @@ UPDATE nets, (SELECT net_id,count(net_id) AS c
 SET hits=hits-c
 WHERE nets.net_id=n.net_id
 
-2. Get rendom cracked net
+2. Get random cracked net
 SELECT *
 FROM nets
 WHERE net_id >= (SELECT MAX(net_id)
