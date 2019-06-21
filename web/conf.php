@@ -12,6 +12,9 @@ $privatekey = '';
 // Bosskey
 $bosskey = '';
 
+// 3wifi API key
+$wifi3apikey = '';
+
 // App specific defines
 define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
 define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
