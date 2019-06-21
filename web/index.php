@@ -15,30 +15,24 @@ $rec_valid = False;
 $mess = False;
 if (isset($_POST['g-recaptcha-response'])) {
     // check reCAPTCHA
-    $handle = curl_init('https://www.google.com/recaptcha/api/siteverify');
-    $options = array(
-        CURLOPT_POST => True,
-        CURLOPT_POSTFIELDS => http_build_query(array(
-            'secret' => $privatekey,
-            'response' => $_POST['g-recaptcha-response'],
-            'remoteip' => $_SERVER['REMOTE_ADDR']
-        )),
-        CURLOPT_HTTPHEADER => array(
-            'Content-Type: application/x-www-form-urlencoded'
-        ),
-        CURLINFO_HEADER_OUT => False,
-        CURLOPT_HEADER => False,
-        CURLOPT_RETURNTRANSFER => True,
-        CURLOPT_SSL_VERIFYPEER => True
-    );
-    curl_setopt_array($handle, $options);
-    $response = curl_exec($handle);
-    curl_close($handle);
+    $opts = ['http' =>
+        [
+            'method'  => 'POST',
+            'header'  => ['Content-Type: application/x-www-form-urlencoded', 'User-Agent: wpa-sec'],
+            'content' => http_build_query([
+                'secret' => $privatekey,
+                'response' => $_POST['g-recaptcha-response'],
+                'remoteip' => $_SERVER['REMOTE_ADDR']
+            ])
+        ]
+    ];
+    $context = stream_context_create($opts);
+    $response = file_get_contents('https://www.google.com/recaptcha/api/siteverify', FALSE, $context);
 
     // validate reCAPTCHA response
-    $responseData = json_decode($response, True);
-    if (isset($responseData['success']) && $responseData['success'] == True) {
-        $rec_valid = True;
+    $responseData = json_decode($response, TRUE);
+    if (isset($responseData['success']) && $responseData['success'] == TRUE) {
+        $rec_valid = TRUE;
     }
 
     if ($rec_valid) {
