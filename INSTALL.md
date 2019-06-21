@@ -15,6 +15,8 @@ Requirements
  - git `sudo apt-get install git`
  - reCAPTCHA API keys for your domain, register here https://www.google.com/recaptcha
  - routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC
+ - (optional) Wigle API key, for geolocation, https://wigle.net
+ - (optional) 3wifi API key, for already found PSKs, https://3wifi.stascorp.com
 
 Compilation of external tools
 -
@@ -31,18 +33,16 @@ Your binary should be `hcxpcaptool`.
 Install qt5 development environment.
 ```
 $ git clone https://github.com/routerkeygen/routerkeygenPC
-$ cd routerkeygenPC
-$ ./buid_linux.sh
+$ cd routerkeygenPC/cli
+$ qmake
+$ make
 ```
-Your binary should be `linux/bin/routerkeygen`.
+Your binary should be `routerkeygen-cli`.
 
-> **Note1:**
-> The current version of routerkeygenPC have cli support, but it's liked with QT GUI widgets.
-> Version with only qt-core dependency can be found here: https://github.com/RealEnder/routerkeygenPC/tree/master/cli
-> To build it, use: `cd cli; qmake; make`. Your binary should be `routerkeygen-cli`.
+Crontab
+-
 
-> **Note2:**
-> Example crontab entry for running can be found in `misc/` directory.
+Create crontab entries for running `rkg.php`, `3wifi.php` and `wigle.php`. Example crontab entry for those can be found in `misc/` directory.
 
 Database
 -
@@ -125,17 +125,26 @@ conf.php should look something like this:
 
 ```
 <?php
-//DB Configuration
-$cfg_db_host='localhost';
-$cfg_db_user='wpa';
-$cfg_db_pass='wpapass';
-$cfg_db_name='wpa';
-//reCaptcha auth
+// DB Configuration
+$cfg_db_host = 'localhost';
+$cfg_db_user = 'wpa';
+$cfg_db_pass = 'wpapass';
+$cfg_db_name = 'wpa';
+
+// reCaptcha auth
 $publickey = '<your reCAPTCHA public key>';
 $privatekey = '<your reCAPTCHA private key>';
+
 //bosskey
 $bosskey = '01234567890123456789012345678901';
-//App specific defines
+
+// 3wifi API key
+$wifi3apikey = '<your 3wifi API key>';
+
+// wigle API key
+$wigleapikey = '<your wigle API key>';
+
+// App specific defines
 define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
 define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
 
@@ -147,7 +156,7 @@ elseif (is_dir('/dev/shm'))
     define('SHM', '/dev/shm/');
 else
     die('Can not access SHM!');
-define('MIN_HC_VER', '0.9.0');
+define('MIN_HC_VER', '1.1.0');
 ?>
 ```
 
