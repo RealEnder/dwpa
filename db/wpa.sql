@@ -306,6 +306,7 @@ UPDATE stats SET pvalue=(SELECT count(1) FROM nets WHERE sts >= DATE_SUB(CURRENT
 UPDATE stats SET pvalue=(SELECT count(1) FROM nets WHERE ts >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)) WHERE pname='24sub';
 UPDATE stats SET pvalue=(SELECT nc*wc FROM (SELECT SUM(wcount) AS wc FROM dicts) d, (SELECT COUNT(1) AS nc FROM nets WHERE n_state=0) n) WHERE pname='words';
 UPDATE stats SET pvalue=(SELECT SUM(dicts.wcount) FROM n2d, dicts WHERE dicts.d_id = n2d.d_id) WHERE pname='triedwords';
+UPDATE stats SET pvalue=(SELECT count(1) FROM bssids WHERE lat IS NOT NULL) WHERE pname='wigle_found';
 END$$
 
 CREATE EVENT `e_cleanup_n2d` ON SCHEDULE EVERY 1 HOUR ON COMPLETION NOT PRESERVE ENABLE DO DELETE FROM n2d WHERE hkey IS NOT NULL AND TIMESTAMPDIFF(DAY, ts, CURRENT_TIMESTAMP) > 0$$

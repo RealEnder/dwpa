@@ -24,4 +24,5 @@ INSERT INTO `stats` (`pname`, `pvalue`) VALUES
 ('24sub', '0'),
 ('24founds', '0'),
 ('words', '0'),
-('triedwords', '0');
+('triedwords', '0'),
+('wigle_found', '0');

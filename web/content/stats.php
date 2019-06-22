@@ -41,6 +41,13 @@ if ((int) $stats['cracked'] > 0) {
 }
 echo '<br/>';
 
+// this is for geolocation stats
+if ((int) $stats['wigle_found'] > 0) {
+    $wiglerate = round((int) $stats['wigle_found'] / (int) $stats['nets_unc'] * 100, 2);
+    echo "Geolocated nets: {$stats['wigle_found']} / $wiglerate%<br/>\n";
+}
+echo '<br/>';
+
 // last day stats
 echo "Last 24h processed nets: {$stats['24getwork']}<br/>\n";
 $perf = convert_num($stats['24psk']/(60*60*24));
