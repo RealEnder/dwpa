@@ -6,12 +6,12 @@ Those are the basic steps for local installation of the distributed WPA PSK audi
 Requirements
 -
 
- - Linux OS - tested with Ubuntu 16.04
+ - Linux OS - tested with Ubuntu 16.04 64bit
  - MySQL database 5.5 or better
  - PHP 5.5 or better. PHP 7.x recommended
  - Apache or other webserver with PHP support, vhost configured with https
  - gcc toolchain
- - hcxpcaptool tool, part of hcxtools https://github.com/ZerBea/hcxtools
+ - hcxpcaptool tool (min version 5.2.1), part of hcxtools https://github.com/ZerBea/hcxtools
  - git `sudo apt-get install git`
  - reCAPTCHA API keys for your domain, register here https://www.google.com/recaptcha
  - routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC

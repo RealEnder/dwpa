@@ -1,6 +1,10 @@
 <?php
 // Implements hashcat $HEX[]
 function hc_unhex($key) {
+    if (strlen($key) <= 6) {
+        return $key;
+    }
+
     $k = substr($key, 5, -1);
     if (( (bool) (~ strlen($k) & 1)) &&
         (0 === substr_compare($key, '$HEX[', 0, 5)) &&
@@ -8,6 +12,13 @@ function hc_unhex($key) {
         (ctype_xdigit($k))) {
 
         return hex2bin($k);
+    }
+
+    if ( ($k == '') &&
+        (0 === substr_compare($key, '$HEX[', 0, 5)) &&
+        (0 === substr_compare($key, ']', -1))) {
+
+        return '';
     }
 
     return $key;
@@ -116,7 +127,7 @@ function omac1_aes_128($data, $key) {
     } __attribute__((packed));
 */
 
-function check_key_hccapx($hccapx, $keys, $nc=32767, $pmk=False) {
+function check_key_hccapx($hccapx, $keys, $nc=512, $pmk=False) {
     if (strlen($hccapx) != 393)
         return False;
 
@@ -411,7 +422,7 @@ function submission($mysql, $file) {
     $pmkidfile = tempnam(SHM, 'pmkid');
     $res = '';
     $rc  = 0;
-    exec(HCXPCAPTOOL." --nonce-error-corrections=128 --time-error-corrections=10000 -o $hccapxfile -z $pmkidfile $file 2>&1", $res, $rc);
+    exec(HCXPCAPTOOL." --nonce-error-corrections=64 --time-error-corrections=10000 --ignore-fake-frames --ignore-zeroed-pmks --ignore-replaycount -o $hccapxfile -z $pmkidfile $file 2>&1", $res, $rc);
 
     // do we have error condition?
     if ($rc != 0) {
