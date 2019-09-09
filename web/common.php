@@ -770,6 +770,8 @@ function delete_from_n2d(& $mysql, & $stmt, $net_id) {
 // Deletes from rkg, n2u, n2d, and nets by net_id
 // This is used to remove handshakes/PMKIDs with broken essids
 function delete_cascade_by_net_id(& $mysql, $net_id) {
+    $mysql->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+
     $stmt = $mysql->stmt_init();
     $stmt->prepare('DELETE FROM rkg WHERE net_id=?');
     $stmt->bind_param('i', $net_id);
@@ -796,7 +798,7 @@ function delete_cascade_by_net_id(& $mysql, $net_id) {
     $stmt->fetch();
     $stmt->close();
     // delete from bssids if we have only one such net
-    if (n_count == 1) {
+    if ($n_count == 1) {
         $stmt = $mysql->stmt_init();
         $stmt->prepare('DELETE FROM bssids WHERE bssid = (SELECT bssid FROM nets WHERE net_id=?)');
         $stmt->bind_param('i', $net_id);
@@ -808,6 +810,8 @@ function delete_cascade_by_net_id(& $mysql, $net_id) {
     $stmt->bind_param('i', $net_id);
     $stmt->execute();
     $stmt->close();
+
+    $mysql->commit();
 
     return;
 }
