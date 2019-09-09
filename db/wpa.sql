@@ -264,12 +264,6 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 
 --
--- Constraints for table `bssids`
---
-ALTER TABLE `bssids`
-  ADD CONSTRAINT `FK_bssids_nets_bssid` FOREIGN KEY (`bssid`) REFERENCES `nets` (`bssid`);
-
---
 -- Constraints for table `n2d`
 --
 ALTER TABLE `n2d`
