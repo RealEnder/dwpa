@@ -883,8 +883,11 @@ class HelpCrack(object):
             keypair = self.get_key()
             if keypair:
                 for k in keypair:
-                    self.pprint('Key for bssid {0} is: {1}'.format(k['bssid'].decode(sys.stdout.encoding or 'utf-8', errors='ignore'),
-                                                                   k['key'].decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
+                    try:
+                        self.pprint('Key for bssid {0} is: {1}'.format(k['bssid'].decode(sys.stdout.encoding or 'utf-8', errors='ignore'),
+                                                                       k['key'].decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
+                    except UnicodeEncodeError:
+                        pass
             self.put_work(metadata, keypair)
 
             # cleanup
