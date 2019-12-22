@@ -422,7 +422,7 @@ function submission($mysql, $file) {
     $pmkidfile = tempnam(SHM, 'pmkid');
     $res = '';
     $rc  = 0;
-    exec(HCXPCAPTOOL." --nonce-error-corrections=64 --time-error-corrections=10000 --ignore-fake-frames --ignore-zeroed-pmks --ignore-replaycount -o $hccapxfile -z $pmkidfile $file 2>&1", $res, $rc);
+    exec(HCXPCAPTOOL." --time-error-corrections=10000 --ignore-fake-frames --ignore-zeroed-pmks --ignore-replaycount --ignore-mac -o $hccapxfile -z $pmkidfile $file 2>&1", $res, $rc);
 
     // do we have error condition?
     if ($rc != 0) {
@@ -576,7 +576,7 @@ function submission($mysql, $file) {
             if ($keyver == 100) {
                 $reshs = check_key_pmkid($net[1], array(''), $zpmk);
             } else {
-                $reshs = check_key_hccapx($net[1], array(''), 128*2, $zpmk);
+                $reshs = check_key_hccapx($net[1], array(''), 8, $zpmk);
             }
             if ($reshs) {
                 // this is zeroed PMK
@@ -594,7 +594,7 @@ function submission($mysql, $file) {
                     if ($keyver == 100) {
                         $reshs = check_key_pmkid($net[1], array($hs['pass']), $hs['pmk']);
                     } else {
-                        $reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+128, $hs['pmk']);
+                        $reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+1, $hs['pmk']);
                     }
                     if ($reshs) {
                         // we cracked that by PMK, now let's check if essid matches
