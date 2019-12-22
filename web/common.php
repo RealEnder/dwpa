@@ -932,7 +932,7 @@ ORDER BY count(pass) DESC");
     $stmt->bind_result($key);
 
     // write compressed wordlist
-    $wpakeys = tempnam(SHM, 'wpakeys');
+    $wpakeys = tempnam(CAP, 'wpakeys');
     chmod($wpakeys, 0644);
     $fd = gzopen($wpakeys, 'wb9');
     while ($stmt->fetch()) {
