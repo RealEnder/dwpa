@@ -403,7 +403,7 @@ class HelpCrack(object):
             message_pair |= 0x20
 
         # prepare nonce correction
-        for i in range(1, 129):
+        for i in range(1, 8):
             if flip:
                 # this comes with LE set first time if we don't have endianness info
                 hccaps += pack_jtr(hccap, message_pair, i)
@@ -648,7 +648,7 @@ class HelpCrack(object):
                             exit(1)
 
                     if os.path.exists(self.conf['hccapx_file']):
-                        cracker = '{0} -m2500 --nonce-error-corrections=128 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
+                        cracker = '{0} -m2500 --nonce-error-corrections=8 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
                         for dn in dictlist:
                             cracker = ''.join([cracker, ' ', dn])
                         rc = subprocess.call(shlex.split(cracker), stdout=fd)
