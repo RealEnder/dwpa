@@ -1,4 +1,4 @@
-<?
+<?php
 $k  = (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) ? $_COOKIE['key'] : '';
 $dl = (isset($_GET['dl']) && is_numeric($_GET['dl'])) ? (int)$_GET['dl'] : 0;
 
@@ -27,4 +27,3 @@ ORDER BY nets.ts');
     $mysql->close();
 }
 ?>
-
