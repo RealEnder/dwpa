@@ -415,8 +415,32 @@ function insert_n2u(& $mysql, & $ref, $u_id) {
     $stmt->close();
 }
 
+// Validate capture file
+function valid_cap($file) {
+    if (is_readable($file) && filesize($file) > 64) {
+        // misuse gz functions to read also cleartext
+        $fgz = gzopen($file, 'rb');
+        $mn = gzread($fgz, 4);
+        gzclose($fgz);
+
+        if (   $mn == "\x0a\x0d\x0d\x0a" // pcapng magic number
+            || $mn == "\xa1\xb2\xc3\xd4" // pcap magic number
+            || $mn == "\xd4\xc3\xb2\xa1" // pcap magic number BE
+            ) {
+            return True;
+        }
+    }
+
+    return False;
+}
+
 // Process submission
 function submission($mysql, $file) {
+    // check for valid capture submission
+    if (!valid_cap($file)) {
+        return "Not a valid capture file. We support pcap and pcapng.";
+    }
+
     // extract handshakes and PMKIDs from uploaded capture
     $hccapxfile = tempnam(SHM, 'hccapx');
     $pmkidfile = tempnam(SHM, 'pmkid');
