@@ -456,15 +456,10 @@ function submission($mysql, $file) {
 
     // add submission
     if (file_exists($hccapxfile) || file_exists($pmkidfile)) {
-        //move uploaded cap file
+        // compute hash and create new capture name
         $partial_path = date('Y/m/d/');
-        if (!is_dir(CAP.$partial_path)) {
-            mkdir(CAP.$partial_path, 0777, True);
-        }
-        chmod($file, 0644);
         $md5 = md5_file($file, True);
         $capfile = CAP.$partial_path.$_SERVER['REMOTE_ADDR'].'-'.bin2hex($md5).'.cap';
-        move_uploaded_file($file, $capfile);
 
         //insert into submissions table
         $sql = 'INSERT IGNORE INTO submissions(localfile, hash, ip) VALUES(?, ?, ?)';
@@ -475,6 +470,16 @@ function submission($mysql, $file) {
         $stmt->execute();
         $s_id = $stmt->insert_id;
         $stmt->close();
+
+        // move capture only if it's new
+        if ($s_id) {
+            if (!is_dir(CAP.$partial_path)) {
+                mkdir(CAP.$partial_path, 0777, True);
+            }
+
+            chmod($file, 0644);
+            move_uploaded_file($file, $capfile);
+        }
 
         $userkey = (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) ? $_COOKIE['key'] : '';
         if ($s_id == False && $userkey == '') {
