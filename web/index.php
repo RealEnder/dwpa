@@ -108,21 +108,25 @@ function valid_key($key) {
 
 // Set key
 if (isset($_POST['key']) && valid_key($_POST['key'])) {
-    require_once('db.php');
-    $sql = 'SELECT u_id FROM users WHERE userkey=UNHEX(?)';
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-    $stmt->bind_param('s', $_POST['key']);
-    $stmt->execute();
-    $stmt->store_result();
-
-    if ($stmt->num_rows == 1) {
+    if ($_POST['key'] === $bosskey) {
         setcookie('key', $_POST['key'], 2147483647, '', '', False, True);
-        $_COOKIE['key'] = $_POST['key'];
     } else {
-        $_POST['remkey'] = '1';
+        require_once('db.php');
+        $sql = 'SELECT u_id FROM users WHERE userkey=UNHEX(?)';
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+        $stmt->bind_param('s', $_POST['key']);
+        $stmt->execute();
+        $stmt->store_result();
+
+        if ($stmt->num_rows == 1) {
+            setcookie('key', $_POST['key'], 2147483647, '', '', False, True);
+            $_COOKIE['key'] = $_POST['key'];
+        } else {
+            $_POST['remkey'] = '1';
+        }
+        $stmt->close();
     }
-    $stmt->close();
 
     header('Location: /');
     die();
