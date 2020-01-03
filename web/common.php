@@ -462,15 +462,16 @@ function submission($mysql, $file) {
             mkdir(CAP.$partial_path, 0777, True);
         }
         chmod($file, 0644);
-        $capfile = CAP.$partial_path.$_SERVER['REMOTE_ADDR'].'-'.md5_file($file).'.cap';
+        $md5 = md5_file($file, True);
+        $capfile = CAP.$partial_path.$_SERVER['REMOTE_ADDR'].'-'.bin2hex($md5).'.cap';
         move_uploaded_file($file, $capfile);
 
         //insert into submissions table
-        $sql = 'INSERT IGNORE INTO submissions(localfile, ip) VALUES(?, ?)';
+        $sql = 'INSERT IGNORE INTO submissions(localfile, hash, ip) VALUES(?, ?, ?)';
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         $ip = ip2long($_SERVER['REMOTE_ADDR']);
-        $stmt->bind_param('si', $capfile, $ip);
+        $stmt->bind_param('ssi', $capfile, $md5, $ip);
         $stmt->execute();
         $s_id = $stmt->insert_id;
         $stmt->close();
