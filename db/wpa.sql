@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS `submissions` (
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Submission timestamp',
   PRIMARY KEY (`s_id`),
   UNIQUE KEY `UNC_submissions_localfile` (`localfile`) USING BTREE,
-  UNIQUE KEY `UNC_submissions_hash` (`hash`) USING BTREE,
+  UNIQUE KEY `UNC_submissions_hash` (`hash`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Capture file submissions';
 
 --
