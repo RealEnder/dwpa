@@ -1,0 +1,32 @@
+version: "3.3"
+services:
+    www:
+        build: .
+        ports:
+            - "80:80"
+        volumes:
+            - ./web:/var/www/html
+        links:
+            - db
+        networks:
+            - default
+
+    db:
+        image: mysql:8.0
+        ports:
+            - "3306:3306"
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_DATABASE: wpa
+            MYSQL_USER: wpa
+            MYSQL_PASSWORD: wpapass
+            MYSQL_ROOT_PASSWORD: wpapass
+        volumes:
+            - ./db:/docker-entrypoint-initdb.d
+            - ./conf:/etc/mysql/conf.d
+            - dwpa:/var/lib/mysql
+        networks:
+            - default
+
+volumes:
+    dwpa:
