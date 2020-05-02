@@ -306,3 +306,31 @@ UPDATE stats SET pvalue=(SELECT count(1) FROM bssids WHERE lat IS NOT NULL) WHER
 END$$
 
 CREATE EVENT `e_cleanup_n2d` ON SCHEDULE EVERY 1 HOUR ON COMPLETION NOT PRESERVE ENABLE DO DELETE FROM n2d WHERE hkey IS NOT NULL AND TIMESTAMPDIFF(DAY, ts, CURRENT_TIMESTAMP) > 0$$
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
+--
+-- Database: `wpa`
+--
+
+--
+-- Dumping data for table `stats`
+--
+
+INSERT INTO `stats` (`pname`, `pvalue`) VALUES
+('nets', '0'),
+('nets_unc', '0'),
+('cracked', '0'),
+('cracked_unc', '0'),
+('cracked_rkg', '0'),
+('cracked_rkg_unc', '0'),
+('cracked_pmkid', '0'),
+('cracked_pmkid_unc', '0'),
+('pmkid', '0'),
+('pmkid_unc', '0'),
+('24getwork', '0'),
+('24psk', '0'),
+('24sub', '0'),
+('24founds', '0'),
+('words', '0'),
+('triedwords', '0'),
+('wigle_found', '0');
