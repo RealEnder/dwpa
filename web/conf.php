@@ -1,9 +1,9 @@
 <?php
 // DB Configuration
-$cfg_db_host = '';
-$cfg_db_user = '';
-$cfg_db_pass = '';
-$cfg_db_name = '';
+$cfg_db_host = 'db';
+$cfg_db_user = 'wpa';
+$cfg_db_pass = 'wpapass';
+$cfg_db_name = 'wpa';
 
 // reCaptcha auth
 $publickey  = '';
