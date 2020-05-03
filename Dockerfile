@@ -8,6 +8,8 @@ COPY misc/rkg.cron /etc/cron.d/rkg.cron
 RUN chmod 0644 /etc/cron.d/rkg.cron
 RUN crontab /etc/cron.d/rkg.cron
 
+RUN usermod -u 1000 www-data
+
 WORKDIR /tools
 RUN mkdir /tools/bin
 
