@@ -22,8 +22,8 @@ $wigleapikey = '';
 define('HCXPCAPTOOL', '/tools/bin/hcxpcaptool');
 define('RKG', '/tools/bin/routerkeygen-cli');
 
-define('CAP', '/var/www/wpa-sec/cap/');
-define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
+define('CAP', '/var/www/html/cap/');
+define('CRACKED', '/var/www/html/dict/cracked.txt.gz');
 if (is_dir('/run/shm'))
     define('SHM', '/run/shm/');
 elseif (is_dir('/dev/shm'))
