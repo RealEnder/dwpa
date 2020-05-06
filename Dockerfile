@@ -6,7 +6,7 @@ RUN apt-get install -y build-essential cron git qt5-default libssl-dev zlib1g-de
 
 COPY misc/services.conf /etc/supervisor/conf.d
 
-ADD --chown=1000:crontab misc/rkg.cron /var/spool/cron/crontabs/www-data
+COPY --chown=1000:crontab misc/rkg.cron /var/spool/cron/crontabs/www-data
 RUN /bin/bash -c 'chmod 0600 /var/spool/cron/crontabs/www-data'
 
 RUN usermod -u 1000 www-data
