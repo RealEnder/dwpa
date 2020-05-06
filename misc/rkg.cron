@@ -1,3 +1,2 @@
 # This is cron entry every 5 minutes for rkg.php. You have to adjust your path.
-*/5 * * * * www-data cd /var/www/wpa-sec && /usr/bin/flock -n /tmp/rkg.php.lock /usr/bin/php rkg.php
-
+* * * * * cd /var/www/html && /usr/bin/flock -n /tmp/rkg.php.lock /usr/local/bin/php rkg.php
