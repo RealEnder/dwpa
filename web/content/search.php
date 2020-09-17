@@ -10,18 +10,25 @@ if (strlen($search) >= 3) {
         $k = $_COOKIE['key'];
     }
 
-    // search by BSSID
+    // detect if we'll search for BSSID ot mac_sta
+    $column = 'bssid';
+    if (strncasecmp($search, 'client:', 7) === 0) {
+        $search = trim(substr($search, 7));
+        $column = 'mac_sta';
+    }
+
+    // search by BSSID or mac_sta
     if (valid_mac($search)) {
         $bssid = mac2long($search);
         if ($k == $bosskey)
-            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, nets.pass AS pass, nets.hits, nets.ts, nets.n_state AS n_state
+            $sql = "SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, nets.pass AS pass, nets.hits, nets.ts, nets.n_state AS n_state
 FROM nets
-WHERE bssid = ?
-ORDER BY ts DESC';
+WHERE $column = ?
+ORDER BY ts DESC";
         else
-            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts, nets.n_state AS n_state
-FROM (SELECT * FROM nets WHERE bssid = ? ORDER BY nets.ts DESC LIMIT 20) AS nets
-LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id';
+            $sql = "SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, 'Found'), nets.pass) AS pass, nets.hits, nets.ts, nets.n_state AS n_state
+FROM (SELECT * FROM nets WHERE $column = ? ORDER BY nets.ts DESC LIMIT 20) AS nets
+LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id";
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         if ($k == $bosskey)
@@ -32,14 +39,14 @@ LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE
     } elseif (valid_mac($search, 3)) {
         $bssid = mac2long($search);
         if ($k == $bosskey)
-            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, nets.pass AS pass, nets.hits, nets.ts, nets.n_state AS n_state
+            $sql = "SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, nets.pass AS pass, nets.hits, nets.ts, nets.n_state AS n_state
 FROM nets
-WHERE bssid >> 24 = ?
-ORDER BY ts DESC';
+WHERE $column >> 24 = ?
+ORDER BY ts DESC";
         else
-            $sql = 'SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, \'Found\'), nets.pass) AS pass, nets.hits, nets.ts, nets.n_state AS n_state
-FROM (SELECT * FROM nets WHERE bssid >> 24 = ? ORDER BY nets.ts DESC LIMIT 20) AS nets
-LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id';
+            $sql = "SELECT hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, IF(n.u_id IS NULL, IF(nets.pass IS NULL,NULL, 'Found'), nets.pass) AS pass, nets.hits, nets.ts, nets.n_state AS n_state
+FROM (SELECT * FROM nets WHERE $column >> 24 = ? ORDER BY nets.ts DESC LIMIT 20) AS nets
+LEFT JOIN (SELECT n2u.net_id AS net_id, users.u_id AS u_id FROM n2u, users WHERE n2u.u_id=users.u_id AND users.userkey=UNHEX(?)) AS n ON n.net_id=nets.net_id";
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         if ($k == $bosskey)
