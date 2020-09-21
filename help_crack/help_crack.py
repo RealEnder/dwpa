@@ -631,24 +631,14 @@ class HelpCrack(object):
 
         while True:
             try:
-                # TODO: fix this code duplication
                 if self.conf['format'] == 'hccapx':
+                    crackers = []
                     if os.path.exists(self.conf['pmkid_file']):
-                        cracker = '{0} -m16800 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file'])
-                        for dn in dictlist:
-                            cracker = ''.join([cracker, ' ', dn])
-                        rc = subprocess.call(shlex.split(cracker), stdout=fd)
-                        if rc == -2:
-                            self.pprint('Thermal watchdog barked', 'WARNING')
-                            self.sleepy()
-                            continue
-                        if rc >= 2 or rc == -1:
-                            self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
-                            self.pprint('Check you have OpenCL support', 'FAIL')
-                            exit(1)
-
+                        crackers.append('{0} -m16800 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file']))
                     if os.path.exists(self.conf['hccapx_file']):
-                        cracker = '{0} -m2500 --nonce-error-corrections=8 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
+                        crackers.append('{0} -m2500 --nonce-error-corrections=8 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file']))
+    
+                    for cracker in crackers:
                         for dn in dictlist:
                             cracker = ''.join([cracker, ' ', dn])
                         rc = subprocess.call(shlex.split(cracker), stdout=fd)
