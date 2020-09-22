@@ -637,7 +637,7 @@ class HelpCrack(object):
                         crackers.append('{0} -m16800 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file']))
                     if os.path.exists(self.conf['hccapx_file']):
                         crackers.append('{0} -m2500 --nonce-error-corrections=8 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file']))
-    
+
                     for cracker in crackers:
                         for dn in dictlist:
                             cracker = ''.join([cracker, ' ', dn])
