@@ -61,7 +61,7 @@ if ($upgrade_bssids) {
 
     // add columns
     echo "Add column bssid1\n";
-    $res = $mysql->query("ALTER TABLE bssids ADD COLUMN bssid1 binary(6) COMMENT 'BSSID of the network' AFTER bssid");
+    $res = $mysql->query('ALTER TABLE bssids ADD COLUMN bssid1 binary(6) AFTER bssid');
 
     // fetch the bssids, which are also PK in our case
     echo "Updating bssid1 from bssid\n";
@@ -84,7 +84,7 @@ if ($upgrade_bssids) {
 
     // make bssids1 not null
     echo "Make bssid1 NOT NULL\n";
-    $mysql->query('ALTER TABLE bssids MODIFY bssid1 binary(6) NOT NULL');
+    $mysql->query("ALTER TABLE bssids MODIFY bssid1 binary(6) COMMENT 'BSSID of the network' NOT NULL");
 
     // drop coulmn bssid
     echo "Drop bssid column\n";
