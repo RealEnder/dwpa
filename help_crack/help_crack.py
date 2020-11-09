@@ -8,7 +8,6 @@ from __future__ import print_function
 import argparse
 import sys
 import os
-import platform
 import subprocess
 import shlex
 import stat
@@ -215,7 +214,7 @@ class HelpCrack(object):
 
                 output = re.sub(r'[^\d\.]', '', output.decode())
                 try:
-                    if StrictVersion(output) >= StrictVersion('4.2.1'):
+                    if StrictVersion(output) >= StrictVersion('6.0.0'):
                         return True
                 except ValueError as e:
                     self.pprint('Unsupported hashcat version', 'FAIL')
@@ -271,11 +270,7 @@ class HelpCrack(object):
         tools = []
 
         # hashcat
-        bits = platform.architecture()[0]
-        if bits == '64bit':
-            tools += run_hashcat(['hashcat64.bin', 'hashcat64', 'hashcat'])
-        else:
-            tools += run_hashcat(['hashcat32.bin', 'hashcat32', 'hashcat'])
+        tools += run_hashcat(['hashcat', 'hashcat.bin'])
 
         # John the Ripper
         tools += run_jtr()

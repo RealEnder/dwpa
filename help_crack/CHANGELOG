@@ -120,3 +120,7 @@ ver 1.1.0 / 27 Jul 2018
 ver 1.1.1 / 03 Jul 2020
  * add support for new hashcat v6 potfile format
  * fix for some encoding crashes
+
+ver x.x.x / xx Xxx 202x
+ * avoid using python installation to detect arch
+ * bump minimal hashcat version to 6.0.0
