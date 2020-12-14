@@ -61,12 +61,13 @@ if (array_key_exists('ssid', $options)) {
     $stmt->prepare('SELECT HEX(ssid) AS ssid, struct, keyver
 FROM nets
 WHERE n_state=0 AND
-      ssid = BINARY (SELECT BINARY ssid
-                     FROM nets
-                     WHERE n_state=0 AND
-                           ssid > UNHEX(?)
-                     GROUP BY BINARY ssid ASC
-                     LIMIT 1)');
+      ssid = (SELECT ssid
+              FROM nets
+              WHERE n_state=0 AND
+                    ssid > UNHEX(?)
+              GROUP BY ssid
+              ORDER BY ssid ASC
+              LIMIT 1)');
     $stmt->bind_param('s', $options['ssid']);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -82,7 +83,11 @@ WHERE n_state=0 AND
     $resnet = array();
     $resnet[] = array('ssid' => $handshakes[0]['ssid']);
     foreach ($handshakes as $key => $handshake) {
-        $resnet[] = array('hccapx' => base64_encode($handshake['hccapx']));
+        if ($handshake['keyver'] == 100) {
+            $resnet[] = array('pmkid' => $handshake['struct']);
+        } else {
+            $resnet[] = array('hccapx' => base64_encode($handshake['struct']));
+        }
     }
 } else {
     // check desired dict count

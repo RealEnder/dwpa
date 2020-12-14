@@ -867,7 +867,7 @@ class HelpCrack(object):
             cstart = time.time()
             self.run_cracker(dictlist)
             cdiff = int(time.time() - cstart)
-            if self.conf['autodictcount']:
+            if self.conf['autodictcount'] and not self.conf['custom']:
                 if options['dictcount'] < 15 and cdiff < 300:  # 5 min
                     options['dictcount'] += 1
                     self.pprint('Incrementing dictcount to {0}, last duration {1}s'.format(options['dictcount'], cdiff), 'OKBLUE')
