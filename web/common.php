@@ -176,7 +176,7 @@ function check_key_hccapx($hccapx, $keys, $nc=512, $pmk=False) {
             if (($kl < 8) || ($kl > 64)) {
                 continue;
             }
-            $pmk = hash_pbkdf2('sha1', $key, $ahccapx['essid'], 4096, 32, True);
+            $pmk = openssl_pbkdf2($key, $ahccapx['essid'], 32, 4096, 'sha1');
         }
 
         $ncarr = array(array('N', 0));
@@ -279,7 +279,7 @@ function check_key_pmkid($pmkidline, $keys, $pmk=False) {
             if (($kl < 8) || ($kl > 64)) {
                 continue;
             }
-            $pmk = hash_pbkdf2('sha1', $key, $apmkid[3], 4096, 32, True);
+            $pmk = openssl_pbkdf2($key, $apmkid[3], 32, 4096, 'sha1');
         }
 
         // compute PMKID candidate
