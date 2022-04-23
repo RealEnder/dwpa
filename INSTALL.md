@@ -1,20 +1,20 @@
 Distributed WPA PSK auditor install guide
 =
 
-Those are the basic steps for local installation of the distributed WPA PSK auditor. Installation precess is not automated and requires some basic Linux knowledge. Please follow the steps as close as possible.
+Those are the basic steps for local installation of the distributed WPA PSK auditor. Installation process is not automated and requires some basic Linux knowledge. Please follow the steps as close as possible.
 
 Requirements
 -
 
- - Linux OS - tested with Ubuntu 16.04 64bit
+ - 64bit Linux OS - tested with Ubuntu 20.04 64bit
  - MySQL database 5.5 or better
- - PHP 5.5 or better. PHP 7.x recommended
+ - PHP 7 or better.
  - Apache or other webserver with PHP support, vhost configured with https
  - gcc toolchain
- - hcxpcaptool tool (min version 5.2.1), part of hcxtools https://github.com/ZerBea/hcxtools
+ - hcxpcapngtool tool (min version 6.2), part of hcxtools https://github.com/ZerBea/hcxtools
  - git `sudo apt-get install git`
  - reCAPTCHA API keys for your domain, register here https://www.google.com/recaptcha
- - routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC
+ - routerkeygen-cli, part of routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC
  - (optional) Wigle API key, for geolocation, https://wigle.net
  - (optional) 3wifi API key, for already found PSKs, https://3wifi.stascorp.com
 
@@ -27,7 +27,7 @@ $ git clone https://github.com/ZerBea/hcxtools
 $ cd hcxtools
 $ make
 ```
-Your binary should be `hcxpcaptool`.
+Your binary should be `hcxpcapngtool`.
 
 - routerkeygenPC
 Install qt5 development environment.
@@ -54,7 +54,7 @@ Create file `/etc/mysql/conf.d/mysqld_events.cnf` with contents:
 [mysqld]
 event_scheduler=ON
 ```
-Restart MySQL daemon to enable new configuration.
+Restart MySQL daemon to enable the new configuration.
 
 - Create new MySQL database, eg. `wpa` and user with access to it
 ```
@@ -110,10 +110,10 @@ $
 Web application configuration
 -
 - Copy all files from `web` directory from dwpa repo to your webserver root
-- Copy previously built `hcxpcaptool` binary to a location, where web server process can execute it, eg. in webserver root
+- Copy previously built `hcxpcapngtool` binary to a location, where web server process can execute it, eg. in webserver root
 - edit `mail.php` and put your own SMTP configuration
 - Make sure webserver process can write to dictionaries location (to update cracked.txt.gz) and capture file location(`CAP` define from conf.php), where submissions will be written
-- `bosskey` must be 32 byte hexadecimal string, known to you, with which you will be able to see cracked PSKs in clear and search full database
+- `bosskey` must be 32 byte hexadecimal string, known to you, with which you will be able to see cracked PSKs in clear and search the full database
 
 Assuming:
 
@@ -163,7 +163,7 @@ define('MIN_HC_VER', '1.1.0');
 Client application configuration
 -
 
-Your clients will run `help_crack.py` to fetch uncracked net and dictionary. You'll need to do the following changes:
+Your clients will run `help_crack.py` to fetch uncracked nets and dictionaries. You'll need to do the following changes:
 
 - Copy `help_crack.py`, `help_crack.py.version` and `CHANGELOG` files from `dwpa` repo under `hc/` directory of your webserver root
 - Change `base_url` variable from `help_crack.py` to point to your server URL, eg. `base_url = 'https://example.com/'`, with trailing /
