@@ -629,7 +629,7 @@ class HelpCrack(object):
                 # TODO: fix this code duplication
                 if self.conf['format'] == 'hccapx':
                     if os.path.exists(self.conf['pmkid_file']):
-                        cracker = '{0} -m16800 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file'])
+                        cracker = '{0} -m22000 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file'])
                         for dn in dictlist:
                             cracker = ''.join([cracker, ' ', dn])
                         rc = subprocess.call(shlex.split(cracker), stdout=fd)
