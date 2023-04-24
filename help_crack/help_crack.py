@@ -100,9 +100,7 @@ class HelpCrack(object):
         '''validate bssid/mac address'''
         if len(mac) != 17:
             return False
-        if not re.match(r'^([a-f0-9]{2}\:?){6}$', mac):
-            return False
-        return True
+        return bool(re.match(r'^([a-f0-9]{2}\:?){6}$', mac))
 
     def md5file(self, filename):
         '''compute md5 over local file'''
@@ -151,15 +149,17 @@ class HelpCrack(object):
 
         if StrictVersion(remoteversion) > StrictVersion(self.conf['hc_ver']):
             while True:
-                self.pprint('New version ' + remoteversion + ' of help_crack found.')
+                self.pprint(f'New version {remoteversion} of help_crack found.')
                 user = userinput('Update[y] or Show changelog[c]:')
                 if user == 'c':
                     self.pprint(self.get_url(self.conf['help_crack_cl']))
                     continue
-                if user == 'y' or user == '':
-                    if self.download(self.conf['help_crack'], sys.argv[0]+'.new'):
+                if user in ['y', '']:
+                    if self.download(
+                        self.conf['help_crack'], f'{sys.argv[0]}.new'
+                    ):
                         try:
-                            os.rename(sys.argv[0]+'.new', sys.argv[0])
+                            os.rename(f'{sys.argv[0]}.new', sys.argv[0])
                             os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                         except OSError as e:
                             self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -198,7 +198,7 @@ class HelpCrack(object):
                     if is_exe(exe_file):
                         return exe_file
                 if os.name == 'posix' and is_exe(program):
-                    return './' + program
+                    return f'./{program}'
 
             return False
 
@@ -207,7 +207,11 @@ class HelpCrack(object):
             def _run_hashcat(tool):
                 '''execute and check version'''
                 try:
-                    acp = subprocess.Popen(shlex.split(tool + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    acp = subprocess.Popen(
+                        shlex.split(f'{tool} -V'),
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
                     output = acp.communicate()[0]
                 except OSError:
                     return False
@@ -241,30 +245,24 @@ class HelpCrack(object):
                 except OSError:
                     return False
 
-                if output.find(b'PASS') != -1 and output.find(b'PMKID') != -1:
-                    return True
-
-                return False
+                return output.find(b'PASS') != -1 and output.find(b'PMKID') != -1
 
             tools = []
             t = which('john')
             if t:
-                if _run_jtr(t + ' --format=wpapsk --test=0'):
-                    tools.append(t + ' --format=wpapsk')
-                if _run_jtr(t + ' --format=wpapsk-opencl --test=0'):
-                    tools.append(t + ' --format=wpapsk-opencl')
-                if _run_jtr(t + ' --format=wpapsk-cuda --test=0'):
-                    tools.append(t + ' --format=wpapsk-cuda')
+                if _run_jtr(f'{t} --format=wpapsk --test=0'):
+                    tools.append(f'{t} --format=wpapsk')
+                if _run_jtr(f'{t} --format=wpapsk-opencl --test=0'):
+                    tools.append(f'{t} --format=wpapsk-opencl')
+                if _run_jtr(f'{t} --format=wpapsk-cuda --test=0'):
+                    tools.append(f'{t} --format=wpapsk-cuda')
 
             return tools
 
         def set_format(tool):
             '''sets format based on selected tool'''
             self.conf['cracker'] = tool
-            if tool.find('hashcat') != -1:
-                self.conf['format'] = 'hccapx'
-            else:
-                self.conf['format'] = 'wpapsk'
+            self.conf['format'] = 'hccapx' if tool.find('hashcat') != -1 else 'wpapsk'
             return
 
         tools = []
@@ -312,11 +310,7 @@ class HelpCrack(object):
             (essid, mac_ap, mac_sta, corr, keyver) = struct.unpack(hccap_fmt, hccap)
 
             # replay count checked
-            if message_pair & 0x80 > 1:
-                ver = b'verified'
-            else:
-                ver = b'not verified'
-
+            ver = b'verified' if message_pair & 0x80 > 1 else b'not verified'
             # detect endian and apply nonce correction
             if ncorr != 0:
                 try:
@@ -417,7 +411,9 @@ class HelpCrack(object):
             work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
             try:
                 netdata = json.loads(work)
-                if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
+                if all('ssid' not in d for d in netdata) and all(
+                    'hkey' not in d for d in netdata
+                ):
                     raise ValueError
 
                 return netdata
@@ -469,7 +465,9 @@ class HelpCrack(object):
                         with open(self.conf['hccapx_file'], 'ab') as fd:
                             fd.write(str(part['pmkid']).encode() + b'\n')
 
-            if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
+            if all('ssid' not in d for d in netdata) and all(
+                'hkey' not in d for d in netdata
+            ):
                 self.pprint('hkey or ssid not found in work package!', 'FAIL')
                 exit(1)
         except OSError as e:
@@ -482,8 +480,8 @@ class HelpCrack(object):
     def prepare_dicts(self, netdata):
         '''download and check dictionaries'''
         # pull dicts info from netdata
-        dicts = list()
-        dlist = list()
+        dicts = []
+        dlist = []
         dhash = ''
         dpath = ''
         for part in netdata:
@@ -492,8 +490,10 @@ class HelpCrack(object):
             if 'dpath' in part:
                 dpath = part['dpath']
             if 'dicts' in part:
-                for dpart in part['dicts']:
-                    dicts.append({'dhash': dpart['dhash'], 'dpath': dpart['dpath']})
+                dicts.extend(
+                    {'dhash': dpart['dhash'], 'dpath': dpart['dpath']}
+                    for dpart in part['dicts']
+                )
         if dhash != '' and dpath != '':
             dicts.append({'dhash': dhash, 'dpath': dpath})
 
@@ -525,10 +525,10 @@ class HelpCrack(object):
                         with gzip.open(gzdictname, 'rb') as ftgz:
                             with open(dictname, 'wb') as fd:
                                 while True:
-                                    chunk = ftgz.read(self.blocksize)
-                                    if not chunk:
+                                    if chunk := ftgz.read(self.blocksize):
+                                        fd.write(chunk)
+                                    else:
                                         break
-                                    fd.write(chunk)
                     except (IOError, OSError, EOFError, zlib.error) as e:
                         self.pprint('{0} extraction failed'.format(gzdictname), 'FAIL')
                         self.pprint('Exception: {0}'.format(e), 'FAIL')
@@ -602,9 +602,14 @@ class HelpCrack(object):
             with open(self.conf['res_file']) as fd:
                 try:
                     netdata = json.load(fd)
-                    if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
+                    if all('ssid' not in d for d in netdata) and all(
+                        'hkey' not in d for d in netdata
+                    ):
                         raise ValueError
-                    if not any('hkey' in d for d in netdata) and self.conf['custom'] is None:
+                    if (
+                        all('hkey' not in d for d in netdata)
+                        and self.conf['custom'] is None
+                    ):
                         self.pprint('Can\'t resume from custom dictionary attack', 'WARNING')
                         return None
                     if any('hkey' in d for d in netdata) and self.conf['custom'] is not None:
@@ -620,10 +625,7 @@ class HelpCrack(object):
 
     def run_cracker(self, dictlist, disablestdout=False):
         '''run external cracker process'''
-        fd = None
-        if disablestdout:
-            fd = open(os.devnull, 'w')
-
+        fd = open(os.devnull, 'w') if disablestdout else None
         while True:
             try:
                 # TODO: fix this code duplication
@@ -658,10 +660,7 @@ class HelpCrack(object):
 
                 # TODO: use multiple -w:, when/if availible, see https://github.com/magnumripper/JohnTheRipper/issues/3262
                 if self.conf['format'] == 'wpapsk':
-                    if os.name == 'nt':
-                        dp = 'type '
-                    else:
-                        dp = 'cat '
+                    dp = 'type ' if os.name == 'nt' else 'cat '
                     for dn in dictlist:
                         dp = ''.join([dp, ' ', dn])
                     cracker = '{0} {1} --stdin --pot={2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
@@ -687,12 +686,25 @@ class HelpCrack(object):
             try:
                 arr = pot.split(b':', 4)
                 bssid = arr[1][:12]
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
+                bssid = (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (((bssid[:2] + b':') + bssid[2:4]) + b':')
+                                        + bssid[4:6]
+                                    )
+                                    + b':'
+                                )
+                                + bssid[6:8]
+                            )
+                            + b':'
+                        )
+                        + bssid[8:10]
+                    )
+                    + b':'
+                ) + bssid[10:12]
                 return {'bssid': bssid, 'key': arr[4].rstrip(b'\r\n')}
             except (TypeError, ValueError, KeyError, IndexError):
                 pass
@@ -721,12 +733,25 @@ class HelpCrack(object):
             try:
                 phccap = jb64decode(arr[1])
                 bssid = binascii.hexlify(phccap[:6])
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
+                bssid = (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (((bssid[:2] + b':') + bssid[2:4]) + b':')
+                                        + bssid[4:6]
+                                    )
+                                    + b':'
+                                )
+                                + bssid[6:8]
+                            )
+                            + b':'
+                        )
+                        + bssid[8:10]
+                    )
+                    + b':'
+                ) + bssid[10:12]
             except (binascii.Error, binascii.Incomplete):
                 return False
 
@@ -738,12 +763,25 @@ class HelpCrack(object):
                 arr = pot.split(b':', 1)
                 arr1 = arr[0].split(b'*', 3)
                 bssid = arr1[1]
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
+                bssid = (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (((bssid[:2] + b':') + bssid[2:4]) + b':')
+                                        + bssid[4:6]
+                                    )
+                                    + b':'
+                                )
+                                + bssid[6:8]
+                            )
+                            + b':'
+                        )
+                        + bssid[8:10]
+                    )
+                    + b':'
+                ) + bssid[10:12]
                 return {'bssid': bssid, 'key': arr[1].rstrip(b'\r\n')}
             except (TypeError, ValueError, KeyError, IndexError):
                 pass
@@ -757,12 +795,25 @@ class HelpCrack(object):
                 if len(arr[0]) != 12:
                     raise ValueError
                 bssid = arr[0]
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
+                bssid = (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (((bssid[:2] + b':') + bssid[2:4]) + b':')
+                                        + bssid[4:6]
+                                    )
+                                    + b':'
+                                )
+                                + bssid[6:8]
+                            )
+                            + b':'
+                        )
+                        + bssid[8:10]
+                    )
+                    + b':'
+                ) + bssid[10:12]
                 return {'bssid': bssid, 'key': arr[3].rstrip(b'\r\n')}
             except (TypeError, ValueError, KeyError, IndexError):
                 pass
@@ -780,7 +831,7 @@ class HelpCrack(object):
 
                         # check if we have user potfile. Don't write if it's the challenge
                         if self.conf['potfile'] and not \
-                            (b'76c6eaf116d91cc1450561b00c98ea19' in line
+                                (b'76c6eaf116d91cc1450561b00c98ea19' in line
                              or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in line
                              or b'8ac36b891edca8eef49094b1afe061acd0*1c7ee5e2f2d0' in line
                              or b'1c7ee5e2f2d0:0026c72e4900:dlink:aaaa1234' in line):
@@ -827,9 +878,9 @@ class HelpCrack(object):
         keypair = self.get_key()
 
         if not keypair \
-                or len(keypair) != 2 \
-                or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore') \
-                or keypair[1]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
+                    or len(keypair) != 2 \
+                    or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore') \
+                    or keypair[1]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
             exit(1)
 
@@ -848,7 +899,7 @@ class HelpCrack(object):
 
             # add custom dict or prepare remote ones
             if self.conf['custom']:
-                dictlist = list([self.conf['custom']])
+                dictlist = [self.conf['custom']]
             else:
                 dictlist = self.prepare_dicts(netdata)
 
@@ -895,7 +946,7 @@ if __name__ == "__main__":
     def is_valid_file(aparser, arg):
         '''check if it's a valid file'''
         if not os.path.isfile(arg):
-            aparser.error('The file {} does not exist!'.format(arg))
+            aparser.error(f'The file {arg} does not exist!')
         return arg
 
     def is_valid_dc(aparser, arg):
