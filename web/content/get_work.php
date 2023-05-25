@@ -23,14 +23,13 @@ function get_essid($net) {
         $apmkid = explode('*', $net['struct'], 4);
         return hex2bin($apmkid[3]);
     } else {
-        // TODO: fix this bloody sht
         $essid_len = ord(substr($net['struct'], 0x09, 1));
-        if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
-            $essid = unpack('Z32', substr($net['struct'], 0x0a, 32));
-        } else {
-            $essid = unpack('a32', substr($net['struct'], 0x0a, 32));
+        $essid_bin = substr($net['struct'], 0x0a, 32);
+        $essid = substr($essid_bin, 0, strpos($essid_bin, "\0"));
+        if ($essid === false) {  // If null byte is not found, return ESSID according to $essid_len
+            $essid = substr($essid_bin, 0, $essid_len);
         }
-        return substr($essid[1], 0, $essid_len);
+        return $essid;
     }
 }
 
