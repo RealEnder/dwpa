@@ -36,7 +36,7 @@ h4,h5,h6 {font-size: 1.1em;margin: 0;color: #626258}
 
 #list li {padding-left: 10px;background: url(images/list.gif) no-repeat 0 7px;}
 
-div.hr {margin: 10px 0 10px 0;height: 10px;background: #fff url(images/hr.gif);}
+div.hr {margin: 10px 0 10px 0;height: 10px;background: repeating-linear-gradient(45deg, #ddd, #ddd 1px, #fff 2px, #fff 3px);}
 
 div.hr hr {display: none;}
 
