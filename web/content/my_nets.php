@@ -34,15 +34,17 @@ LIMIT ?,?');
 
     // paging
     $total = $total[0][0];
+    echo "<div class='pagination'>";
     for ($i=1; $i<ceil($total / $limit) + 1; ++$i) {
         if ($page == $i) {
-            echo "<span class='pagging active'>$i</span>";
+            echo "<span class='btn active'>$i</span>";
         } else {
-            echo "<a href='?my_nets&page=$i' class='pagging'>$i</a>";
+            echo "<a href='?my_nets&page=$i' class='btn'>$i</a>";
         }
     }
+    echo "</div>";
 
     // download all found
-    echo "<br/><br/><a href='?api&dl=1' class='pagging'>Download all founds</a>";
+    echo "<a href='?api&dl=1' class='btn'>Download all founds</a>";
 }
 ?>

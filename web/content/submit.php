@@ -16,7 +16,7 @@ function check_key() {
 <input class="input" type="file" id="webfile" name="webfile" />
 </p>
 <p>
-<input class="submitbutton" type="submit" value="Submit capture" onclick="return check_key()" />
+<input class="btn" type="submit" value="Submit capture" onclick="return check_key()" />
 </p>
 </form>
 <?php else:

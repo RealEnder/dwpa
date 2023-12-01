@@ -1140,7 +1140,7 @@ td {padding-left: 7px; padding-right: 7px}
     }
     echo '</table>';
     if ($has_input) {
-        echo '<input class="submitbutton" type="submit" value="Send WPA keys" />';
+        echo '<input class="btn" type="submit" value="Send WPA keys" />';
     }
     echo '</form>';
 }
