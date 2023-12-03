@@ -36,7 +36,7 @@ h4,h5,h6 {font-size: 1.1em;margin: 0;color: #626258}
 
 #list li {padding-left: 10px;background: url(images/list.gif) no-repeat 0 7px;}
 
-div.hr {margin: 10px 0 10px 0;height: 10px;background: #fff url(images/hr.gif);}
+div.hr {margin: 10px 0 10px 0;height: 10px;background: repeating-linear-gradient(45deg, #ddd, #ddd 1px, #fff 2px, #fff 3px);}
 
 div.hr hr {display: none;}
 
@@ -80,17 +80,19 @@ div.hr hr {display: none;}
 
 * html #submit {margin-left: 158px;}
 
-.submitbutton {border: 1px solid #939384;background: #f5f5dc url(images/button.gif);letter-spacing: 1px;width: 140px;}
+.pagination {display: flex;flex-wrap: wrap;justify-content: flex-start;margin-bottom: 10px;}
+.pagination .btn {margin-bottom: 10px;margin-right: 10px;padding: 2px 5px;}
+.pagination .btn.active {background-color: transparent;border: none;}
 
-.pagging {border: 1px solid #939384;background-color: #f5f5dc;letter-spacing: 1px;padding: 2px 5px;margin-right: 10px;text-decoration: none !important; color: #626258;}
-
-.pagging.active {border:none;background-color:transparent}
+.btn {background: #f5f5dc;border: 1px solid #939384;color: #626258;cursor: pointer;letter-spacing: 1px;padding: 5px 10px;text-decoration: none;}
+.btn:hover, .btn:focus {background: #efefc8;border: 1px solid #666;color: #000;outline: none;}
+.btn:active, .btn:visited {color: #626258;outline: none;text-decoration: none;}
 
 /* search form */
-.searchinput {width: 200px;background-color: #f5f5dc;border: 1px solid #000000;letter-spacing: 1px;}
+.searchinput {width: 200px;background-color: #f5f5dc;border: 1px solid #000;letter-spacing: 1px;}
 
 /* key form */
-.keybutton {background-color: #f5f5dc;border: 1px solid #000000;}
+.keybutton {background-color: #f5f5dc;border: 1px solid #000;cursor: pointer;}
 
 /* progress */
 dl.progress,

@@ -44,7 +44,7 @@ E-mail: <input class="searchinput" type="text" id="mail" name="mail" value="" />
         echo $publickey;
         echo '"></div>
 <br/><br/>
-<input class="submitbutton" type="submit" value="Get private key" />
+<input class="btn" type="submit" value="Get private key" />
 </form>
 ';
     }
