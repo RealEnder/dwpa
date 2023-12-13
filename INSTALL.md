@@ -167,3 +167,12 @@ Your clients will run `help_crack.py` to fetch uncracked nets and dictionaries. 
 
 - Copy `help_crack.py`, `help_crack.py.version` and `CHANGELOG` files from `dwpa` repo under `hc/` directory of your webserver root
 - Change `base_url` variable from `help_crack.py` to point to your server URL, eg. `base_url = 'https://example.com/'`, with trailing /
+
+## Run
+```bash
+# python help_crack.py
+```
+If you encounter an error about hashcat hash mode being deprecated, simply append `-co="--deprecated-check-disable"` to the command.
+```bash
+# python help_crack.py -co="--deprecated-check-disable"
+```
