@@ -1,9 +1,9 @@
 <?php
 // DB Configuration
-$cfg_db_host = '';
-$cfg_db_user = '';
-$cfg_db_pass = '';
-$cfg_db_name = '';
+$cfg_db_host = 'db';
+$cfg_db_user = 'wpa';
+$cfg_db_pass = 'wpapass';
+$cfg_db_name = 'wpa';
 
 // reCaptcha auth
 $publickey  = '';
@@ -19,11 +19,11 @@ $wifi3apikey = '';
 $wigleapikey = '';
 
 // App specific defines
-define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
-define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
+define('HCXPCAPTOOL', '/tools/bin/hcxpcaptool');
+define('RKG', '/tools/bin/routerkeygen-cli');
 
-define('CAP', '/var/www/wpa-sec/cap/');
-define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
+define('CAP', '/var/www/html/cap/');
+define('CRACKED', '/var/www/html/dict/cracked.txt.gz');
 if (is_dir('/run/shm'))
     define('SHM', '/run/shm/');
 elseif (is_dir('/dev/shm'))
