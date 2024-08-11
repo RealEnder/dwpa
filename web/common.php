@@ -1017,10 +1017,7 @@ function valid_mac($mac, $part=6) {
 
 // Generate random key
 function gen_key() {
-    $fp = fopen('/dev/urandom','rb');
-    $rand = fread($fp, 32);
-    fclose($fp);
-    return md5($rand);
+    return bin2hex(random_bytes(16));
 }
 
 /*
