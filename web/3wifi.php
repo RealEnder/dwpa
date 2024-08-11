@@ -16,7 +16,12 @@ require('common.php');
 $wifi3search = [];
 
 // fetch unchecked nets
-$result = $mysql->query('SELECT bssid FROM bssids WHERE EXISTS (SELECT 1 FROM nets WHERE n_state=0 AND algo IS NOT NULL AND nets.bssid=bssids.bssid) ORDER BY wifi3ts ASC LIMIT 100');
+$result = $mysql->query('SELECT bssid
+FROM bssids
+WHERE EXISTS (SELECT 1
+              FROM nets
+              WHERE n_state=0 AND algo IS NOT NULL AND nets.bssid=bssids.bssid)
+ORDER BY wifi3ts ASC LIMIT 100');
 $bssids = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 
