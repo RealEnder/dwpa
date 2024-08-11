@@ -446,7 +446,7 @@ function submission($mysql, $file) {
     $pmkidfile = tempnam(SHM, 'pmkid');
     $res = '';
     $rc  = 0;
-    exec(HCXPCAPTOOL." --time-error-corrections=10000 --ignore-fake-frames --ignore-zeroed-pmks --ignore-replaycount --ignore-mac -o $hccapxfile -z $pmkidfile $file 2>&1", $res, $rc);
+    exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=20000 --max-essids=1 --hccapx=$hccapxfile --pmkid=$pmkidfile $file 2>&1", $res, $rc);
 
     // do we have error condition?
     if ($rc != 0) {

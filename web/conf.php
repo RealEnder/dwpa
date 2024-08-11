@@ -19,7 +19,7 @@ $wifi3apikey = '';
 $wigleapikey = '';
 
 // App specific defines
-define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
+define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcapngtool');
 define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
 
 define('CAP', '/var/www/wpa-sec/cap/');
