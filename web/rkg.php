@@ -29,7 +29,7 @@ function insert_rkg(& $mysql, & $ref) {
 
         $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
 
-        call_user_func_array(array($stmt, 'bind_param'), $ref);
+        call_user_func_array([$stmt, 'bind_param'], $ref);
         $stmt->execute();
     }
     $stmt->close();
@@ -45,21 +45,21 @@ function update_nets_algo(& $mysql, & $stmt, $algo, $net_id) {
     $stmt->execute();
 }
 
-function single_mode_generator($bssid, $essid) {
-    $res = array();
+function single_mode_generator($bssid, $ssid) {
+    $res = [];
 
     // bssid gen
     for ($i=-1; $i<=1; $i++) {
-        foreach (array(12, 10, 8) as $j) {
-            $curr = substr(dechex($bssid+$i), -$j);
+        foreach ([12, 10, 8] as $j) {
+            $curr = substr(dechex($bssid + $i), -$j);
             $res[] = str_pad(           $curr , $j, '0', STR_PAD_LEFT);
             $res[] = str_pad(strtoupper($curr), $j, '0', STR_PAD_LEFT);
         }
     }
 
-    // essid gen
-    foreach (array('', '1', '123', '!') as $j) {
-        $can = $essid.$j;
+    // ssid gen
+    foreach (['', '1', '123', '!'] as $j) {
+        $can = $ssid.$j;
         if (strlen($can) >= 8) {
             $canuc = strtoupper($can);
             $canlc = strtolower($can);
@@ -92,8 +92,8 @@ $result->free();
 
 foreach ($nets as $netkey => $net) {
     $algo = '';
-    $ref = array('');
-    $candidates = array();
+    $ref = [''];
+    $candidates = [];
     $found = False;
     $cres = False;
     $res = '';
@@ -187,7 +187,7 @@ if ($delete_n2d_stmt) {
 
 // regenerate rkg.txt.gz if we have hit
 if ($regenerate_rkg_dict) {
-    //pull rkg cracked wordlist
+    // pull rkg cracked wordlist
     $stmt = $mysql->stmt_init();
     $stmt->prepare("SELECT DISTINCT pass FROM nets WHERE algo IS NOT NULL AND algo != ''");
     $stmt->execute();
@@ -212,5 +212,4 @@ if ($regenerate_rkg_dict) {
 }
 
 $mysql->close();
-exit(0);
 ?>
