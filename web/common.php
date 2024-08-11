@@ -898,7 +898,13 @@ function put_work($mysql, $candidates) {
             }
 
             if ($res) {
-                $iip = ip2long($_SERVER['REMOTE_ADDR']);
+                // submit the found PSK
+                if (array_key_exists('REMOTE_ADDR', $_SERVER)) {
+                    $iip = ip2long($_SERVER['REMOTE_ADDR']);
+                } else {
+                    $iip = 2130706433;
+                }
+
                 submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $res[1], $res[2], $iip, $net['net_id']);
                 delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
 
