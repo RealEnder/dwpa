@@ -27,12 +27,12 @@ if (isset($_POST['g-recaptcha-response'])) {
         ]
     ];
     $context = stream_context_create($opts);
-    $response = file_get_contents('https://www.google.com/recaptcha/api/siteverify', FALSE, $context);
+    $response = file_get_contents('https://www.google.com/recaptcha/api/siteverify', False, $context);
 
     // validate reCAPTCHA response
-    $responseData = json_decode($response, TRUE);
-    if (isset($responseData['success']) && $responseData['success'] == TRUE) {
-        $rec_valid = TRUE;
+    $responseData = json_decode($response, True);
+    if (isset($responseData['success']) && $responseData['success'] == True) {
+        $rec_valid = True;
     }
 
     if ($rec_valid) {
@@ -140,8 +140,8 @@ if (isset($_POST['remkey'])) {
 
 // CMS
 $content = 'content/';
-$keys = array('home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work', 'api');
-$keys_if = array('get_work', 'put_work', 'api');
+$keys = ['home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work', 'api'];
+$keys_if = ['get_work', 'put_work', 'api'];
 
 if (count($_GET) > 0) {
     $key = array_keys($_GET)[0];
