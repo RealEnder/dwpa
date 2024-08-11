@@ -20,14 +20,18 @@ function insert_rkg(& $mysql, & $ref) {
     $stmt->execute();
 
     // insert new ones
-    $bindvars = 'issi';
-    $sql = 'INSERT IGNORE INTO rkg(net_id, algo, pass, n_state) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
+    if (count($ref) < 1000) {
+        $bindvars = 'issi';
+        $sql = 'INSERT IGNORE INTO rkg(net_id, algo, pass, n_state) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
 
-    $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
-    call_user_func_array(array($stmt, 'bind_param'), $ref);
-    $stmt->execute();
+        $stmt = $mysql->stmt_init();
+        $stmt->prepare($sql);
+
+        $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
+
+        call_user_func_array(array($stmt, 'bind_param'), $ref);
+        $stmt->execute();
+    }
     $stmt->close();
 }
 
