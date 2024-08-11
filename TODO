@@ -1,7 +1,15 @@
 TODO
 ====
+* drop deprecated internal hccapx/pmkid storage in favor of m22000 (80%)
+* add geolocated country info based on BSSID (90%)
+* show information on hash feature information (90%)
+* show information on default aldorithms identified (90%)
+* create dictionaries, based on PROBEREQUEST frames (not started)
+* add custom rules for every dictionary (not started)
+* add structure for regex of SSIDs and default passwords (10%)
+* add FAQ section (not started)
 * do heavy work in external process for submissions (10%)
-* restructure home with folding text sections/wizzards (not started)
+* restructure home with folding text sections/wizards (not started)
 * write Android app with net scan and pass show from the site (not started)
 * implement json API for accessing own nets (30%)
 * unify records in stats table (not started)
