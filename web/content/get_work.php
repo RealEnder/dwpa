@@ -46,7 +46,7 @@ function insert_n2d(& $mysql, & $ref) {
     $stmt->prepare($sql);
 
     $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
-    call_user_func_array(array($stmt, 'bind_param'), $ref);
+    call_user_func_array([$stmt, 'bind_param'], $ref);
     $stmt->execute();
     $stmt->close();
 }

@@ -1,6 +1,11 @@
 <h1>Search networks</h1>
 <?php
-$search = $_GET['search'];
+echo '<h1>Search networks</h1>';
+
+$search = '';
+if (isset($_GET['search'])) {
+    $search = $_GET['search'];
+}
 if (strlen($search) >= 3) {
     require_once('db.php');
     require_once('common.php');
@@ -12,7 +17,7 @@ if (strlen($search) >= 3) {
 
     // detect if we'll search for BSSID ot mac_sta
     $column = 'bssid';
-    if (strncasecmp($search, 'client:', 7) === 0) {
+    if (str_starts_with($search, 'client:')) {
         $search = trim(substr($search, 7));
         $column = 'mac_sta';
     }

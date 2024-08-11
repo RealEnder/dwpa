@@ -32,6 +32,9 @@ LIMIT ?,?');
 
     write_nets($datas);
 
+    // download all found
+    echo "<a href='?api&dl=1' class='btn'>Download all founds</a><br/><br/>";
+
     // paging
     $total = $total[0][0];
     echo "<div class='pagination'>";
@@ -42,9 +45,5 @@ LIMIT ?,?');
             echo "<a href='?my_nets&page=$i' class='btn'>$i</a>";
         }
     }
-    echo "</div>";
-
-    // download all found
-    echo "<a href='?api&dl=1' class='btn'>Download all founds</a>";
 }
 ?>
