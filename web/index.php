@@ -159,13 +159,13 @@ if (in_array($key, $keys_if)) {
     exit;
 }
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<!DOCTYPE html>
+<html lang="en" xml:lang="en">
 <head>
 
-<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
-<meta name="description" content="Distributed WPA PSK security audit environment" />
-<meta name="keywords" content="free, audit, security, online, besside-ng, aircrack-ng, pyrit, wpa, wpa2, crack, cracker, distributed, wordlist" />
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<meta name="description" content="Distributed WPA PSK security audit environment">
+<meta name="keywords" content="free, audit, security, online, hcxtools, hcxpcapngtool, hcxdumptool, hashcat, john, jtr, besside-ng, aircrack-ng, pyrit, wpa, wpa2, crack, cracker, distributed, wordlist">
 
 <title>Distributed WPA PSK strength auditor</title>
 
@@ -174,18 +174,18 @@ if (in_array($key, $keys_if)) {
 </head>
 <body>
 
-<a name="top"></a>
+<a id="top"></a>
 
 <div id="header">Distributed WPA PSK auditor</div>
 
 <ul id="navtop">
-<li style="float:right;padding-right: 7px;"><form action="" method="get">Search <input class="searchinput" type="text" id="search" name="search" value="" /></form></li>
-<li style="float:right;padding-right: 7px;"><form action="" method="post">Key 
+<li style="float:right;padding-right: 7px;"><form method="get">Search <input class="searchinput" type="text" id="search" name="search" value=""></form></li>
+<li style="float:right;padding-right: 7px;"><form method="post">Key 
 <?php
 if (isset($_COOKIE['key']))
-    echo htmlspecialchars($_COOKIE['key']).' <input type="hidden" id="remkey" name="remkey" value="1" /><input class="keybutton" type="submit" value="X" onclick=\'return confirm("Are you sure you want to dispose the key?")\'/>';
+    echo htmlspecialchars($_COOKIE['key']).' <input type="hidden" id="remkey" name="remkey" value="1" /><input class="keybutton" type="submit" value="X" onclick=\'return confirm("Are you sure you want to dispose the key?")\'>';
 else
-    echo '<input class="searchinput" type="text" id="key" name="key" value="" />';
+    echo '<input class="searchinput" type="text" id="key" name="key" value="">';
 ?>
 </form></li>
 <li><a href="?">Home</a></li>
@@ -213,8 +213,8 @@ else
 </div>
 
 <div id="footer">
-<div class="hr"><hr /></div>
-Contact: alex at stanev dot org Twitter:<a href="https://twitter.com/RealEnderSec">@RealEnderSec</a>
+    <div class="hr"><hr></div>
+    Contact: alex at stanev dot org X:<a href="https://x.com/RealEnderSec">@RealEnderSec</a>
 </div>
 
 </div>
