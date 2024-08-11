@@ -143,7 +143,11 @@ $content = 'content/';
 $keys = array('home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work', 'api');
 $keys_if = array('get_work', 'put_work', 'api');
 
-$key = array_keys($_GET)[0];
+if (count($_GET) > 0) {
+    $key = array_keys($_GET)[0];
+} else {
+    $key = [];
+}
 if (!in_array($key, $keys)) {
 	$key = 'home';
 }
