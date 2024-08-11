@@ -624,7 +624,7 @@ function submission($mysql, $file) {
                     if ($keyver == 100) {
                         $reshs = check_key_pmkid($net[1], array($hs['pass']), $hs['pmk']);
                     } else {
-                        $reshs = check_key_hccapx($net[1], array($hs['pass']), abs($hs['nc'])*2+1, $hs['pmk']);
+                        $reshs = check_key_hccapx($net[1], array($hs['pass']), abs((int) $hs['nc'])*2+1, $hs['pmk']);
                     }
                     if ($reshs) {
                         // we cracked that by PMK, now let's check if essid matches
@@ -902,7 +902,7 @@ function put_work($mysql, $candidates) {
                     if ($hs['keyver'] == 100) {
                         $reshs = check_key_pmkid($hs['struct'], array($key), $res[3]);
                     } else {
-                        $reshs = check_key_hccapx($hs['struct'], array($key), abs($res[1])*2+128, $res[3]);
+                        $reshs = check_key_hccapx($hs['struct'], array($key), abs((int) $res[1])*2+128, $res[3]);
                     }
                     if ($reshs) {
                         // we cracked that by PMK, now let's check if essid matches
