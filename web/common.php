@@ -1023,10 +1023,12 @@ function gen_key() {
 // Validate e-mail + MX
 function validEmail($email) {
     $email = trim($email);
-    if (filter_var($email, FILTER_VALIDATE_EMAIL) &&
-        checkdnsrr(array_pop(explode('@', $email)),"MX")) {
 
-        return True;
+    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $domain = substr(strrchr($email, '@'), 1);
+        if (checkdnsrr($domain.'.', 'MX')) {
+            return True;
+        }
     }
 
     return False;
