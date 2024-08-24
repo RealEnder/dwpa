@@ -554,7 +554,7 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
 
     def create_resume(self, netdata):
         """create resume file"""
-        with open(self.conf['res_file'], 'w') as fd:
+        with open(self.conf['res_file'], 'w', encoding="utf-8") as fd:
             json.dump(netdata, fd)
 
     def resume_check(self):
@@ -581,7 +581,7 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         """run external cracker process"""
         fd = None
         if disablestdout:
-            fd = open(os.devnull, 'w')
+            fd = open(os.devnull, 'w') # pylint: disable=consider-using-with,unspecified-encoding
 
         while True:
             try:
