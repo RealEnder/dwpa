@@ -112,208 +112,206 @@ function omac1_aes_128($data, $key) {
 }
 
 /*
-    check_key_hccapx(hccapx contents,
-                     array of keys,
-                     nonce correction to be used - positive integer,
-                     binary PMK to be used)
-    return:  False: bad format;
-             Null: not found
-             array('key_found',
-                    0, //nonce correction value if used
-                    'BE', //big endian(BE) or little endian(LE), if detected
-                    PMK)
-    hccapx structure https://hashcat.net/wiki/doku.php?id=hccapx
+hashline format:
+SIGNATURE*TYPE*PMKID/MIC*MACAP*MACSTA*ESSID*ANONCE*EAPOL*MESSAGEPAIR/PMKID INFO
 
-    #define HCCAPX_SIGNATURE 0x58504348 // HCPX
-    struct hccapx
-    {
-      u32 signature;
-      u32 version;
-      u8  message_pair;
-      u8  essid_len;
-      u8  essid[32];
-      u8  keyver;
-      u8  keymic[16];
-      u8  mac_ap[6];
-      u8  nonce_ap[32];
-      u8  mac_sta[6];
-      u8  nonce_sta[32];
-      u16 eapol_len;
-      u8  eapol[256];
+    SIGNATURE = "WPA"
+    TYPE = 01 for PMKID, 02 for EAPOL, others to follow
+    PMKID/MIC = PMKID if TYPE==01, MIC if TYPE==02
+    MACAP = MAC of AP
+    MACSTA = MAC of station
+    ESSID = ESSID
+    ANONCE = ANONCE
+    EAPOL = EAPOL (SNONCE is in here)
+    MESSAGEPAIR = Bitmask:
+0: MP info (https://hashcat.net/wiki/doku.php?id=hccapx)*
+1: MP info (https://hashcat.net/wiki/doku.php?id=hccapx)*
+2: MP info (https://hashcat.net/wiki/doku.php?id=hccapx)*
+3: x (unused)
+4: ap-less attack (set to 1) - no nonce-error-corrections necessary
+5: LE router detected (set to 1) - nonce-error-corrections only for LE necessary
+6: BE router detected (set to 1) - nonce-error-corrections only for BE necessary
+7: not replaycount checked (set to 1) - replaycount not checked, nonce-error-corrections definitely necessary
+    *
+000 = M1+M2, EAPOL from M2 (challenge)
+001 = M1+M4, EAPOL from M4 (authorized)
+010 = M2+M3, EAPOL from M2 (authorized)
+011 = M2+M3, EAPOL from M3 (authorized)
+100 = M3+M4, EAPOL from M3 (authorized)
+101 = M3+M4, EAPOL from M4 (authorized)
+    PMKID INFO = For type 01, bitmask:
+0: reserved
+1: PMKID taken from AP
+2: reserved
+3: reserved
+4: PMKID taken from CLIENT (wlan.da: possible MESH or REPEATER)
+5: reserved
+6: reserved
+7: reserved
 
-    } __attribute__((packed));
+Return value:
+False - Not cracked
+[PSK, NC, BE/LE, PMK]
 */
 
-function check_key_hccapx($hccapx, $keys, $nc=512, $pmk=False) {
-    if (strlen($hccapx) != 393)
-        return False;
-
-    $ahccapx = unpack('x8/Cmessage_pair/Cessid_len/a32essid/Ckeyver/a16keymic/a6mac_ap/a32nonce_ap/a6mac_sta/a32nonce_sta/veapol_len/a256eapol', $hccapx);
-
-    // cut essid and eapol
-    if ($ahccapx['essid_len'] < 32) {
-        $ahccapx['essid'] = substr($ahccapx['essid'], 0, $ahccapx['essid_len']);
-    }
-    if ($ahccapx['eapol_len'] < 256) {
-        $ahccapx['eapol'] = substr($ahccapx['eapol'], 0, $ahccapx['eapol_len']);
-    }
-
-    // fix order
-    if (strncmp($ahccapx['mac_ap'], $ahccapx['mac_sta'], 6) < 0)
-        $m = $ahccapx['mac_ap'].$ahccapx['mac_sta'];
-    else
-        $m = $ahccapx['mac_sta'].$ahccapx['mac_ap'];
-
-    $swap = False;
-    if (strncmp($ahccapx['nonce_sta'], $ahccapx['nonce_ap'], 6) < 0)
-        $n = $ahccapx['nonce_sta'].$ahccapx['nonce_ap'];
-    else {
-        $n = $ahccapx['nonce_ap'].$ahccapx['nonce_sta'];
-        $swap = True;
-    }
-
-    // get nonce_ap last bytes for nonce correction
-    // TODO: unpack 64bit after April2019, this is PHP 5.6+
-    $last1le = unpack('x24/V', $ahccapx['nonce_ap']);
-    $last2le = unpack('x28/V', $ahccapx['nonce_ap']);
-    $last1be = unpack('x24/N', $ahccapx['nonce_ap']);
-    $last2be = unpack('x28/N', $ahccapx['nonce_ap']);
-
-    $corr['V'] = ($last1le[1] << 32) | $last2le[1];
-    $corr['N'] = ($last1be[1] << 32) | $last2be[1];
-    $halfnc = ($nc >> 1) + 1;
-
-    foreach ($keys as $key) {
-        if (strlen($key) > 20) {
-            $key = hc_unhex($key);
-        }
-
-        if (! $pmk) {
-            $kl = strlen($key);
-            if (($kl < 8) || ($kl > 64)) {
-                continue;
-            }
-            $pmk = openssl_pbkdf2($key, $ahccapx['essid'], 32, 4096, 'sha1');
-        }
-
-        $ncarr = array(array('N', 0));
-        do {
-            foreach ($ncarr as $j) {
-                $rawlast1 = pack($j[0], $corr[$j[0]] + $j[1] >> 32);
-                $rawlast2 = pack($j[0], $corr[$j[0]] + $j[1]);
-
-                if ($swap) {
-                    $n = substr_replace($n, $rawlast1.$rawlast2, 24, 8);
-                } else {
-                    $n = substr_replace($n, $rawlast1.$rawlast2, 56, 8);
-                }
-
-                switch ($ahccapx['keyver']) {
-                    case 1:
-                        $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
-                        $testmic = hash_hmac('md5',  $ahccapx['eapol'], substr($ptk, 0, 16), True);
-                        break;
-                    case 2:
-                        $ptk = hash_hmac('sha1', "Pairwise key expansion\0".$m.$n."\0", $pmk, True);
-                        $testmic = hash_hmac('sha1', $ahccapx['eapol'], substr($ptk, 0, 16), True);
-                        break;
-                    case 3:
-                        $ptk = hash_hmac('sha256', "\1\0Pairwise key expansion".$m.$n."\x80\1", $pmk, True);
-                        $testmic = omac1_aes_128($ahccapx['eapol'], substr($ptk, 0, 16));
-                        break;
-                    default:
-                        // unknown keyver
-                        return Null;
-                }
-
-                if (strncmp($testmic, $ahccapx['keymic'], 16) == 0) {
-                    if ($ncarr[0][1] == 0) {
-                        return array($key, 0, Null, $pmk);
-                    } else {
-                        if ($j[0] == 'N') {
-                            return array($key, $j[1], 'BE', $pmk);
-                        } else {
-                            return array($key, $j[1], 'LE', $pmk);
-                        }
-                    }
-                    
-                }
-            }
-            if ($ncarr[0][1] == 0) {
-                $ncarr = array(array('V', 1), array('V', -1), array('N', 1), array('N', -1));
-            } else {
-                $ncarr[0][1] += 1;
-                $ncarr[1][1] -= 1;
-                $ncarr[2][1] += 1;
-                $ncarr[3][1] -= 1;
-            }
-        } while ($ncarr[0][1]<=$halfnc);
-        $pmk = False;
-    }
-
-    return Null;
-}
-
-/*
-    check_key_pmkid(pmkidline contents,
-                     array of keys,
-                     binary PMK to be used)
-    return:  False: bad format;
-             Null: not found
-             array('key_found',
-                    Null,
-                    Null,
-                    PMK)
-    PMKID = HMAC-SHA1-128(PMK, "PMK Name" | MAC_AP | MAC_STA)
-    $pmkidline = PMKID*MAC AP*MAC Station*ESSID
-    All is hex encoded
-*/
-
-function check_key_pmkid($pmkidline, $keys, $pmk=False) {
+function check_key_m22000($hashline, $keys, $pmk=False, $nc=128) {
     // split and check
-    $apmkid = explode('*', $pmkidline, 4);
-    if (count($apmkid) != 4)
-        return False;
+    $ahl = explode('*', $hashline, 9);
+    if (count($ahl) != 9) return False;
+    if ($ahl[0] != 'WPA') return False;
+    if (valid_hex($ahl[3])) $mac_ap  = hex2bin($ahl[3]); else return False;
+    if (valid_hex($ahl[4])) $mac_sta = hex2bin($ahl[4]); else return False;
+    if (valid_hex($ahl[5])) $essid   = hex2bin($ahl[5]); else return False;
 
-    // unhex
-    for ($i=0; $i <= 3; $i++) {
-        if (( (bool) (~ strlen($apmkid[$i]) & 1)) &&
-            (ctype_xdigit($apmkid[$i]))) {
+    // PMKID
+    if ($ahl[1] == '01') {
+        // unhex
+        if (valid_hex($ahl[2])) $pmkid = hex2bin($ahl[2]); else return False;
 
-            $apmkid[$i] = hex2bin($apmkid[$i]);
-        } else {
-            return False;
-        }
-    }
-
-    foreach ($keys as $key) {
-        if (strlen($key) > 20) {
-            $key = hc_unhex($key);
-        }
-
-        if (! $pmk) {
-            $kl = strlen($key);
-            if (($kl < 8) || ($kl > 64)) {
-                continue;
+        foreach ($keys as $key) {
+            // TODO: find-out why we have Nulls here
+            if (is_null($key)) continue;
+            if (str_starts_with($key, '$HEX[')) {
+                $key = hc_unhex($key);
             }
-            $pmk = openssl_pbkdf2($key, $apmkid[3], 32, 4096, 'sha1');
+
+            if (!$pmk) {
+                $pmk = openssl_pbkdf2($key, $essid, 32, 4096, 'sha1');
+            }
+
+            // compute PMKID candidate
+            $testpmkid = hash_hmac('sha1', 'PMK Name' . $mac_ap . $mac_sta, $pmk, True);
+
+            if (strncmp($testpmkid, $pmkid, 16) == 0) {
+                return [$key, Null, Null, $pmk];
+            }
+            $pmk = False;
+        }
+    // handshake
+    } elseif ($ahl[1] == '02') {
+        if (valid_hex($ahl[2])) $keymic   = hex2bin($ahl[2]); else return False;
+        if (valid_hex($ahl[6])) $nonce_ap = hex2bin($ahl[6]); else return False;
+        if (valid_hex($ahl[7])) $eapol    = hex2bin($ahl[7]); else return False;
+        if (valid_hex($ahl[8])) $mp       = hex2bin($ahl[8]); else return False;
+        /*
+        struct auth_packet
+        {
+          u8  version;
+          u8  type;
+          u16 length;
+          u8  key_descriptor;
+          u16 key_information;
+          u16 key_length;
+          u64 replay_counter;
+          u8  wpa_key_nonce[32];
+          u8  wpa_key_iv[16];
+          u8  wpa_key_rsc[8];
+          u8  wpa_key_id[8];
+          u8  wpa_key_mic[16];
+          u16 wpa_key_data_length;
+
+        } __attribute__((packed));
+        */
+        $aeapol = unpack('x5/nkey_information/x10/a32nonce_sta', $eapol);
+        $nonce_sta = $aeapol['nonce_sta'];
+        $keyver = $aeapol['key_information'] & 3;
+
+        // fix order
+        if (strncmp($mac_ap, $mac_sta, 6) < 0)
+            $m = $mac_ap.$mac_sta;
+        else
+            $m = $mac_sta.$mac_ap;
+
+        $swap = False;
+        if (strncmp($nonce_sta, $nonce_ap, 6) < 0)
+            $n = $nonce_sta.$nonce_ap;
+        else {
+            $n = $nonce_ap.$nonce_sta;
+            $swap = True;
         }
 
-        // compute PMKID candidate
-        $testpmkid = hash_hmac('sha1', 'PMK Name' . $apmkid[1] . $apmkid[2], $pmk, True);
+        // get nonce_ap last bytes for nonce correction
+        $corr['V'] = unpack('x28/V', $nonce_ap)[1];
+        $corr['N'] = unpack('x28/N', $nonce_ap)[1];
 
-        if (strncmp($testpmkid, $apmkid[0], 16) == 0) {
-            return array($key, Null, Null, $pmk);
+        $halfnc = ($nc >> 1) + 1;
+
+        foreach ($keys as $key) {
+            // TODO: find-out why we have Nulls here
+            if (is_null($key)) continue;
+            if (str_starts_with($key, '$HEX[')) {
+                $key = hc_unhex($key);
+            }
+
+            if (!$pmk) {
+                $pmk = openssl_pbkdf2($key, $essid, 32, 4096, 'sha1');
+            }
+
+            $ncarr = [['N', 0]];
+            do {
+                foreach ($ncarr as $j) {
+                    $rawlast = pack($j[0], $corr[$j[0]] + $j[1]);
+
+                    if ($swap) {
+                        $n = substr_replace($n, $rawlast, 28, 4);
+                    } else {
+                        $n = substr_replace($n, $rawlast, 60, 4);
+                    }
+
+                    switch ($keyver) {
+                        case 1:
+                            $ptk = hash_hmac('sha1', "Pairwise key expansion\0" . $m . $n . "\0", $pmk, True);
+                            $testmic = hash_hmac('md5',  $eapol, substr($ptk, 0, 16), True);
+                            break;
+                        case 2:
+                            $ptk = hash_hmac('sha1', "Pairwise key expansion\0" . $m . $n . "\0", $pmk, True);
+                            $testmic = hash_hmac('sha1', $eapol, substr($ptk, 0, 16), True);
+                            break;
+                        case 3:
+                            $ptk = hash_hmac('sha256', "\1\0Pairwise key expansion" . $m . $n . "\x80\1", $pmk, True);
+                            $testmic = omac1_aes_128($eapol, substr($ptk, 0, 16));
+                            break;
+                        default:
+                            // unknown keyver
+                            return False;
+                    }
+
+                    if (strncmp($testmic, $keymic, 16) === 0) {
+                        if ($ncarr[0][1] == 0) {
+                            return [$key, 0, Null, $pmk];
+                        } else {
+                            if ($j[0] == 'N') {
+                                return [$key, $j[1], 'BE', $pmk];
+                            } else {
+                                return [$key, $j[1], 'LE', $pmk];
+                            }
+                        }
+
+                    }
+                }
+                if ($ncarr[0][1] == 0) {
+                    $ncarr = [['V', 1], ['V', -1], ['N', 1], ['N', -1]];
+                } else {
+                    $ncarr[0][1]++;
+                    $ncarr[1][1]--;
+                    $ncarr[2][1]++;
+                    $ncarr[3][1]--;
+                }
+            } while ($ncarr[0][1] <= $halfnc);
+
+            $pmk = False;
         }
-        $pmk = False;
     }
 
-    return Null;
+    return False;
 }
 
-// Extract md5 hash over partial hccapx struct
-function hccapx_hash(& $hccapx) {
-    return md5(substr($hccapx, 0x09), True);
+// Extract md5 hash over partial m22000 struct
+function hash_m22000($hashline) {
+    $ahl = explode('*', $hashline, 9);
+    if (count($ahl) != 9) return False;
+
+    return hash('md5', $ahl[1].$ahl[2].$ahl[3].$ahl[4].$ahl[5].$ahl[6].$ahl[7], True);
 }
 
 // Create filesystem lock file or wait until we can create one
@@ -475,21 +473,19 @@ function submission($mysql, $file) {
         return "Not a valid capture file. We support pcap and pcapng.";
     }
 
-    // extract handshakes and PMKIDs from uploaded capture
-    $hccapxfile = tempnam(SHM, 'hccapx');
-    $pmkidfile = tempnam(SHM, 'pmkid');
+    // extract WPA-PBKDF2-PMKID+EAPOL hash file from uploaded capture
+    $m22000file = tempnam(SHM, '22000');
     $res = '';
     $rc  = 0;
-    exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=20000 --max-essids=1 --hccapx=$hccapxfile --pmkid=$pmkidfile $file 2>&1", $res, $rc);
+    exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=20000 --max-essids=1 -o $m22000file $file 2>&1", $res, $rc);
 
-    // do we have error condition?
     if ($rc != 0) {
         @unlink($file);
         return "Capture processing error. Exit code $rc. Please inform developers.";
     }
 
     // add submission
-    if (file_exists($hccapxfile) || file_exists($pmkidfile)) {
+    if (file_exists($m22000file)) {
         // compute hash and create new capture name
         $partial_path = date('Y/m/d/');
         $md5 = hash_file('md5', $file, True);
@@ -517,76 +513,43 @@ function submission($mysql, $file) {
 
         $userkey = (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) ? $_COOKIE['key'] : '';
         if ($s_id == False && $userkey == '') {
-            @unlink($hccapxfile);
-            @unlink($pmkidfile);
+            @unlink($m22000file);
             return 'This capture file was already submitted.';
         }
     } else {
         @unlink($file);
-        return "No valid handshakes/PMKIDs found in submitted file.";
+        return 'No valid handshakes/PMKIDs found in the submitted file.';
     }
 
     $nets = [];
     $ref = [''];
 
-    // read hccapx file
-    if (file_exists($hccapxfile)
-        && filesize($hccapxfile) != 0
-        && filesize($hccapxfile) % 393 == 0) {
-        $fp = fopen($hccapxfile, 'rb');
-        while (($hccapx = fread($fp, 393)) != False) {
-            $hash = hccapx_hash($hccapx);
-            if (isset($nets[$hash])) {
-                continue;
-            }
-            $nets[$hash] = array($hash, $hccapx, 0);
-            $ref[] = & $nets[$hash][0];
-            if (count($ref) > 1000) {
-                duplicate_nets($mysql, $ref, $nets);
-                $ref = array('');
-            }
-        }
-        fclose($fp);
-        @unlink($hccapxfile);
-        duplicate_nets($mysql, $ref, $nets);
-        $ref = array('');
-    }
+    // read m22000 hash file
+    $fp = fopen($m22000file, 'r');
+    while ($hashline = fgets($fp)) {
+        $hashline = rtrim($hashline);
+        // validate m22000 hash line
+        if (!str_starts_with($hashline, 'WPA*')) return False;
+        if (substr_count($hashline, '*') < 8) return False;
 
-    // read pmkid file
-    if (file_exists($pmkidfile)
-        && filesize($pmkidfile) > 0) {
-        $fp = fopen($pmkidfile, 'r');
-        while (($pmkidline = fgets($fp)) != False) {
-            $pmkidline = rtrim($pmkidline);
-            // validate PMKID line
-            $apmkid = explode('*', $pmkidline, 4);
-            if (count($apmkid) != 4) {
-                continue;
-            }
-            for ($i=0; $i <= 3; $i++) {
-                if ( !(((bool) (~ strlen($apmkid[$i]) & 1)) && (ctype_xdigit($apmkid[$i]))) ) {
-                    continue;
-                }
-            }
-            // get hash from PMKID*mac_ap*mac_sta
-            $hash = md5(substr($pmkidline, 0, 58), True);
-            if (isset($nets[$hash])) {
-                continue;
-            }
-            $nets[$hash] = array($hash, $pmkidline, 1);
-            $ref[] = & $nets[$hash][0];
-            if (count($ref) > 1000) {
-                duplicate_nets($mysql, $ref, $nets);
-                $ref = array('');
-            }
+        $hash = hash_m22000($hashline);
+        if (isset($nets[$hash])) {
+            continue;
         }
-        fclose($fp);
-        @unlink($pmkidfile);
-        duplicate_nets($mysql, $ref, $nets);
-        $ref = array('');
-    }
 
-    // insert identified handshakes/PMKIDs
+        $nets[$hash] = [$hash, $hashline];
+        $ref[] = & $nets[$hash][0];
+        if (count($ref) > 1000) {
+            duplicate_nets($mysql, $ref, $nets);
+            $ref = [''];
+        }
+    }
+    fclose($fp);
+    @unlink($m22000file);
+    duplicate_nets($mysql, $ref, $nets);
+    $ref = [''];
+
+    // insert identified hashes
     $zpmk = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     $pmkarr = [];
     if ($s_id) {
@@ -598,37 +561,22 @@ function submission($mysql, $file) {
                 continue;
             }
 
-            // read from hccapx struct
-            if ($net[2] == 0) {
-                $essid_len = ord(substr($net[1], 0x09, 1));
-                if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
-                    $essid      = unpack('Z32', substr($net[1], 0x0a, 32));
-                } else {
-                    $essid      = unpack('a32', substr($net[1], 0x0a, 32));
-                }
-                $essid = substr($essid[1], 0, $essid_len);
-                $message_pair = ord(substr($net[1], 0x08, 1));
-                $keyver = ord(substr($net[1], 0x2a, 1));
+            // parse m22000 hashline
+            // SIGNATURE*TYPE*PMKID/MIC*MACAP*MACSTA*ESSID*ANONCE*EAPOL*MESSAGEPAIR
+            // 0         1    2         3     4      5     6      7     8
+            $ahl = explode('*', $net[1], 9);
 
-                $mac_ap = unpack('H*', substr($net[1], 0x3b, 6));
-                $mac_ap = hexdec($mac_ap[1]);
+            $mac_ap  = hexdec($ahl[3]);
+            $mac_sta = hexdec($ahl[4]);
+            $essid   = hex2bin($ahl[5]);
 
-                $mac_sta = unpack('H*', substr($net[1], 0x61, 6));
-                $mac_sta = hexdec($mac_sta[1]);
+            $message_pair = hexdec($ahl[8]);
+            $keyver       = 100;
+
+            if ($ahl[1] == '02') {
+                // this is handshake
+                $keyver = hexdec(substr($ahl[7], 12, 2)) & 3;
             }
-
-            // read from pmkid hash line
-            if ($net[2] == 1) {
-                $apmkid = explode('*', $net[1], 4);
-
-                $mac_ap = hexdec($apmkid[1]);
-                $mac_sta = hexdec($apmkid[2]);
-                $essid = hex2bin($apmkid[3]);
-
-                $message_pair = Null;
-                $keyver = 100;
-            }
-
 
             $net[2] = $mac_ap;
             $net[3] = $essid;
@@ -637,39 +585,31 @@ function submission($mysql, $file) {
             $net[6] = $mac_sta;
 
             // check for zeroed PMK
-            if ($keyver == 100) {
-                $reshs = check_key_pmkid($net[1], array(''), $zpmk);
-            } else {
-                $reshs = check_key_hccapx($net[1], array(''), 8, $zpmk);
-            }
+            $reshs = check_key_m22000($net[1], [''], $zpmk);
             if ($reshs) {
                 // this is zeroed PMK
-                $pmkarr[$net[0]] = array('key' => '',
-                                         'pmk' => $zpmk,
-                                         'nc' => $reshs[1],
-                                         'endian' => $reshs[2],
-                                         'sip' => 2130706433,
-                                         'algo' => 'ZeroPMK');
+                $pmkarr[$net[0]] = ['key'    => '',
+                                    'pmk'    => $zpmk,
+                                    'nc'     => $reshs[1],
+                                    'endian' => $reshs[2],
+                                    'sip'    => 2130706433,
+                                    'algo'   => 'ZeroPMK'];
             } else {
                 // look for cracked handshakes/PMKIDs with same features and try to crack current by PMK
                 $broken_essid = False;
                 $hss = get_handshakes($mysql, $hs_stmt, $essid, $mac_ap, $mac_sta, 1);
                 foreach ($hss as $hs) {
-                    if ($keyver == 100) {
-                        $reshs = check_key_pmkid($net[1], array($hs['pass']), $hs['pmk']);
-                    } else {
-                        $reshs = check_key_hccapx($net[1], array($hs['pass']), abs((int) $hs['nc'])*2+1, $hs['pmk']);
-                    }
+                    $reshs = check_key_m22000($net[1], [$hs['pass']], $hs['pmk'], (abs((int) $hs['nc']) << 1) + 1);
                     if ($reshs) {
                         // we cracked that by PMK, now let's check if essid matches
                         // if this not pass, we have broken essid and we'll skip this net.
                         if ($essid === $hs['ssid']) {
-                            $pmkarr[$net[0]] = array('key' => $reshs[0],
-                                                     'pmk' => $hs['pmk'],
-                                                     'nc' => $reshs[1],
-                                                     'endian' => $reshs[2],
-                                                     'sip' => $hs['sip'],
-                                                     'algo' => $hs['algo']);
+                            $pmkarr[$net[0]] = ['key'    => $reshs[0],
+                                                'pmk'    => $hs['pmk'],
+                                                'nc'     => $reshs[1],
+                                                'endian' => $reshs[2],
+                                                'sip'    => $hs['sip'],
+                                                'algo'   => $hs['algo']];
                         } else {
                             $broken_essid = True;
                         }
@@ -706,29 +646,17 @@ function submission($mysql, $file) {
     }
 
     // associate nets to user if we have key submitted
-    if ($userkey != '') {
-        $u_id = Null;
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT u_id FROM users WHERE userkey=UNHEX(?)');
-        $stmt->bind_param('s', $userkey);
-        $stmt->execute();
-        $stmt->bind_result($u_id);
-        $stmt->fetch();
-        $stmt->close();
-
-        //associate handshakes to user
-        if ($u_id != Null) {
-            $ref = array('');
-            foreach ($nets as $net) {
-                $ref[] = & $net[0];
-                if (count($ref) > 1000) {
-                    insert_n2u($mysql, $ref, $u_id);
-                    $ref = array('');
-                }
+    if ($u_id = get_u_id_by_userkey($mysql, $userkey)) { // this have to be assignment
+        $ref = [''];
+        foreach ($nets as $net) {
+            $ref[] = & $net[0];
+            if (count($ref) > 1000) {
+                insert_n2u($mysql, $ref, $u_id);
+                $ref = [''];
             }
-            insert_n2u($mysql, $ref, $u_id);
-            $ref = array();
         }
+        insert_n2u($mysql, $ref, $u_id);
+        $ref = [];
     }
 
     // update nets cracked by PMK
@@ -749,7 +677,7 @@ function submission($mysql, $file) {
         $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1 AND keyver=100) WHERE pname='cracked_pmkid_unc'");
     }
 
-    // update handshake stats
+    // update net stats
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(1) FROM bssids) WHERE pname='nets_unc'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE keyver=100) WHERE pname='pmkid'");
