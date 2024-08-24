@@ -20,7 +20,7 @@ ORDER BY nets.ts');
     stmt_bind_assoc($stmt, $data);
 
     while ($stmt->fetch()) {
-        printf("%s:%s:%s:%s\n", long2mac($data['bssid'], ''), long2mac($data['mac_sta'], ''), $data['ssid'], $data['pass']);
+        printf("%s:%s:%s:%s\n", long2mac($data['bssid'], ''), long2mac($data['mac_sta']), $data['ssid'], $data['pass']);
     }
 
     $stmt->close();
