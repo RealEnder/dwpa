@@ -542,24 +542,15 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
             self.pprint(f'Exception: {e}', 'FAIL')
             sys.exit(1)
 
-    def put_work(self, metadata, keypair):
+    def put_work(self, cand, hkey=None, idtype="bssid"):
         """return results to server"""
-        keys = {}
-        if 'hkey' in metadata:
-            keys['hkey'] = metadata['hkey']
-        if keypair is not None:
-            for pad, k in enumerate(keypair):
-                keys[(b'z%03d' % pad) + k['bssid']] = k['key']
-        data = urlencode(keys).encode()
-        while True:
-            try:
-                response = urlopen(self.conf['put_work_url'], data)
-                response.close()
-                return True
-            except IOError as e:
-                self.pprint('Couldn\'t submit key', 'WARNING')
-                self.pprint('Exception: {0}'.format(e), 'WARNING')
-                self.sleepy(10)
+        pw = {"hkey": hkey,
+              "type": idtype,
+              "cand": cand}
+        pwjson = json.dumps(pw).encode("utf-8")
+
+        self.get_url(self.conf["put_work_url"], pwjson)
+
 
     def create_resume(self, netdata):
         """create resume file"""
