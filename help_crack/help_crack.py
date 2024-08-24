@@ -244,8 +244,8 @@ class HelpCrack():
             def _run_jtr(tool):
                 """execute and check"""
                 try:
-                    acp = subprocess.Popen(shlex.split(tool), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    output = acp.communicate()[0]
+                    with subprocess.Popen(shlex.split(tool), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as acp:
+                        output = acp.communicate()[0]
                 except OSError:
                     return False
 
@@ -269,19 +269,12 @@ class HelpCrack():
         def set_format(tool):
             """sets format based on selected tool"""
             self.conf['cracker'] = tool
-            if tool.find('hashcat') != -1:
-                self.conf['format'] = 'hccapx'
+            if 'hashcat' in tool:
+                self.conf['format'] = '22000'
             else:
                 self.conf['format'] = 'wpapsk'
-            return
 
-        tools = []
-
-        # hashcat
-        tools += run_hashcat(['hashcat', 'hashcat.bin'])
-
-        # John the Ripper
-        tools += run_jtr()
+        tools = run_hashcat() + run_jtr()
 
         if not tools:
             self.pprint('hashcat or john not found', 'FAIL')
@@ -419,30 +412,29 @@ class HelpCrack():
 
         return hccaps
 
-    def get_work(self, options):
-        '''pull handshakes and optionally dictionary location/ssid'''
+    def get_work(self, dictcount):
+        """get new work package"""
+        dc = {"dictcount": dictcount}
+        dcjson = json.dumps(dc).encode("utf-8")
         while True:
-            work = self.get_url(self.conf['get_work_url']+'='+self.conf['hc_ver'], options)
             try:
-                netdata = json.loads(work)
-                if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
-                    raise ValueError
-
-                return netdata
-            except (TypeError, ValueError, KeyError):
-                if work == 'Version':
-                    self.pprint('Please update help_crack, the API has changed', 'FAIL')
-                    exit(1)
-                if 'ssid' in options and work == 'No nets':
-                    self.pprint('User dictionary check finished', 'OKGREEN')
-                    exit(0)
-                if work == 'No nets':
-                    self.pprint('No suitable nets found', 'WARNING')
+                response_data = self.get_url(f"{self.conf['get_work_url']}={self.conf['hc_ver']}", dcjson)
+                if response_data == "Version":
+                    self.pprint("Please update help_crack, the API has changed", "FAIL")
+                    sys.exit(1)
+                if response_data == "No nets":
+                    self.pprint("No suitable nets found", "WARNING")
                     self.sleepy()
                     continue
-
-            self.pprint('Server response error', 'WARNING')
-            self.sleepy()
+                netdata = json.loads(response_data)
+                if 'hkey' not in netdata or 'hashes' not in netdata:
+                    raise ValueError
+                return netdata
+            except (TypeError, ValueError) as e:
+                self.pprint("Server response error", "WARNING")
+                self.pprint(f"Exception: {e}", "WARNING")
+                self.sleepy()
+                continue
 
     def prepare_work(self, netdata):
         """prepare work based on netdata; returns ssid/hkey"""
