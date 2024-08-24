@@ -1,10 +1,11 @@
-#!/usr/bin/env python
-'''Clientside part of dwpa distributed cracker
+#!/usr/bin/env python3
+"""
+Clientside part of dwpa distributed cracker
 The source code is distributed under GPLv3+ license
 author: Alex Stanev, alex at stanev dot org
-web: https://wpa-sec.stanev.org'''
+web: https://wpa-sec.stanev.org
+"""
 
-from __future__ import print_function
 import argparse
 import sys
 import os
@@ -57,14 +58,14 @@ conf = {
     'autodictcount': True,
     'hc_ver': '1.1.1'
 }
-conf['help_crack'] = conf['base_url'] + 'hc/help_crack.py'
-conf['help_crack_cl'] = conf['base_url'] + 'hc/CHANGELOG'
-conf['get_work_url'] = conf['base_url'] + '?get_work'
-conf['put_work_url'] = conf['base_url'] + '?put_work'
+conf['help_crack']    = f"{conf['base_url']}hc/help_crack.py"
+conf['help_crack_cl'] = f"{conf['base_url']}hc/CHANGELOG"
+conf['get_work_url']  = f"{conf['base_url']}?get_work"
+conf['put_work_url']  = f"{conf['base_url']}?put_work"
 
 
-class HelpCrack(object):
-    '''Main helpcrack class'''
+class HelpCrack():
+    """Main helpcrack class"""
     # decompression block size 64k
     blocksize = 1 << 16
     conf = None
@@ -74,26 +75,27 @@ class HelpCrack(object):
 
     @staticmethod
     def pprint(mess, code='HEADER'):
-        '''pretty print'''
+        """pretty print"""
         if os.name == 'nt':
             print(mess)
         else:
-            cc = {'HEADER':  '\033[95m',
-                  'OKBLUE':  '\033[94m',
-                  'OKGREEN': '\033[92m',
-                  'WARNING': '\033[93m',
-                  'FAIL':    '\033[91m',
-                  'ENDC':    '\033[0m'}
-            print(cc[code] + mess + cc['ENDC'])
+            cc = {'HEADER'  : '\033[95m',
+                  'OKBLUE'  : '\033[94m',
+                  'OKGREEN' : '\033[92m',
+                  'WARNING' : '\033[93m',
+                  'FAIL'    : '\033[91m',
+                  'ENDC'    : '\033[0m'
+                 }
+            print(f"{cc[code]}{mess}{cc['ENDC']}")
 
     def sleepy(self, sec=222):
-        '''wait for calm down'''
+        """wait for calm down"""
         self.pprint('Sleeping...', 'WARNING')
         try:
             time.sleep(sec)
         except KeyboardInterrupt:
             self.pprint('\nKeyboard interrupt', 'OKBLUE')
-            exit(0)
+            sys.exit(0)
 
     @staticmethod
     def valid_mac(mac):
@@ -105,7 +107,7 @@ class HelpCrack(object):
         return True
 
     def md5file(self, filename):
-        '''compute md5 over local file'''
+        """compute md5 over local file"""
         md5 = hashlib.md5()
         try:
             with open(filename, 'rb') as fd:
@@ -114,23 +116,23 @@ class HelpCrack(object):
                         break
                     md5.update(chunk)
         except OSError as e:
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
+            self.pprint(f'Exception: {e}', 'FAIL')
             return None
 
         return md5.hexdigest()
 
     def download(self, url, filename):
-        '''download remote file'''
+        """download remote file"""
         while True:
             try:
                 urlretrieve(url, filename)
                 return True
             except IOError as e:
-                self.pprint('Exception: {0}'.format(e), 'FAIL')
+                self.pprint(f"Download exception: {e}", 'FAIL')
                 self.sleepy()
 
     def get_url(self, url, options=None):
-        '''get remote content and return it in var'''
+        """get remote content and return it in var"""
         try:
             data = urlencode({'options': options}).encode()
             response = urlopen(url, data)
@@ -143,31 +145,31 @@ class HelpCrack(object):
         return remote.decode()
 
     def check_version(self):
-        '''compare version and initiate update'''
-        remoteversion = self.get_url(self.conf['help_crack']+'.version')
+        """compare version and initiate update"""
+        remoteversion = self.get_url(f"{self.conf['help_crack']}.version")
         if not remoteversion:
-            self.pprint('Can\'t check for new version, continue...', 'WARNING')
+            self.pprint("Can't check for new version, continue...", 'WARNING')
             return
 
         if StrictVersion(remoteversion) > StrictVersion(self.conf['hc_ver']):
             while True:
-                self.pprint('New version ' + remoteversion + ' of help_crack found.')
-                user = userinput('Update[y] or Show changelog[c]:')
+                self.pprint(f'New version {remoteversion} of help_crack found.')
+                user = input('Update[y] or Show changelog[c]:')
                 if user == 'c':
                     self.pprint(self.get_url(self.conf['help_crack_cl']))
                     continue
-                if user == 'y' or user == '':
-                    if self.download(self.conf['help_crack'], sys.argv[0]+'.new'):
+                if user in ('y', ''):
+                    if self.download(self.conf['help_crack'], f'{sys.argv[0]}.new'):
                         try:
                             os.rename(sys.argv[0]+'.new', sys.argv[0])
                             os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                         except OSError as e:
-                            self.pprint('Exception: {0}'.format(e), 'FAIL')
+                            self.pprint(f'Exception: {e}', 'FAIL')
                             # TODO: think of workaround locking on win32
                             if os.name == 'nt':
-                                self.pprint('You are running under win32, rename help_crack.py.new over help_crack.py', 'OKBLUE')
+                                self.pprint('You are running under Windows. Please rename help_crack.py.new over help_crack.py', 'OKBLUE')
                         self.pprint('help_crack updated, run again', 'OKGREEN')
-                        exit(0)
+                        sys.exit(0)
                     else:
                         self.pprint('help_crack update failed', 'FAIL')
                         return
@@ -175,12 +177,12 @@ class HelpCrack(object):
                 return
 
     def check_tools(self):
-        '''look for cracking tools, check for their capabilities, ask user'''
+        """look for cracking tools, check for their capabilities, ask user"""
 
         def which(program):
-            '''find executable in current dir or in PATH env var'''
+            """find executable in current dir or in PATH env var"""
             def is_exe(fpath):
-                '''check if file exists and is executable'''
+                """check if file exists and is executable"""
                 return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
             if os.name == 'nt':
@@ -198,14 +200,14 @@ class HelpCrack(object):
                     if is_exe(exe_file):
                         return exe_file
                 if os.name == 'posix' and is_exe(program):
-                    return './' + program
+                    return f'./{program}'
 
             return False
 
         def run_hashcat(tl):
-            '''check hashcat version'''
+            """check hashcat version"""
             def _run_hashcat(tool):
-                '''execute and check version'''
+                """execute and check version"""
                 try:
                     acp = subprocess.Popen(shlex.split(tool + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     output = acp.communicate()[0]
@@ -232,16 +234,16 @@ class HelpCrack(object):
             return tools
 
         def run_jtr():
-            '''check JtR capabilities'''
+            """check JtR capabilities"""
             def _run_jtr(tool):
-                '''execute and check'''
+                """execute and check"""
                 try:
                     acp = subprocess.Popen(shlex.split(tool), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     output = acp.communicate()[0]
                 except OSError:
                     return False
 
-                if output.find(b'PASS') != -1 and output.find(b'PMKID') != -1:
+                if b'PASS' in output and b'PMKID' in output:
                     return True
 
                 return False
@@ -249,17 +251,17 @@ class HelpCrack(object):
             tools = []
             t = which('john')
             if t:
-                if _run_jtr(t + ' --format=wpapsk --test=0'):
-                    tools.append(t + ' --format=wpapsk')
-                if _run_jtr(t + ' --format=wpapsk-opencl --test=0'):
-                    tools.append(t + ' --format=wpapsk-opencl')
-                if _run_jtr(t + ' --format=wpapsk-cuda --test=0'):
-                    tools.append(t + ' --format=wpapsk-cuda')
+                if _run_jtr(f"{t} --format=wpapsk --test=0"):
+                    tools.append(f"{t} --format=wpapsk")
+                if _run_jtr(f"{t} --format=wpapsk-opencl --test=0"):
+                    tools.append(f"{t} --format=wpapsk-opencl")
+                if _run_jtr(f"{t} --format=wpapsk-cuda --test=0"):
+                    tools.append(f"{t} --format=wpapsk-cuda")
 
             return tools
 
         def set_format(tool):
-            '''sets format based on selected tool'''
+            """sets format based on selected tool"""
             self.conf['cracker'] = tool
             if tool.find('hashcat') != -1:
                 self.conf['format'] = 'hccapx'
@@ -277,19 +279,19 @@ class HelpCrack(object):
 
         if not tools:
             self.pprint('hashcat or john not found', 'FAIL')
-            exit(1)
+            sys.exit(1)
         if len(tools) == 1:
             set_format(tools[0])
             return tools[0]
 
         self.pprint('Choose the tool for cracking:')
         for index, ttool in enumerate(tools):
-            print('{0}: {1}'.format(index, ttool))
+            print(f'{index}: {ttool}')
         print('9: Quit')
         while True:
             user = userinput('Index:')
             if user == '9':
-                exit(0)
+                sys.exit(0)
             try:
                 set_format(tools[int(user)])
                 return tools[int(user)]
@@ -437,7 +439,7 @@ class HelpCrack(object):
             self.sleepy()
 
     def prepare_work(self, netdata):
-        '''prepare work based on netdata; returns ssid/hkey'''
+        """prepare work based on netdata; returns ssid/hkey"""
         if netdata is None:
             return False
 
@@ -539,7 +541,7 @@ class HelpCrack(object):
         return dlist
 
     def prepare_challenge(self):
-        '''prepare challenge with known PSK'''
+        """prepare challenge with known PSK"""
         netdata = [{'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
                                 x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
                                 I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
@@ -568,12 +570,12 @@ class HelpCrack(object):
 
             return netdata
         except TypeError as e:
-            self.pprint('Couldn\'t prepare challenge', 'FAIL')
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
-            exit(1)
+            self.pprint("Couldn't prepare challenge", 'FAIL')
+            self.pprint(f'Exception: {e}', 'FAIL')
+            sys.exit(1)
 
     def put_work(self, metadata, keypair):
-        '''return results to server'''
+        """return results to server"""
         keys = {}
         if 'hkey' in metadata:
             keys['hkey'] = metadata['hkey']
@@ -592,12 +594,12 @@ class HelpCrack(object):
                 self.sleepy(10)
 
     def create_resume(self, netdata):
-        '''create resume file'''
+        """create resume file"""
         with open(self.conf['res_file'], 'w') as fd:
             json.dump(netdata, fd)
 
     def resume_check(self):
-        '''check for resume files'''
+        """check for resume files"""
         if os.path.exists(self.conf['res_file']):
             with open(self.conf['res_file']) as fd:
                 try:
@@ -619,7 +621,7 @@ class HelpCrack(object):
         return None
 
     def run_cracker(self, dictlist, disablestdout=False):
-        '''run external cracker process'''
+        """run external cracker process"""
         fd = None
         if disablestdout:
             fd = open(os.devnull, 'w')
@@ -680,10 +682,10 @@ class HelpCrack(object):
             return
 
     def get_key(self):
-        '''read bssid and key pairs from file'''
+        """read bssid and key pairs from file"""
 
         def parse_hashcat(pot):
-            '''parse hashcat potfile line'''
+            """parse hashcat potfile line"""
             try:
                 arr = pot.split(b':', 4)
                 bssid = arr[1][:12]
@@ -700,7 +702,8 @@ class HelpCrack(object):
             return False
 
         def parse_jtr(pot):
-            '''parse JtR potfile line'''
+            """parse JtR potfile line"""
+
             def jb64decode(jb64):
                 '''JtR b64 decode'''
                 encode_trans = maketrans(b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
@@ -808,14 +811,14 @@ class HelpCrack(object):
                 os.unlink(self.conf['key_file'])
                 return res
         except IOError as e:
-            self.pprint('Couldn\'t read pot file', 'FAIL')
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
-            exit(1)
+            self.pprint("Couldn't read pot file", 'FAIL')
+            self.pprint(f"Exception: {e}", 'FAIL')
+            sys.exit(1)
 
         return None
 
     def run(self):
-        '''entry point'''
+        """entry point"""
         self.check_version()
         self.check_tools()
 
@@ -893,7 +896,7 @@ class HelpCrack(object):
 
 if __name__ == "__main__":
     def is_valid_file(aparser, arg):
-        '''check if it's a valid file'''
+        """check if it's a valid file"""
         if not os.path.isfile(arg):
             aparser.error('The file {} does not exist!'.format(arg))
         return arg
