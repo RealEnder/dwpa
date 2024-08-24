@@ -77,15 +77,6 @@ class HelpCrack():
             self.pprint('\nKeyboard interrupt', 'OKBLUE')
             sys.exit(0)
 
-    @staticmethod
-    def valid_mac(mac):
-        '''validate bssid/mac address'''
-        if len(mac) != 17:
-            return False
-        if not re.match(r'^([a-f0-9]{2}\:?){6}$', mac):
-            return False
-        return True
-
     def md5file(self, filename):
         """compute md5 over local file"""
         md5sum = md5()
