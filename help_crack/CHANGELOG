@@ -121,6 +121,15 @@ ver 1.1.1 / 03 Jul 2020
  * add support for new hashcat v6 potfile format
  * fix for some encoding crashes
 
-ver x.x.x / xx Xxx 202x
+ver 2.0.0 / 24 Aug 2024
+ * move to m22000 hashline for hashcat
+ * use gz-compressed dictionaries for hashcat
+ * generate JtR hashline from m22000
+ * wpa-sec API upgrade
+ * fix -ad to actually work
+ * set global network timeout
+ * bump minimal hashcat version to 6.2.6
+ * drop -cd and -dc options
+ * drop Python 2 support
  * avoid using python installation to detect arch
- * bump minimal hashcat version to 6.0.0
+ * don't use deprecated python modules
