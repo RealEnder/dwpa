@@ -762,7 +762,7 @@ function submission($mysql, $file) {
 function by_bssid(& $mysql, & $stmt, $bssid) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta, keyver FROM nets WHERE bssid = ? AND n_state=0');
+        $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta FROM nets WHERE bssid = ? AND n_state=0');
     }
 
     $ibssid = mac2long($bssid);
@@ -779,7 +779,7 @@ function by_bssid(& $mysql, & $stmt, $bssid) {
 function by_hash(& $mysql, & $stmt, $hash) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta, keyver FROM nets WHERE hash = UNHEX(?) AND n_state=0');
+        $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta FROM nets WHERE hash = UNHEX(?) AND n_state=0');
     }
 
     $stmt->bind_param('s', $hash);
@@ -795,7 +795,7 @@ function by_hash(& $mysql, & $stmt, $hash) {
 function by_essid(& $mysql, & $stmt, $essid) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
-        $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta, keyver FROM nets WHERE ssid = UNHEX(?) AND n_state=0');
+        $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta FROM nets WHERE ssid = UNHEX(?) AND n_state=0');
     }
 
     $stmt->bind_param('s', $essid);
