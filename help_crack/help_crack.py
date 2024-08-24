@@ -441,41 +441,26 @@ class HelpCrack():
         if netdata is None:
             return False
 
-        # cleanup
-        if os.path.exists(self.conf['hccapx_file']):
-            os.unlink(self.conf['hccapx_file'])
-        if os.path.exists(self.conf['pmkid_file']):
-            os.unlink(self.conf['pmkid_file'])
-
-        # extract ssid/hkey and handshakes
+        # extract hkey and hashes
         metadata = {}
         try:
-            for part in netdata:
-                if 'hkey' in part:
-                    metadata['hkey'] = part['hkey']
-                if 'ssid' in part:
-                    metadata['ssid'] = part['ssid']
-                if 'hccapx' in part:
-                    with open(self.conf['hccapx_file'], 'ab') as fd:
-                        if self.conf['format'] == 'hccapx':
-                            fd.write(binascii.a2b_base64(part['hccapx']))
-                        else:
-                            fd.write(self.hccapx2john(binascii.a2b_base64(part['hccapx'])))
-                if 'pmkid' in part:
-                    if self.conf['format'] == 'hccapx':
-                        with open(self.conf['pmkid_file'], 'ab') as fd:
-                            fd.write(str(part['pmkid']).encode() + b'\n')
-                    else:
-                        with open(self.conf['hccapx_file'], 'ab') as fd:
-                            fd.write(str(part['pmkid']).encode() + b'\n')
+            if 'hkey' in netdata:
+                metadata['hkey'] = netdata['hkey']
 
-            if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
-                self.pprint('hkey or ssid not found in work package!', 'FAIL')
-                exit(1)
+            with open(self.conf['hash_file'], 'w', encoding="utf-8") as fd:
+                for h in netdata['hashes']:
+                    if self.conf['format'] == '22000':
+                        fd.write(f"{h}\n")
+                    else:
+                        fd.write(self.m22000john(h))
         except OSError as e:
-            self.pprint('Handshake write failed', 'FAIL')
-            self.pprint('Exception: {0}'.format(e), 'FAIL')
-            exit(1)
+            self.pprint("Hash file write failed", "FAIL")
+            self.pprint(f'Exception: {e}', 'FAIL')
+            sys.exit(1)
+        except KeyError as e:
+            self.pprint('No hashes found in work package', 'FAIL')
+            self.pprint(f'Exception: {e}', 'FAIL')
+            sys.exit(1)
 
         return metadata
 
