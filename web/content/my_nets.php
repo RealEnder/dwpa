@@ -13,9 +13,12 @@ $page   = ($offset / $limit) + 1;
 
 if ($k != '') {
     $stmt = $mysql->stmt_init();
-    $stmt->prepare('SELECT SQL_CALC_FOUND_ROWS hex(nets.hash) as hash, nets.bssid AS bssid, nets.ssid AS ssid, nets.keyver AS keyver, nets.pass AS pass, nets.n_state AS n_state, nets.hits, n2u.ts
-FROM nets, n2u, users
-WHERE nets.net_id=n2u.net_id AND users.u_id=n2u.u_id AND users.userkey=UNHEX(?)
+    $stmt->prepare('SELECT SQL_CALC_FOUND_ROWS hex(nets.hash) as hash, nets.bssid, nets.ssid, nets.keyver, nets.message_pair, nets.pass, nets.algo, nets.nc, nets.endian, nets.n_state, nets.hits, n2u.ts, bssids.country
+FROM nets
+JOIN n2u ON nets.net_id=n2u.net_id
+JOIN users ON users.u_id=n2u.u_id
+LEFT JOIN bssids ON nets.bssid = bssids.bssid
+WHERE users.userkey=UNHEX(?)
 ORDER BY nets.ts DESC, nets.bssid ASC
 LIMIT ?,?');
     $stmt->bind_param('sii', $k, $offset, $limit);

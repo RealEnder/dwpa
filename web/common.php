@@ -1006,9 +1006,8 @@ function mac2long($mac) {
     return hexdec(str_replace(':', '', $mac));
 }
 
-function long2mac($lmac, $sep=':') {
-    $pmac = str_pad(dechex($lmac), 12, '0', STR_PAD_LEFT);
-    return "{$pmac[0]}{$pmac[1]}$sep{$pmac[2]}{$pmac[3]}$sep{$pmac[4]}{$pmac[5]}$sep{$pmac[6]}{$pmac[7]}$sep{$pmac[8]}{$pmac[9]}$sep{$pmac[10]}{$pmac[11]}";
+function long2mac($lmac) {
+    return sprintf('%012x', $lmac);
 }
 
 function valid_mac($mac, $part=6) {
@@ -1155,12 +1154,10 @@ function decode_keyinfo($n_state, $algo, $nc, $endian) {
 function write_nets($datas) {
     $has_input = False;
     echo '
-<style type="text/css">
-td {padding-left: 7px; padding-right: 7px}
-</style>
-<form class="form" method="post" action="?nets" enctype="multipart/form-data">
+<form class="form" method="post" action="?nets">
 <table class="nets">
-<tr><th>BSSID</th><th>SSID</th><th>Type</th><th>WPA key</th><th>Get works</th><th>Timestamp</th></tr>';
+<tr><th>CC</th><th>BSSID</th><th>SSID</th><th>Type</th><th>Feat</th><th>WPA key</th><th>Key info</th><th>Get works</th><th>Timestamp</th></tr>
+';
     foreach ($datas as $data) {
         $bssid = long2mac($data['bssid']);
         $hash = $data['hash'];
@@ -1171,25 +1168,37 @@ td {padding-left: 7px; padding-right: 7px}
         } else {
             $pass = htmlspecialchars($data['pass']);
         }
-        switch ($data['keyver']) {
-            case 1:
-                $type = 'WPA';
-                break;
-            case 2:
-                $type = 'WPA2';
-                break;
-            case 3:
-                $type = 'WPA2_11w';
-                break;
-            case 100:
-                $type = 'PMKID';
-                break;
-            default:
-                $type = 'UNC';
+        $type = decode_keyver($data['keyver']);
+        $feat = decode_mp($data['message_pair'], $data['keyver']);
+        $keyinfo = decode_keyinfo($data['n_state'], $data['algo'], $data['nc'], $data['endian']);
+
+        if (array_key_exists('country', $data) && $data['country'] != Null) {
+            $data['country'] = strtolower($data['country']);
+        } else {
+            $data['country'] = 'xx';
         }
-        echo "<tr><td style=\"font-family:monospace; font-size: 12px; cursor: pointer; \"><a title=\"Wigle geo query. You must be logged in.\" href=\"https://wigle.net/search?netid=$bssid\">$bssid</a></td><td>$ssid</td><td>$type</td><td>$pass</td><td align=\"right\">{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
+
+        echo "<tr><td><span class=\"fi fi-{$data['country']} fi\" title=\"{$data['country']}\"></span></td><td class=\"bssid\">$bssid</td><td>$ssid</td><td>$type</td><td>$feat</td><td>$pass</td><td>$keyinfo</td><td>{$data['hits']}</td><td>{$data['ts']}</td></tr>\n";
     }
-    echo '</table>';
+    echo '</table>
+<script>
+function attachLinksToBssid() {
+    const baseURL = "https://wigle.net/search?netid=";
+    const bssidCells = document.querySelectorAll("td.bssid");
+    bssidCells.forEach(cell => {
+        const bssidValue = cell.textContent.trim();
+        const link = document.createElement("a");
+        link.href = baseURL + encodeURIComponent(bssidValue.match(/.{1,2}/g).join(":"));
+        link.title = "Wigle geo query. You must be logged in.";
+        link.textContent = bssidValue;
+        cell.textContent = "";
+        cell.appendChild(link);
+    });
+}
+
+attachLinksToBssid();
+</script>
+';
     if ($has_input) {
         echo '<br><input class="btn" type="submit" value="Send WPA keys">';
     }
