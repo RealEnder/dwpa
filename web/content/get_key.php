@@ -38,7 +38,7 @@ You must provide a valid e-mail, where validation link will be sent. If the key 
 When issued, the key will appear next to the search box and you can proceed with <a href=\"?submit\">captures upload</a>.
 <script src=\"https://www.google.com/recaptcha/api.js\"></script>
 <form class=\"form\" method=\"post\">
-E-mail: <input class=\"searchinput\" id=\"mail\" value=\"\">
+E-mail: <input class=\"searchinput\" id=\"mail\" name=\"mail\" value=\"\">
 <br><br>
 <div class=\"g-recaptcha\" data-sitekey=\"{$publickey}\"></div>
 <br><br>
