@@ -298,119 +298,100 @@ class HelpCrack():
                 self.pprint('Wrong index', 'WARNING')
 
     @staticmethod
-    def hccapx2john(hccapx):
-        '''convert hccapx struct to JtR $WPAPSK$ and implement nonce correction
-            hccap:  https://hashcat.net/wiki/doku.php?id=hccap
-            hccapx: https://hashcat.net/wiki/doku.php?id=hccapx
-            JtR:    https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/wpapcap2john.c
-        '''
+    def m22000john(hashline):
+        """convert m22000 hashcat hashline to JtR wpapsk"""
 
-        def pack_jtr(hccap, message_pair, ncorr=0):
-            '''prepare handshake in JtR format'''
-            jtr = b'%s:$WPAPSK$%s#%s:%s:%s:%s::%s:%s:/dev/null\n'
-            hccap_fmt = '< 36s 6s 6s 32x 28x 4s 256x 4x I 16x'
+        @staticmethod
+        def pack_jtr(hash_arr, message_pair, ncorr=0):
+            """ build JtR hashline with given nonce error correction """
+            ssid          = bytes.fromhex(hash_arr[5])
+            mac_ap        = bytes.fromhex(hash_arr[3])
+            mac_sta       = bytes.fromhex(hash_arr[4])
+            nonce_sta     = bytes.fromhex(hash_arr[7][34:98])
+            nonce_ap_part = bytes.fromhex(hash_arr[6][:56])
+            eapol         = bytes.fromhex(hash_arr[7])
+            eapol_len     = len(hash_arr[7]) >> 1
+            keymic        = bytes.fromhex(hash_arr[2])
+            corr          = bytes.fromhex(hash_arr[6][-8:])
+            keyver        = struct.unpack("> H", bytes.fromhex(hash_arr[7][10:14]))[0] % 3
 
-            (essid, mac_ap, mac_sta, corr, keyver) = struct.unpack(hccap_fmt, hccap)
-
-            # replay count checked
             if message_pair & 0x80 > 1:
-                ver = b'verified'
+                ver = "verified"
             else:
-                ver = b'not verified'
+                ver = "not verified"
 
-            # detect endian and apply nonce correction
             if ncorr != 0:
-                try:
-                    if message_pair & 0x40 > 1:
-                        ver += b', fuzz ' + str(ncorr).encode() + b' BE'
-                        dcorr = struct.unpack('>L', corr)[0]
-                        corr = struct.pack('>L', dcorr + ncorr)
-                    if message_pair & 0x20 > 1:
-                        ver += b', fuzz ' + str(ncorr).encode() + b' LE'
-                        dcorr = struct.unpack('<L', corr)[0]
-                        corr = struct.pack('<L', dcorr + ncorr)
-                except struct.error:
-                    pass
+                if message_pair & 0x40 > 1:
+                    ver = f"{ver}, fuzz {ncorr} BE"
+                    dcorr = struct.unpack('>L', corr)[0]
+                    corr = struct.pack('>L', dcorr + ncorr)
+                if message_pair & 0x20 > 1:
+                    ver = f"{ver}, fuzz {ncorr} LE"
+                    dcorr = struct.unpack('<L', corr)[0]
+                    corr = struct.pack('<L', dcorr + ncorr)
 
-            # cut essid part and stuff correction
-            newhccap = hccap[36:108] + corr + hccap[112:]
-
-            # prepare values for JtR
-            essid = essid.rstrip(b'\0')
-            mac_sta = binascii.hexlify(mac_sta)
-            mac_ap = binascii.hexlify(mac_ap)
-
-            if keyver == 1:
-                keyver = b'WPA'
-            elif keyver == 2:
-                keyver = b'WPA2'
-            elif keyver >= 3:
-                keyver = b'WPA CMAC'
-
-            # prepare translation to base64 alphabet used by JtR
-            encode_trans = maketrans(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-                                     b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
-
-            return jtr % (essid,
-                          essid,
-                          binascii.b2a_base64(newhccap).translate(encode_trans).rstrip(b'=\r\n'),
-                          mac_sta,
-                          mac_ap,
-                          mac_ap,
-                          keyver,
-                          ver)
-
-        def hccapx2hccap(hccapx):
-            '''convert hccapx to hccap struct'''
-            hccapx_fmt = '< 4x 4x B x 32s B 16s 6s 32s 6s 32s H 256s'
-            hccap_fmt = '< 36s 6s 6s 32s 32s 256s I I 16s'
-
-            (message_pair,
-             essid,
-             keyver, keymic,
-             mac_ap, nonce_ap, mac_sta, nonce_sta,
-             eapol_len, eapol) = struct.unpack(hccapx_fmt, hccapx)
-
-            hccap = struct.pack(
-                hccap_fmt,
-                essid,
+            # JtR struct is missing the ssid field in the beginning
+            hccap_john = struct.pack(
+                "< 6s 6s 32s 32s 256s I I 16s",
                 mac_ap, mac_sta,
-                nonce_sta, nonce_ap,
+                nonce_sta, nonce_ap_part + corr,
                 eapol, eapol_len,
                 keyver, keymic)
 
-            return (hccap, message_pair)
+            if keyver == 1:
+                keyver = 'WPA'
+            elif keyver == 2:
+                keyver = 'WPA2'
+            elif keyver == 3:
+                keyver = 'WPA CMAC'
 
-        hccapx = bytearray(hccapx)
+            # prepare translation to base64 alphabet used by JtR
+            encode_trans = bytearray.maketrans(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+                                               b"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+            enc_hccap = binascii.b2a_base64(hccap_john).translate(encode_trans).rstrip(b'=\r\n')
 
-        # convert hccapx to hccap and extract message_pair
-        (hccap, message_pair) = hccapx2hccap(hccapx)
+            return f"{ssid.decode('utf-8', errors='ignore')}:$WPAPSK${ssid.decode('utf-8', errors='ignore')}#{enc_hccap.decode('utf-8', errors='ignore')}:{hash_arr[4]}:{hash_arr[3]}:{hash_arr[3]}::{keyver}:{ver}:/dev/null\n"
 
-        # exact handshake
-        hccaps = pack_jtr(hccap, message_pair)
-        if message_pair & 0x10 > 1:
-            return hccaps
+        hash_arr = hashline.split('*', 8)
+        if len(hash_arr) != 9 or hash_arr[0] != "WPA":
+            return ""
 
-        # detect if we have endianness info
-        flip = False
-        if message_pair & 0x60 == 0:
-            flip = True
-            # set flag for LE
-            message_pair |= 0x20
+        # PMKID hashline
+        if hash_arr[1] == "01":
+            return f"{hash_arr[2]}*{hash_arr[3]}*{hash_arr[4]}*{hash_arr[5]}\n"
 
-        # prepare nonce correction
-        for i in range(1, 8):
-            if flip:
-                # this comes with LE set first time if we don't have endianness info
-                hccaps += pack_jtr(hccap, message_pair, i)
-                hccaps += pack_jtr(hccap, message_pair, -i)
-                # toggle BE/LE bits
-                message_pair ^= 0x60
+        # Handshake hashline
+        if hash_arr[1] == "02":
+            message_pair = int(hash_arr[8], 16)
 
-            hccaps += pack_jtr(hccap, message_pair, i)
-            hccaps += pack_jtr(hccap, message_pair, -i)
+            # exact the first handshake without nonce error correction
+            jtrhashes = pack_jtr(hash_arr, message_pair)
 
-        return hccaps
+            if message_pair & 0x10 > 1:
+                return jtrhashes
+
+            # detect if we have endianness info
+            flip = False
+            if message_pair & 0x60 == 0:
+                flip = True
+                # set flag for LE
+                message_pair |= 0x20
+
+            # prepare nonce correction
+            for i in range(1, 9):
+                if flip:
+                    # this comes with LE set first time if we don't have endianness info
+                    jtrhashes += pack_jtr(hash_arr, message_pair,  i)
+                    jtrhashes += pack_jtr(hash_arr, message_pair, -i)
+                    # toggle BE/LE bits
+                    message_pair ^= 0x60
+
+                jtrhashes += pack_jtr(hash_arr, message_pair,  i)
+                jtrhashes += pack_jtr(hash_arr, message_pair, -i)
+
+            return jtrhashes
+
+        return ""
 
     def get_work(self, dictcount):
         """get new work package"""
