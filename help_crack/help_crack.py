@@ -12,34 +12,17 @@ import os
 import subprocess
 import shlex
 import stat
-import hashlib
-import zlib
 import gzip
 import re
 import time
 import json
 import binascii
 import struct
-from distutils.version import StrictVersion
-from functools import partial
+import socket
+import signal
+from hashlib import md5
+from urllib.request import Request, urlopen, urlretrieve
 
-try:
-    from urllib import urlretrieve
-    from urllib import urlopen
-    from urllib import urlencode
-except ImportError:
-    from urllib.parse import urlencode
-    from urllib.request import urlopen, urlretrieve
-
-try:
-    from string import maketrans
-except ImportError:
-    maketrans = bytearray.maketrans  # pylint: disable=no-member
-
-try:
-    userinput = raw_input
-except NameError:
-    userinput = input
 
 # configuration
 conf = {
