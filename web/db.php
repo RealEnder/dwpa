@@ -11,8 +11,8 @@ $mysql->set_charset('utf8');
 
 function stmt_bind_assoc (&$stmt, &$out) {
 	$data = mysqli_stmt_result_metadata($stmt);
-	$fields = array();
-	$out = array();
+	$fields = [];
+	$out = [];
 
 	$fields[0] = $stmt;
 	$count = 1;
