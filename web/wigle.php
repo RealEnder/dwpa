@@ -20,6 +20,7 @@ $result->free();
 
 foreach ($bssids as $bssid) {
     $wiglesearch = long2mac($bssid['bssid']);
+    $wiglesearch = implode(':', str_split($wiglesearch, 2));
     $opts = ['http' =>
         [
             'method'  => 'GET',
