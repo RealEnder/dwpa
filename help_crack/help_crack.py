@@ -506,27 +506,31 @@ class HelpCrack():
 
     def prepare_challenge(self):
         """prepare challenge with known PSK"""
-        netdata = [{'hccapx': """SENQWAQAAAAABWRsaW5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiaaYe8l4TWktCODLsTs\
-                                x/QcfuXi8tDb0kmj6c7GztM2D7o/rpukqm7Gx2EFeW/2taIJ0YeCygAmxy5JAGRbH2hKJWbiEmbx\
-                                I6vDhsxXb1k+bcXjgjoy+9Svkp9RewABAwB3AgEKAAAAAAAAAAAAAGRbH2hKJWbiEmbxI6vDhsxX\
-                                b1k+bcXjgjoy+9Svkp9RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                                AAAAAAAAABgwFgEAAA+sAgEAAA+sBAEAAA+sAjwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                                AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                                AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""",
-                    'pmkid': '8ac36b891edca8eef49094b1afe061ac*1c7ee5e2f2d0*0026c72e4900*646c696e6b',
-                    'key': 'aaaa1234',
-                    'dictname': 'challenge.txt'},
-                   {'ssid': ''}]
+        netdata = {"hashes": ["WPA*01*8ac36b891edca8eef49094b1afe061ac*1c7ee5e2f2d0*0026c72e4900*646c696e6b***",
+"""WPA*02*269a61ef25e135a4b423832ec4ecc7f4*1c7ee5e2f2d0*0026c72e4900*646c696e6b*\
+dbd249a3e9cec6ced3360fba3fae9ba4aa6ec6c76105796ff6b5a209d18782ca*\
+0103007702010a00000000000000000000645b1f684a2566e21266f123abc386\
+cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
+0000000000000000000000000000000000000000000000000000000000000000\
+00001830160100000fac020100000fac040100000fac023c000000*00"""],
+                    "key": "aaaa1234",
+                    "dictname": "help_crack.challenge.dict"
+                  }
+
         try:
             # create dict
             try:
-                data = netdata[0]['key'] + "\n"
-                with open(netdata[0]['dictname'], 'wb') as fd:
-                    fd.write(data.encode())
+                if self.conf['format'] == '22000':
+                    netdata['dictname'] += '.gz'
+                    with gzip.open(netdata['dictname'], 'w') as fd:
+                        fd.write(netdata['key'].encode())
+                else:
+                    with open(netdata['dictname'], 'w', encoding="utf-8") as fd:
+                        fd.write(netdata['key'])
             except OSError as e:
-                self.pprint(netdata[0]['dictname'] + ' creation failed', 'FAIL')
-                self.pprint('Exception: {0}'.format(e), 'FAIL')
-                exit(1)
+                self.pprint(f"{netdata['dictname']} creation failed", 'FAIL')
+                self.pprint(f'Exception: {e}', 'FAIL')
+                sys.exit(1)
 
             # clean old keyfile
             if os.path.exists(self.conf['key_file']):
