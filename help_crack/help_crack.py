@@ -100,18 +100,21 @@ class HelpCrack():
                 self.pprint(f"Download exception: {e}", 'FAIL')
                 self.sleepy()
 
-    def get_url(self, url, options=None):
+    def get_url(self, url, payload=None):
         """get remote content and return it in var"""
-        try:
-            data = urlencode({'options': options}).encode()
-            response = urlopen(url, data)
-        except IOError as e:
-            self.pprint('Exception: {0}'.format(e), 'WARNING')
-            return None
-        remote = response.read()
-        response.close()
+        if payload is None:
+            req = url
+        else:
+            req = Request(url, data=payload, headers={"Content-Type": "application/json"})
 
-        return remote.decode()
+        while True:
+            try:
+                with urlopen(req) as resp:
+                    return resp.read().decode()
+            except IOError as e:
+                self.pprint(f'Remote request exception: {e}', 'WARNING')
+                self.sleepy(60)
+                continue
 
     def check_version(self):
         """compare version and initiate update"""
