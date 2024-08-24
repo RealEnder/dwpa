@@ -24,12 +24,7 @@ define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
 
 define('CAP', '/var/www/wpa-sec/cap/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
-if (is_dir('/run/shm'))
-    define('SHM', '/run/shm/');
-elseif (is_dir('/dev/shm'))
-    define('SHM', '/dev/shm/');
-else
-    die('Can not access SHM!');
 
-define('MIN_HC_VER', '1.1.0');
+define('SHM', '/tmp/');
+define('MIN_HC_VER', '2.0.0');
 ?>
