@@ -884,39 +884,28 @@ if __name__ == "__main__":
     def is_valid_file(aparser, arg):
         """check if it's a valid file"""
         if not os.path.isfile(arg):
-            aparser.error('The file {} does not exist!'.format(arg))
+            aparser.error(f"The file {arg} does not exist!")
         return arg
 
-    def is_valid_dc(aparser, arg):
-        '''check if it's a valid dict count'''
-        iarg = int(arg)
-        if iarg <= 0 or iarg > 15:
-            aparser.error('dictionaries count must be between 1 and 15')
-        return arg
-
-    parser = argparse.ArgumentParser(description='help_crack, distributed WPA cracker site: {0}'.format(conf['base_url']))
+    parser = argparse.ArgumentParser(description=f'help_crack, distributed WPA cracker site: {conf["base_url"]}')
     parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
     parser.add_argument('-co', '--coptions', type=str, help='custom options, that will be supplied to cracker. Those must be passed as -co="--your_option"')
     parser.add_argument('-pot', '--potfile', type=str, help='preserve cracked results in user supplied pot file')
-    parser.add_argument('-dc', '--dictcount', type=lambda x: is_valid_dc(parser, x), help='count of dictionaries to be downloaded and checked against')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
-    group.add_argument('-cd', '--custom', type=lambda x: is_valid_file(parser, x), help='custom user dictionary to be checked against all uncracked handshakes')
+    parser.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
 
     try:
         args = parser.parse_args()
-    except IOError as e:
-        parser.error(str(e))
+    except IOError as ex:
+        parser.error(str(ex))
 
     conf['additional'] = args.additional
-    conf['custom'] = args.custom
     if args.coptions:
         conf['coptions'] = args.coptions
-    if args.potfile:
+    if args.potfile and (os.path.basename(args.potfile) not in (conf['res_file'], conf['hash_file'], conf['key_file'])):
         conf['potfile'] = args.potfile
-    if args.dictcount:
-        conf['dictcount'] = args.dictcount
-        conf['autodictcount'] = False
+
+    # set global timeout duration
+    socket.setdefaulttimeout(60)
 
     hc = HelpCrack(conf)
     hc.run()
