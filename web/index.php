@@ -47,6 +47,8 @@ if (isset($_POST['g-recaptcha-response'])) {
 
         if ($mail) {
             // put new key in db and send confirmation mail
+            // TODO: fix this workaround properly
+            mysqli_report(MYSQLI_REPORT_OFF);
             $sql = 'INSERT INTO users(userkey, linkkey, mail, ip) VALUES(UNHEX(?), UNHEX(?), ?, ?)';
             $stmt = $mysql->stmt_init();
             $ip = ip2long($_SERVER['REMOTE_ADDR']);
@@ -55,6 +57,7 @@ if (isset($_POST['g-recaptcha-response'])) {
             $stmt->bind_param('sssi', $key, $key, $mail, $ip);
             $res = $stmt->execute();
             $stmt->close();
+            mysqli_report(MYSQLI_REPORT_ALL);
 
             // if we succeeded the insert
             if ($res) {
