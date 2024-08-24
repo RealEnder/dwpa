@@ -872,7 +872,15 @@ class HelpCrack():
             netdata = None
 
 
+def signal_handler(sig, frame): # pylint: disable=unused-argument
+    """global signal handler"""
+    print("\nCtrl-C caught. I'm out.")
+    sys.exit(1)
+
 if __name__ == "__main__":
+    # set global signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+
     def is_valid_file(aparser, arg):
         """check if it's a valid file"""
         if not os.path.isfile(arg):
