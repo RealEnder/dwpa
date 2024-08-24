@@ -641,18 +641,11 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
     def get_key(self):
         """read bssid and key pairs from file"""
 
-        def parse_hashcat(pot):
+        def parse_hashcat_output(pot):
             """parse hashcat potfile line"""
             try:
-                arr = pot.split(b':', 4)
-                bssid = arr[1][:12]
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
-                return {'bssid': bssid, 'key': arr[4].rstrip(b'\r\n')}
+                arr = pot.split(':', 4)
+                return {'k': arr[1][:12], 'v': bytes(arr[4].rstrip('\r\n'), encoding="utf-8", errors='ignore').hex()}
             except (TypeError, ValueError, KeyError, IndexError):
                 pass
 
@@ -662,104 +655,54 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
             """parse JtR potfile line"""
 
             def jb64decode(jb64):
-                '''JtR b64 decode'''
-                encode_trans = maketrans(b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-                                         b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
-                b64 = jb64.translate(encode_trans) + b'='
+                """JtR b64 decode"""
+                encode_trans = bytearray.maketrans(b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+                                                   b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
+                b64 = jb64.translate(encode_trans) + '='
 
                 return binascii.a2b_base64(b64)
 
-            arr = pot.split(b':', 1)
-            if len(arr) != 2:
-                return False
-            key = arr[1].rstrip(b'\r\n')
-
-            arr = arr[0].split(b'#', 1)
+            arr = pot.split(':', 1)
             if len(arr) != 2:
                 return False
 
-            try:
-                phccap = jb64decode(arr[1])
-                bssid = binascii.hexlify(phccap[:6])
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
-            except (binascii.Error, binascii.Incomplete):
-                return False
+            key = bytes(arr[1].rstrip('\r\n'), encoding="utf-8", errors='ignore').hex()
 
-            return {'bssid': bssid, 'key': key}
+            # check for handshake results
+            arr1 = arr[0].split('#', 1)
+            if len(arr1) == 2:
+                try:
+                    phccap = jb64decode(arr1[1])
+                    bssid = phccap[:6].hex()
+                    return {'k': bssid, 'v': key}
+                except (binascii.Error, binascii.Incomplete):
+                    return False
 
-        def parse_pmkid(pot):
-            '''parse PMKID potfile line'''
-            try:
-                arr = pot.split(b':', 1)
-                arr1 = arr[0].split(b'*', 3)
-                bssid = arr1[1]
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
-                return {'bssid': bssid, 'key': arr[1].rstrip(b'\r\n')}
-            except (TypeError, ValueError, KeyError, IndexError):
-                pass
-
-            return False
-
-        def parse_hashcat_combined(pot):
-            '''parse hashcat combined potfile line'''
-            try:
-                arr = pot.split(b':', 3)
-                if len(arr[0]) != 12:
-                    raise ValueError
-                bssid = arr[0]
-                bssid = bssid[0:2] + \
-                    b':' + bssid[2:4] + \
-                    b':' + bssid[4:6] + \
-                    b':' + bssid[6:8] + \
-                    b':' + bssid[8:10] + \
-                    b':' + bssid[10:12]
-                return {'bssid': bssid, 'key': arr[3].rstrip(b'\r\n')}
-            except (TypeError, ValueError, KeyError, IndexError):
-                pass
+            # check for PMKID results
+            arr1 = arr[0].split('*', 3)
+            if len(arr1) == 4:
+                return {'k': arr1[1], 'v': key}
 
             return False
 
         res = []
         try:
             if os.path.exists(self.conf['key_file']):
-                with open(self.conf['key_file'], 'rb') as fd:
-                    while True:
-                        line = fd.readline()
-                        if not line:
-                            break
-
-                        # check if we have user potfile. Don't write if it's the challenge
+                with open(self.conf['key_file'], 'r', encoding='utf-8', errors='ignore') as fd:
+                    for line in fd:
+                        # check if we have user potfile and don't write if it's the challenge
                         if self.conf['potfile'] and not \
-                            (b'76c6eaf116d91cc1450561b00c98ea19' in line
-                             or b'55vZsj9E.0P59YY.N3gTO2cZNi6GNj2XewC4n3RjKH' in line
-                             or b'8ac36b891edca8eef49094b1afe061acd0*1c7ee5e2f2d0' in line
-                             or b'1c7ee5e2f2d0:0026c72e4900:dlink:aaaa1234' in line):
-                            with open(self.conf['potfile'], 'ab') as fdpot:
+                            ("1c7ee5e2f2d0:0026c72e4900:dlink:aaaa1234" in line or
+                             "1c7ee5e2f2d0*0026c72e4900*646c696e6b:aaaa1234" in line or
+                             "0OOMSwZsHKYh0C19gHglzE:aaaa1234" in line):
+                            with open(self.conf['potfile'], 'a', encoding="utf-8") as fdpot:
                                 fdpot.write(line)
 
-                        keypair = parse_hashcat_combined(line)
-                        if keypair:
-                            res.append(keypair)
-                            continue
-                        keypair = parse_hashcat(line)
+                        keypair = parse_hashcat_output(line)
                         if keypair:
                             res.append(keypair)
                             continue
                         keypair = parse_jtr(line)
-                        if keypair:
-                            res.append(keypair)
-                            continue
-                        keypair = parse_pmkid(line)
                         if keypair:
                             res.append(keypair)
                             continue
@@ -771,8 +714,6 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
             self.pprint("Couldn't read pot file", 'FAIL')
             self.pprint(f"Exception: {e}", 'FAIL')
             sys.exit(1)
-
-        return None
 
     def run(self):
         """entry point"""
