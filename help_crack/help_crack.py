@@ -152,8 +152,9 @@ class HelpCrack():
         if not remoteversion:
             self.pprint("Can't check for new version, continue...", 'WARNING')
             return
+        remoteversion = remoteversion.strip()
 
-        if StrictVersion(remoteversion) > StrictVersion(self.conf['hc_ver']):
+        if self.compare_versions(self.conf['hc_ver'], remoteversion) < 0:
             while True:
                 self.pprint(f'New version {remoteversion} of help_crack found.')
                 user = input('Update[y] or Show changelog[c]:')
