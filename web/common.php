@@ -35,6 +35,23 @@ function valid_hex($str) {
     return False;
 }
 
+// Build candidates array from browser submissions
+function build_cand($inarr) {
+    if (!empty($inarr)) {
+        $arr = ['type' => 'hash',
+                'cand' => []
+               ];
+
+        foreach ($inarr as $k=>$v) {
+            $arr['cand'][] = ['k'=>$k, 'v'=>$v];
+        }
+
+        return $arr;
+    }
+
+    return False;
+}
+
 // Used by omac1_aes_128()
 function omac1_aes_128_leftShift($data, $bits) {
     $mask   = (0xff << (8 - $bits)) & 0xff;
@@ -414,6 +431,22 @@ function insert_n2u(& $mysql, & $ref, $u_id) {
     call_user_func_array([$stmt, 'bind_param'], $ref);
     $stmt->execute();
     $stmt->close();
+}
+
+// Get u_id by userkey
+function get_u_id_by_userkey(& $mysql, $userkey) {
+    if (!valid_key($userkey)) return Null;
+
+    $u_id = Null;
+    $stmt = $mysql->stmt_init();
+    $stmt->prepare('SELECT u_id FROM users WHERE userkey=UNHEX(?)');
+    $stmt->bind_param('s', $userkey);
+    $stmt->execute();
+    $stmt->bind_result($u_id);
+    $stmt->fetch();
+    $stmt->close();
+
+    return $u_id;
 }
 
 // Validate capture file
