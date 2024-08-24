@@ -1,22 +1,22 @@
 Distributed WPA PSK auditor install guide
 =
 
-Those are the basic steps for local installation of the distributed WPA PSK auditor. Installation process is not automated and requires some basic Linux knowledge. Please follow the steps as close as possible.
+These are the basic steps for local installation of the distributed WPA PSK auditor. Installation process is not automated and requires some basic Linux knowledge. Please follow the steps as close as possible.
 
 Requirements
 -
 
- - 64bit Linux OS - tested with Ubuntu 20.04 64bit
- - MySQL database 5.5 or better
- - PHP 7 or better.
+ - 64bit Linux OS - tested with Ubuntu 22.04 64bit
+ - MySQL database 8.0 or better
+ - PHP 8.1 or better.
  - Apache or other webserver with PHP support, vhost configured with https
  - gcc toolchain
- - hcxpcapngtool tool (min version 6.2), part of hcxtools https://github.com/ZerBea/hcxtools
+ - hcxpcapngtool tool (min version 6.3.4), part of hcxtools https://github.com/ZerBea/hcxtools
  - git `sudo apt-get install git`
  - reCAPTCHA API keys for your domain, register here https://www.google.com/recaptcha
  - routerkeygen-cli, part of routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC
  - (optional) Wigle API key, for geolocation, https://wigle.net
- - (optional) 3wifi API key, for already found PSKs, https://3wifi.stascorp.com
+ - (optional) 3wifi API key, for already found PSKs, https://3wifi.stascorp.com (currently defunct, don't use)
 
 Compilation of external tools
 -
@@ -150,13 +150,9 @@ define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
 
 define('CAP', '/var/www/wpa-sec/cap/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
-if (is_dir('/run/shm'))
-    define('SHM', '/run/shm/');
-elseif (is_dir('/dev/shm'))
-    define('SHM', '/dev/shm/');
-else
-    die('Can not access SHM!');
-define('MIN_HC_VER', '1.1.0');
+
+define('SHM', '/tmp/');
+define('MIN_HC_VER', '2.0.0');
 ?>
 ```
 
@@ -167,3 +163,10 @@ Your clients will run `help_crack.py` to fetch uncracked nets and dictionaries. 
 
 - Copy `help_crack.py`, `help_crack.py.version` and `CHANGELOG` files from `dwpa` repo under `hc/` directory of your webserver root
 - Change `base_url` variable from `help_crack.py` to point to your server URL, eg. `base_url = 'https://example.com/'`, with trailing /
+
+Migration to m22000 storage
+-
+
+- Run `misc/migrate_to_m22000.php` from wpa-sec webroot. The DB user have to have SUPER privileges temporary, after the script finishes, you can revoce them.
+- Update the php code.
+- Run `misc/enrich_pmkid.php` from wpa-sec webroot. This will update PMKID hashlines and will fill message_pair column.
