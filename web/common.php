@@ -815,48 +815,60 @@ function delete_cascade_by_net_id(& $mysql, $net_id) {
 }
 
 // Put work
-function put_work($mysql, $candidates) {
-    if (empty($candidates)) {
+function put_work($mysql, $candidates, $suserkey=Null) {
+    if (!is_array($candidates) ||
+        !array_key_exists('type', $candidates) ||
+        !array_key_exists('cand', $candidates) ||
+        !is_array($candidates['cand'])) {
         return False;
     }
 
     $bybssid_stmt = Null;
-    $byhash_stmt = Null;
     $byessid_stmt = Null;
-    $submit_stmt = Null;
-    $n2d_stmt = Null;
-    $hs_stmt = Null;
+    $byhash_stmt  = Null;
+    $submit_stmt  = Null;
+    $n2d_stmt     = Null;
+    $hs_stmt      = Null;
 
+    // TODO: make cand pairs unique to avoid one and same calculations
     $mcount = 0;
-    foreach ($candidates as $bssid_or_hash => $key) {
-        if (strlen($key) < 8) {
+    foreach ($candidates['cand'] as $pair) {
+        if (!is_array($pair) ||
+            !array_key_exists('k', $pair) ||
+            !array_key_exists('v', $pair) ||
+            $pair['v'] == '') {
             continue;
         }
 
-        // remove bssid padding if found
-        if (strlen($bssid_or_hash) == 21 && valid_mac(substr($bssid_or_hash, -17))) {
-            $bssid_or_hash = substr($bssid_or_hash, -17);
-        }
-
-        // get nets by bssid, hash or essid
-        if (valid_mac($bssid_or_hash)) {
-            $nets = by_bssid($mysql, $bybssid_stmt, $bssid_or_hash);
-        } elseif (valid_key($bssid_or_hash)) {
-            $nets = by_hash($mysql, $byhash_stmt, $bssid_or_hash);
-        } elseif (strlen($bssid_or_hash) > 4 && valid_hex(substr($bssid_or_hash, 4))) {
-            $bssid_or_hash = substr($bssid_or_hash, 4);
-            $nets = by_essid($mysql, $byessid_stmt, $bssid_or_hash);
-        } else {
-            continue;
+        // get needed nets based on submission type
+        switch ($candidates['type']) {
+            case 'bssid':
+                if (!valid_mac($pair['k'])) {
+                    continue 2;
+                }
+                $nets = by_bssid($mysql, $bybssid_stmt, $pair['k']);
+                $pair['v'] = hex2bin($pair['v']);
+                break;
+            case 'ssid':
+                if (!valid_hex($pair['k'])) {
+                    continue 2;
+                }
+                $nets = by_essid($mysql, $byessid_stmt, hex2bin($pair['k']));
+                $pair['v'] = hex2bin($pair['v']);
+                break;
+            case 'hash':
+                if (!valid_key($pair['k'])) {
+                    continue 2;
+                }
+                $nets = by_hash($mysql, $byhash_stmt, $pair['k']);
+                break;
+            default:
+                continue 2;
         }
 
         // check PSK candidate against struct
         foreach ($nets as $net) {
-            if ($net['keyver'] == 100) {
-                $res = check_key_pmkid($net['struct'], array($key));
-            } else {
-                $res = check_key_hccapx($net['struct'], array($key));
-            }
+            $res = check_key_m22000($net['struct'], [$pair['v']]);
 
             if ($res) {
                 // submit the found PSK
@@ -873,11 +885,8 @@ function put_work($mysql, $candidates) {
                 $broken_essid = False;
                 $hss = get_handshakes($mysql, $hs_stmt, $net['ssid'], $net['bssid'], $net['mac_sta'], 0);
                 foreach ($hss as $hs) {
-                    if ($hs['keyver'] == 100) {
-                        $reshs = check_key_pmkid($hs['struct'], array($key), $res[3]);
-                    } else {
-                        $reshs = check_key_hccapx($hs['struct'], array($key), abs((int) $res[1])*2+128, $res[3]);
-                    }
+                    $reshs = check_key_m22000($hs['struct'], [Null], $res[3], abs((int) $res[1])*2+128);
+
                     if ($reshs) {
                         // we cracked that by PMK, now let's check if essid matches
                         // if this not pass, we have broken essid and we'll delete this net.

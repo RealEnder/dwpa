@@ -2,7 +2,10 @@
 require_once('db.php');
 require_once('common.php');
 
-put_work($mysql, $_POST);
+// Check if we've got user password submissions
+if ($arr = build_cand($_POST)) {
+    put_work($mysql, $arr);
+}
 
 echo '<h1>Last 20 submitted networks</h1>';
 

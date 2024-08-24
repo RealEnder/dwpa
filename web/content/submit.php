@@ -19,10 +19,11 @@ function check_key() {
     if ($_FILES['webfile']['tmp_name'] != '') {
         require_once('db.php');
         require_once('common.php');
-        if ($res = submission($mysql, $_FILES['webfile']['tmp_name']))
+        if ($res = submission($mysql, $_FILES['webfile']['tmp_name'])) { // assignment here is OK
             echo "<pre>$res</pre>";
-        else
+        } else {
             echo 'Bad capture file';
+        }
         $mysql->close();
     } else {
         echo 'No capture submitted';
