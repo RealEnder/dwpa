@@ -116,6 +116,36 @@ class HelpCrack():
                 self.sleepy(60)
                 continue
 
+    @staticmethod
+    def compare_versions(version1, version2):
+        """ custom version compare """
+        def split_version(version):
+            parts = re.split(r'(\d+|\D+)', version)
+            return [int(part) if part.isdigit() else part for part in parts if part]
+
+        v1_components = split_version(version1)
+        v2_components = split_version(version2)
+
+        # pad the shorter list with zeros or empty strings (if necessary)
+        max_length = max(len(v1_components), len(v2_components))
+        v1_components.extend([0] * (max_length - len(v1_components)))
+        v2_components.extend([0] * (max_length - len(v2_components)))
+
+        # compare component by component
+        for v1, v2 in zip(v1_components, v2_components):
+            if isinstance(v1, int) and isinstance(v2, int):
+                if v1 > v2:
+                    return 1
+                if v1 < v2:
+                    return -1
+                # handle alphabetical parts comparison
+                if str(v1) > str(v2):
+                    return 1
+                if str(v1) < str(v2):
+                    return -1
+
+        return 0
+
     def check_version(self):
         """compare version and initiate update"""
         remoteversion = self.get_url(f"{self.conf['help_crack']}.version")
