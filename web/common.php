@@ -1075,6 +1075,82 @@ function convert_sec($secs) {
     return substr($output, 2);
 }
 
+// Decode keyver values
+function decode_keyver($keyver) {
+    switch ($keyver) {
+        case 1:
+            return 'WPA';
+        case 2:
+            return 'WPA2';
+        case 3:
+            return 'WPA2_11w';
+        case 100:
+            return 'PMKID';
+        default:
+            return 'UNC';
+    }
+}
+
+// Decode message_pair/PMKID type values
+function decode_mp($mp, $keyver) {
+    $res = '';
+    $mp = (int) $mp;
+
+    if ($keyver == 100) {
+        switch (True) {
+            case $mp & 0x01:
+                $res = 'AP';
+                break;
+            case $mp & 0x10:
+                $res = 'CL';
+                break;
+            default:
+                $res = 'UNK';
+        }
+    } else {
+        switch (True) {
+            case ($mp & 0b111) == 0:
+                $res = 'M1M2/M2/U';
+                break;
+            case $mp & 0b001:
+                $res = 'M1M4/M4/A';
+                break;
+            case $mp & 0b010:
+                $res = 'M2M3/M2/A';
+                break;
+            case $mp & 0b011:
+                $res = 'M2M3/M3/A';
+                break;
+            case $mp & 0b100:
+                $res = 'M3M4/M3/A';
+                break;
+            case $mp & 0b101:
+                $res = 'M3M4/M4/A';
+                break;
+            default:
+                $res = 'UNK';
+        }
+        if ($mp & 0b00010000) $res .= ' AP-less';
+        if ($mp & 0b10000000) $res .= ' RCnC';
+        if ($mp & 0b00100000) $res .= ' LE';
+        if ($mp & 0b01000000) $res .= ' BE';
+    }
+
+    return $res;
+}
+
+// Construct Key info data
+function decode_keyinfo($n_state, $algo, $nc, $endian) {
+    if ($n_state == 2) return 'Uncrackable';
+
+    $res = '';
+    if ($algo != Null)   $res .= $algo;
+    if ($nc != 0)        $res .= " nc: $nc";
+    if ($endian != Null) $res .= " $endian";
+
+    return $res;
+}
+
 // Write nets table
 function write_nets($datas) {
     $has_input = False;
