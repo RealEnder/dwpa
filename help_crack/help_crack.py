@@ -680,67 +680,57 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         self.pprint('Challenge cracker for correct results', 'OKBLUE')
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
-        self.run_cracker([netdata[0]['dictname']], disablestdout=True)
+        self.run_cracker([netdata['dictname']], disablestdout=True)
         keypair = self.get_key()
 
-        if not keypair \
-                or len(keypair) != 2 \
-                or keypair[0]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore') \
-                or keypair[1]['key'] != bytearray(netdata[0]['key'], 'utf-8', errors='ignore'):
+        if not keypair or len(keypair) != 2 or keypair[0]['v'] != keypair[1]['v'] != netdata['key']:
             self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
-            exit(1)
+            sys.exit(1)
 
-        hashcache = set()
-        netdata = self.resume_check()
-        metadata = {'ssid': '00'}
-        options = {'format': self.conf['format'], 'cracker': self.conf['cracker'], 'dictcount': self.conf['dictcount']}
+        netdata, dictcount = self.resume_check()
+        metadata = {}
         while True:
             if netdata is None:
-                if self.conf['custom']:
-                    options['ssid'] = metadata['ssid']
-                netdata = self.get_work(json.JSONEncoder().encode(options))
+                netdata = self.get_work(dictcount)
 
             self.create_resume(netdata)
             metadata = self.prepare_work(netdata)
 
-            # add custom dict or prepare remote ones
-            if self.conf['custom']:
-                dictlist = list([self.conf['custom']])
-            else:
-                dictlist = self.prepare_dicts(netdata)
+            # prepare remote dicts
+            dictlist = self.prepare_dicts(netdata)
+            if dictlist is None:
+                netdata = None
+                self.pprint("Couldn't prepare dictionaries", 'WARNING')
+                self.sleepy()
+                continue
 
             # do we have additional user dictionary supplied?
-            if conf['additional'] is not None:
-                # compute handshakes simple hash
-                ndhash = 0
-                for part in netdata:
-                    if 'hccapx' in part:
-                        ndhash ^= hash(part['hccapx'])
-                if ndhash not in hashcache:
-                    hashcache.add(ndhash)
-                    dictlist.append(conf['additional'])
+            if self.conf['additional'] is not None:
+                if self.conf['additional'] not in dictlist:
+                    dictlist.append(self.conf['additional'])
 
             # run cracker and collect results
             cstart = time.time()
             self.run_cracker(dictlist)
             cdiff = int(time.time() - cstart)
-            if self.conf['autodictcount'] and not self.conf['custom']:
-                if options['dictcount'] < 15 and cdiff < 300:  # 5 min
-                    options['dictcount'] += 1
-                    self.pprint('Incrementing dictcount to {0}, last duration {1}s'.format(options['dictcount'], cdiff), 'OKBLUE')
-                if options['dictcount'] > 1 and cdiff > 300:
-                    options['dictcount'] -= 1
-                    self.pprint('Decrementing dictcount to {0}, last duration {1}s'.format(options['dictcount'], cdiff), 'OKBLUE')
 
+            # check for cracked keys
             keypair = self.get_key()
             if keypair:
                 for k in keypair:
                     try:
-                        self.pprint('Key for bssid {0} is: {1}'.format(k['bssid'].decode(sys.stdout.encoding or 'utf-8', errors='ignore'),
-                                                                       k['key'].decode(sys.stdout.encoding or 'utf-8', errors='ignore')), 'OKGREEN')
+                        self.pprint(f"Key for bssid {k['k']} is: {bytes.fromhex(k['v']).decode('utf-8')}", "OKGREEN")
                     except UnicodeEncodeError:
                         pass
-            self.put_work(metadata, keypair)
+                self.put_work(keypair, metadata["hkey"])
+
+            # autotune dictionary count
+            if dictcount < 15 and cdiff < 300:  # 5 min
+                dictcount += 1
+                self.pprint(f"Incrementing dictionary count to {dictcount}, last duration {cdiff}s", "OKBLUE")
+            if dictcount > 1 and cdiff > 300:
+                dictcount -= 1
+                self.pprint(f"Decrementing dictionary count to {dictcount}, last duration {cdiff}s", "OKBLUE")
 
             # cleanup
             if os.path.exists(self.conf['res_file']):
