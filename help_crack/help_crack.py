@@ -91,18 +91,16 @@ class HelpCrack():
 
     def md5file(self, filename):
         """compute md5 over local file"""
-        md5 = hashlib.md5()
+        md5sum = md5()
         try:
             with open(filename, 'rb') as fd:
-                for chunk in iter(partial(fd.read, self.blocksize), b''):
-                    if not chunk:
-                        break
-                    md5.update(chunk)
+                for chunk in iter(lambda: fd.read(self.blocksize), b''):
+                    md5sum.update(chunk)
         except OSError as e:
             self.pprint(f'Exception: {e}', 'FAIL')
             return None
 
-        return md5.hexdigest()
+        return md5sum.hexdigest()
 
     def download(self, url, filename):
         """download remote file"""
@@ -272,7 +270,7 @@ class HelpCrack():
             print(f'{index}: {ttool}')
         print('9: Quit')
         while True:
-            user = userinput('Index:')
+            user = input('Index:')
             if user == '9':
                 sys.exit(0)
             try:
