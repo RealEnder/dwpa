@@ -564,60 +564,35 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         if disablestdout:
             fd = open(os.devnull, 'w') # pylint: disable=consider-using-with,unspecified-encoding
 
-        while True:
-            try:
-                # TODO: fix this code duplication
-                if self.conf['format'] == 'hccapx':
-                    if os.path.exists(self.conf['pmkid_file']):
-                        cracker = '{0} -m16800 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['pmkid_file'])
-                        for dn in dictlist:
-                            cracker = ''.join([cracker, ' ', dn])
-                        rc = subprocess.call(shlex.split(cracker), stdout=fd)
-                        if rc == -2:
-                            self.pprint('Thermal watchdog barked', 'WARNING')
-                            self.sleepy()
-                            continue
-                        if rc >= 2 or rc == -1:
-                            self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
-                            self.pprint('Check you have OpenCL support', 'FAIL')
-                            exit(1)
+        if os.path.exists(self.conf['hash_file']):
+            if self.conf['format'] == '22000':
+                cracker = f"{self.conf['cracker']} -m22000 --advice-disable --logfile-disable --potfile-disable --nonce-error-corrections=8 --session help_crack {self.conf['coptions']} -o{self.conf['key_file']} {self.conf['hash_file']} "
+                cracker += " ".join(dictlist)
 
-                    if os.path.exists(self.conf['hccapx_file']):
-                        cracker = '{0} -m2500 --nonce-error-corrections=8 --advice-disable --logfile-disable --potfile-disable {1} -o{2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
-                        for dn in dictlist:
-                            cracker = ''.join([cracker, ' ', dn])
-                        rc = subprocess.call(shlex.split(cracker), stdout=fd)
-                        if rc == -2:
-                            self.pprint('Thermal watchdog barked', 'WARNING')
-                            self.sleepy()
-                            continue
-                        if rc >= 2 or rc == -1:
-                            self.pprint('hashcat {0} died with code {1}'.format(self.conf['cracker'], rc), 'FAIL')
-                            self.pprint('Check you have OpenCL support', 'FAIL')
-                            exit(1)
+                while True:
+                    rc = subprocess.call(shlex.split(cracker), stdout=fd)
+                    if rc == -2:
+                        self.pprint('Thermal watchdog barked', 'WARNING')
+                        self.sleepy()
+                        continue
+                    if rc >= 2 or rc == -1:
+                        self.pprint(f'hashcat died with code {rc}', 'FAIL')
+                        sys.exit(1)
+                    break
 
-                # TODO: use multiple -w:, when/if availible, see https://github.com/magnumripper/JohnTheRipper/issues/3262
-                if self.conf['format'] == 'wpapsk':
-                    if os.name == 'nt':
-                        dp = 'type '
-                    else:
-                        dp = 'cat '
-                    for dn in dictlist:
-                        dp = ''.join([dp, ' ', dn])
-                    cracker = '{0} {1} --stdin --pot={2} {3}'.format(self.conf['cracker'], self.conf['coptions'], self.conf['key_file'], self.conf['hccapx_file'])
-                    p1 = subprocess.Popen(shlex.split(dp), stdout=subprocess.PIPE)
-                    p2 = subprocess.Popen(shlex.split(cracker), stdin=p1.stdout, stdout=subprocess.PIPE)
-                    p1.stdout.close()
-                    p2.communicate()
+            # TODO: use multiple -w:, when/if availible, see https://github.com/openwall/john/issues/3262
+            if self.conf['format'] == 'wpapsk':
+                dp = 'type ' if os.name == 'nt' else 'cat '
+                dp += " ".join(dictlist)
+                cracker = f"{self.conf['cracker']} {self.conf['coptions']} --stdin --session=help_crack --pot={self.conf['key_file']} {self.conf['hash_file']}"
 
-            except KeyboardInterrupt:
-                self.pprint('\nKeyboard interrupt', 'OKBLUE')
-                exit(0)
+                with subprocess.Popen(shlex.split(dp), stdout=subprocess.PIPE) as p1:
+                    with subprocess.Popen(shlex.split(cracker), stdin=p1.stdout, stdout=fd) as p2:
+                        p1.stdout.close()
+                        p2.communicate()
 
-            if fd:
-                fd.close()
-
-            return
+        if fd:
+            fd.close()
 
     def get_key(self):
         """read bssid and key pairs from file"""
