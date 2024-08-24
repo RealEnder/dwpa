@@ -989,6 +989,7 @@ function put_work($mysql, $candidates) {
 
     // update cracked net stats
     // TODO: replace this with SELECT n_state, keyver, count(distinct bssid), count(net_id), count(distinct ssid) FROM nets USE INDEX (IDX_nets_keyver_n_state) group by n_state, keyver; + CASE multiple update
+    // TODO: all below have to move to external stats generator
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1) WHERE pname='cracked_unc'");
     $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1 AND keyver=100) WHERE pname='cracked_pmkid'");
@@ -1015,7 +1016,6 @@ ORDER BY count(pass) DESC");
     }
     $keycount = $stmt->num_rows;
     $stmt->close();
-    fflush($fd);
     gzclose($fd);
 
     $md5 = hash_file('md5', $wpakeys, True);
