@@ -559,25 +559,23 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
 
     def resume_check(self):
         """check for resume files"""
+        netdata = None
+        dictcount = 1
         if os.path.exists(self.conf['res_file']):
-            with open(self.conf['res_file']) as fd:
+            with open(self.conf['res_file'], 'r', encoding="utf-8") as fd:
                 try:
                     netdata = json.load(fd)
-                    if not (any('ssid' in d for d in netdata) or any('hkey' in d for d in netdata)):
+                    if not 'hashes' in netdata or not 'hkey' in netdata:
                         raise ValueError
-                    if not any('hkey' in d for d in netdata) and self.conf['custom'] is None:
-                        self.pprint('Can\'t resume from custom dictionary attack', 'WARNING')
-                        return None
-                    if any('hkey' in d for d in netdata) and self.conf['custom'] is not None:
-                        self.pprint('Can\'t resume from classic aatack to custom dictionary', 'WARNING')
-                        return None
+                    if 'dicts' in netdata:
+                        dictcount = len(netdata["dicts"])
                     self.pprint('Session resume', 'OKBLUE')
-                    return netdata
                 except (TypeError, ValueError, KeyError):
+                    netdata = None
                     self.pprint('Bad resume file contents', 'WARNING')
                     os.unlink(self.conf['res_file'])
 
-        return None
+        return netdata, dictcount
 
     def run_cracker(self, dictlist, disablestdout=False):
         """run external cracker process"""
