@@ -207,29 +207,32 @@ class HelpCrack():
 
             return False
 
-        def run_hashcat(tl):
+        def run_hashcat():
             """check hashcat version"""
             def _run_hashcat(tool):
                 """execute and check version"""
                 try:
-                    acp = subprocess.Popen(shlex.split(tool + ' -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    output = acp.communicate()[0]
+                    with subprocess.Popen(shlex.split(f'{tool} -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as acp:
+                        output = acp.communicate()[0]
                 except OSError:
                     return False
 
-                output = re.sub(r'[^\d\.]', '', output.decode())
-                try:
-                    if StrictVersion(output) >= StrictVersion('6.0.0'):
-                        return True
-                except ValueError as e:
-                    self.pprint('Unsupported hashcat version', 'FAIL')
-                    self.pprint('Exception: {0}'.format(e), 'FAIL')
-                    exit(1)
+                output = output.strip()
+                res = re.search(r'(\d+\.\d+\.\d+)', output.decode())
+                if res:
+                    ver=res.group(1)
+                else:
+                    self.pprint(f"Can't parse hashcat version: {output.decode()}", 'FAIL')
+                    sys.exit(1)
 
-                return False
+                if self.compare_versions(self.conf['hashcat_ver'], ver) <= 0:
+                    return True
+
+                self.pprint(f'Unsupported hashcat version {ver}, need minimum {self.conf["hashcat_ver"]}', 'FAIL')
+                sys.exit(1)
 
             tools = []
-            for xt in tl:
+            for xt in ['hashcat', 'hashcat.bin']:
                 t = which(xt)
                 if t and _run_hashcat(t):
                     tools.append(t)
