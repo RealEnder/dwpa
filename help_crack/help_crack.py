@@ -465,61 +465,42 @@ class HelpCrack():
         return metadata
 
     def prepare_dicts(self, netdata):
-        '''download and check dictionaries'''
-        # pull dicts info from netdata
-        dicts = list()
-        dlist = list()
-        dhash = ''
-        dpath = ''
-        for part in netdata:
-            if 'dhash' in part:
-                dhash = part['dhash']
-            if 'dpath' in part:
-                dpath = part['dpath']
-            if 'dicts' in part:
-                for dpart in part['dicts']:
-                    dicts.append({'dhash': dpart['dhash'], 'dpath': dpart['dpath']})
-        if dhash != '' and dpath != '':
-            dicts.append({'dhash': dhash, 'dpath': dpath})
+        """download and check dictionaries"""
 
-        # download and check
-        for d in dicts:
-            dictmd5 = ''
-            extract = False
-            gzdictname = d['dpath'].split('/')[-1]
-            dictname = gzdictname.rsplit('.', 1)[0]
-            dlist.append(dictname)
+        def read_chunk(gz_file, blocksize):
+            return gz_file.read(blocksize)
 
+        dlist = []
+        try:
             while True:
-                if os.path.exists(gzdictname):
-                    dictmd5 = self.md5file(gzdictname)
-                if d['dhash'] != dictmd5:
-                    self.pprint('Downloading {0}'.format(gzdictname), 'OKBLUE')
-                    self.download(d['dpath'], gzdictname)
-                    if self.md5file(gzdictname) != d['dhash']:
-                        self.pprint('{0} downloaded but hash mismatch'.format(gzdictname), 'WARNING')
-
-                    extract = True
-
-                if not os.path.exists(dictname):
-                    extract = True
-
-                if extract:
-                    self.pprint('Extracting {0}'.format(gzdictname), 'OKBLUE')
-                    try:
-                        with gzip.open(gzdictname, 'rb') as ftgz:
-                            with open(dictname, 'wb') as fd:
-                                while True:
-                                    chunk = ftgz.read(self.blocksize)
-                                    if not chunk:
-                                        break
-                                    fd.write(chunk)
-                    except (IOError, OSError, EOFError, zlib.error) as e:
-                        self.pprint('{0} extraction failed'.format(gzdictname), 'FAIL')
-                        self.pprint('Exception: {0}'.format(e), 'FAIL')
-                        self.sleepy()
-                        continue
+                for d in netdata['dicts']:
+                    gzdictname = d['dpath'].split('/')[-1]
+                    while True:
+                        if not os.path.exists(gzdictname) or d['dhash'] != self.md5file(gzdictname):
+                            self.pprint(f'Downloading {gzdictname}', 'OKBLUE')
+                            self.download(d['dpath'], gzdictname)
+                        else:
+                            break
+                    if self.conf['format'] == '22000':
+                        dlist.append(gzdictname)
+                    else:
+                        dictname = gzdictname.rsplit('.', 1)[0]
+                        if not os.path.exists(dictname):
+                            self.pprint(f'Extracting {gzdictname}', 'OKBLUE')
+                            try:
+                                with gzip.open(gzdictname, 'rb') as gz_file:
+                                    with open(dictname, 'wb') as fd:
+                                        for chunk in iter(lambda: read_chunk(gz_file, self.blocksize), b''):
+                                            fd.write(chunk)
+                            except (IOError, OSError, EOFError) as e:
+                                self.pprint(f'{gzdictname} extraction failed', 'FAIL')
+                                self.pprint(f'Exception: {e}', 'FAIL')
+                                self.sleepy()
+                                continue
+                        dlist.append(dictname)
                 break
+        except (TypeError, IndexError):
+            return None
 
         return dlist
 
