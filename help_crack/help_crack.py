@@ -26,20 +26,17 @@ from urllib.request import Request, urlopen, urlretrieve
 
 # configuration
 conf = {
-    'base_url': 'https://wpa-sec.stanev.org/',
-    'res_file': 'help_crack.res',
-    'hccapx_file': 'help_crack.hccapx',
-    'pmkid_file': 'help_crack.pmkid',
-    'key_file': 'help_crack.key',
-    'additional': None,
-    'custom': None,
-    'format': None,
-    'potfile': None,
-    'cracker': '',
-    'coptions': '',
-    'dictcount': 1,
-    'autodictcount': True,
-    'hc_ver': '1.1.1'
+    'base_url'      : 'https://wpa-sec.stanev.org/',
+    'res_file'      : 'help_crack.res',
+    'hash_file'     : 'help_crack.hash',
+    'key_file'      : 'help_crack.key',
+    'additional'    : None,
+    'format'        : None,
+    'potfile'       : None,
+    'cracker'       : '',
+    'coptions'      : '',
+    'hc_ver'        : '1.1.1',
+    'hashcat_ver'   : '6.2.6'
 }
 conf['help_crack']    = f"{conf['base_url']}hc/help_crack.py"
 conf['help_crack_cl'] = f"{conf['base_url']}hc/CHANGELOG"
