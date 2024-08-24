@@ -86,7 +86,7 @@ $delete_n2d_stmt = Null;
 $regenerate_rkg_dict = False;
 
 // fetch unchecked handshakes
-$result = $mysql->query('SELECT net_id, struct, ssid, bssid, pass, keyver, hits FROM nets WHERE algo IS NULL ORDER BY net_id LIMIT 100');
+$result = $mysql->query('SELECT net_id, struct, ssid, bssid, pass, hits FROM nets WHERE algo IS NULL ORDER BY net_id LIMIT 100');
 $nets = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 
@@ -118,22 +118,12 @@ foreach ($nets as $netkey => $net) {
                     $ref[] = & $n_state0;
                 } else {
                     // first verify if we've already cracked that net
-                    if ($net['keyver'] == 100) {
-                        if ($candidates[$key][1] == $net['pass'] || ($cres = check_key_pmkid($net['struct'], array($candidates[$key][1])))) {
-                            $ref[] = & $n_state1;
-                            $algo = $candidates[$key][0];
-                            $found = True;
-                        } else {
-                            $ref[] = & $n_state0;
-                        }
+                    if ($candidates[$key][1] == $net['pass'] || ($cres = check_key_m22000($net['struct'], [$candidates[$key][1]]))) {
+                        $ref[] = & $n_state1;
+                        $algo = $candidates[$key][0];
+                        $found = True;
                     } else {
-                        if ($candidates[$key][1] == $net['pass'] || ($cres = check_key_hccapx($net['struct'], array($candidates[$key][1]), 256))) {
-                            $ref[] = & $n_state1;
-                            $algo = $candidates[$key][0];
-                            $found = True;
-                        } else {
-                            $ref[] = & $n_state0;
-                        }
+                        $ref[] = & $n_state0;
                     }
                 }
             }
@@ -149,16 +139,9 @@ foreach ($nets as $netkey => $net) {
     // single mode crack
     if ($algo == '') {
         $res = single_mode_generator($net['bssid'], $net['ssid']);
-        if ($net['keyver'] == 100) {
-            if ($cres = check_key_pmkid($net['struct'], $res)) {
-                submit_by_net_id($mysql, $submit_stmt, $cres[0], $cres[3], $cres[1], $cres[2], 2130706433, $net['net_id']);
-                $algo = 'Single';
-            }
-        } else {
-            if ($cres = check_key_hccapx($net['struct'], $res, 256)) {
-                submit_by_net_id($mysql, $submit_stmt, $cres[0], $cres[3], $cres[1], $cres[2], 2130706433, $net['net_id']);
-                $algo = 'Single';
-            }
+        if ($cres = check_key_m22000($net['struct'], $res)) {
+            submit_by_net_id($mysql, $submit_stmt, $cres[0], $cres[3], $cres[1], $cres[2], 2130706433, $net['net_id']);
+            $algo = 'Single';
         }
     }
 
