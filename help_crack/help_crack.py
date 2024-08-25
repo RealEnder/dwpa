@@ -26,22 +26,22 @@ from urllib.request import Request, urlopen, urlretrieve
 
 # configuration
 conf = {
-    'base_url'      : 'https://wpa-sec.stanev.org/',
-    'res_file'      : 'help_crack.res',
-    'hash_file'     : 'help_crack.hash',
-    'key_file'      : 'help_crack.key',
-    'additional'    : None,
-    'format'        : None,
-    'potfile'       : None,
-    'cracker'       : '',
-    'coptions'      : '',
-    'hc_ver'        : '2.0.0',
-    'hashcat_ver'   : '6.2.6'
+    "base_url"      : "https://wpa-sec.stanev.org/",
+    "res_file"      : "help_crack.res",
+    "hash_file"     : "help_crack.hash",
+    "key_file"      : "help_crack.key",
+    "additional"    : None,
+    "format"        : None,
+    "potfile"       : None,
+    "cracker"       : "",
+    "coptions"      : "",
+    "hc_ver"        : "2.0.0",
+    "hashcat_ver"   : "6.2.6"
 }
-conf['help_crack']    = f"{conf['base_url']}hc/help_crack.py"
-conf['help_crack_cl'] = f"{conf['base_url']}hc/CHANGELOG"
-conf['get_work_url']  = f"{conf['base_url']}?get_work"
-conf['put_work_url']  = f"{conf['base_url']}?put_work"
+conf["help_crack"]    = f"{conf['base_url']}hc/help_crack.py"
+conf["help_crack_cl"] = f"{conf['base_url']}hc/CHANGELOG"
+conf["get_work_url"]  = f"{conf['base_url']}?get_work"
+conf["put_work_url"]  = f"{conf['base_url']}?put_work"
 
 
 class HelpCrack():
@@ -54,38 +54,38 @@ class HelpCrack():
         self.conf = c
 
     @staticmethod
-    def pprint(mess, code='HEADER'):
+    def pprint(mess, code="HEADER"):
         """pretty print"""
-        if os.name == 'nt':
+        if os.name == "nt":
             print(mess)
         else:
-            cc = {'HEADER'  : '\033[95m',
-                  'OKBLUE'  : '\033[94m',
-                  'OKGREEN' : '\033[92m',
-                  'WARNING' : '\033[93m',
-                  'FAIL'    : '\033[91m',
-                  'ENDC'    : '\033[0m'
+            cc = {"HEADER"  : "\033[95m",
+                  "OKBLUE"  : "\033[94m",
+                  "OKGREEN" : "\033[92m",
+                  "WARNING" : "\033[93m",
+                  "FAIL"    : "\033[91m",
+                  "ENDC"    : "\033[0m"
                  }
             print(f"{cc[code]}{mess}{cc['ENDC']}")
 
     def sleepy(self, sec=222):
         """wait for calm down"""
-        self.pprint('Sleeping...', 'WARNING')
+        self.pprint("Sleeping...", "WARNING")
         try:
             time.sleep(sec)
         except KeyboardInterrupt:
-            self.pprint('\nKeyboard interrupt', 'OKBLUE')
+            self.pprint("\nKeyboard interrupt", "OKBLUE")
             sys.exit(0)
 
     def md5file(self, filename):
         """compute md5 over local file"""
         md5sum = md5()
         try:
-            with open(filename, 'rb') as fd:
-                for chunk in iter(lambda: fd.read(self.blocksize), b''):
+            with open(filename, "rb") as fd:
+                for chunk in iter(lambda: fd.read(self.blocksize), b""):
                     md5sum.update(chunk)
         except OSError as e:
-            self.pprint(f'Exception: {e}', 'FAIL')
+            self.pprint(f"Exception: {e}", "FAIL")
             return None
 
         return md5sum.hexdigest()
@@ -97,7 +97,7 @@ class HelpCrack():
                 urlretrieve(url, filename)
                 return True
             except IOError as e:
-                self.pprint(f"Download exception: {e}", 'FAIL')
+                self.pprint(f"Download exception: {e}", "FAIL")
                 self.sleepy()
 
     def get_url(self, url, payload=None):
@@ -112,7 +112,7 @@ class HelpCrack():
                 with urlopen(req) as resp:
                     return resp.read().decode()
             except IOError as e:
-                self.pprint(f'Remote request exception: {e}', 'WARNING')
+                self.pprint(f"Remote request exception: {e}", "WARNING")
                 self.sleepy(60)
                 continue
 
@@ -120,7 +120,7 @@ class HelpCrack():
     def compare_versions(version1, version2):
         """ custom version compare """
         def split_version(version):
-            parts = re.split(r'(\d+|\D+)', version)
+            parts = re.split(r"(\d+|\D+)", version)
             return [int(part) if part.isdigit() else part for part in parts if part]
 
         v1_components = split_version(version1)
@@ -150,31 +150,31 @@ class HelpCrack():
         """compare version and initiate update"""
         remoteversion = self.get_url(f"{self.conf['help_crack']}.version")
         if not remoteversion:
-            self.pprint("Can't check for new version, continue...", 'WARNING')
+            self.pprint("Can't check for new version, continue...", "WARNING")
             return
         remoteversion = remoteversion.strip()
 
-        if self.compare_versions(self.conf['hc_ver'], remoteversion) < 0:
+        if self.compare_versions(self.conf["hc_ver"], remoteversion) < 0:
             while True:
-                self.pprint(f'New version {remoteversion} of help_crack found.')
-                user = input('Update[y] or Show changelog[c]:')
-                if user == 'c':
-                    self.pprint(self.get_url(self.conf['help_crack_cl']))
+                self.pprint(f"New version {remoteversion} of help_crack found.")
+                user = input("Update[y] or Show changelog[c]:")
+                if user == "c":
+                    self.pprint(self.get_url(self.conf["help_crack_cl"]))
                     continue
-                if user in ('y', ''):
-                    if self.download(self.conf['help_crack'], f'{sys.argv[0]}.new'):
+                if user in ("y", ""):
+                    if self.download(self.conf["help_crack"], f"{sys.argv[0]}.new"):
                         try:
-                            os.rename(sys.argv[0]+'.new', sys.argv[0])
+                            os.rename(sys.argv[0]+".new", sys.argv[0])
                             os.chmod(sys.argv[0], stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
                         except OSError as e:
-                            self.pprint(f'Exception: {e}', 'FAIL')
+                            self.pprint(f"Exception: {e}", "FAIL")
                             # TODO: think of workaround locking on win32
-                            if os.name == 'nt':
-                                self.pprint('You are running under Windows. Please rename help_crack.py.new over help_crack.py', 'OKBLUE')
-                        self.pprint('help_crack updated, run again', 'OKGREEN')
+                            if os.name == "nt":
+                                self.pprint("You are running under Windows. Please rename help_crack.py.new over help_crack.py", "OKBLUE")
+                        self.pprint("help_crack updated, run again", "OKGREEN")
                         sys.exit(0)
                     else:
-                        self.pprint('help_crack update failed', 'FAIL')
+                        self.pprint("help_crack update failed", "FAIL")
                         return
 
                 return
@@ -188,8 +188,8 @@ class HelpCrack():
                 """check if file exists and is executable"""
                 return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
-            if os.name == 'nt':
-                program += '.exe'
+            if os.name == "nt":
+                program += ".exe"
                 if os.path.exists(program):
                     return program
 
@@ -198,12 +198,12 @@ class HelpCrack():
                 if is_exe(program):
                     return program
             else:
-                for path in os.environ['PATH'].split(os.pathsep):
+                for path in os.environ["PATH"].split(os.pathsep):
                     exe_file = os.path.join(path, program)
                     if is_exe(exe_file):
                         return exe_file
-                if os.name == 'posix' and is_exe(program):
-                    return f'./{program}'
+                if os.name == "posix" and is_exe(program):
+                    return f"./{program}"
 
             return False
 
@@ -212,27 +212,27 @@ class HelpCrack():
             def _run_hashcat(tool):
                 """execute and check version"""
                 try:
-                    with subprocess.Popen(shlex.split(f'{tool} -V'), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as acp:
+                    with subprocess.Popen(shlex.split(f"{tool} -V"), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as acp:
                         output = acp.communicate()[0]
                 except OSError:
                     return False
 
                 output = output.strip()
-                res = re.search(r'(\d+\.\d+\.\d+)', output.decode())
+                res = re.search(r"(\d+\.\d+\.\d+)", output.decode())
                 if res:
                     ver=res.group(1)
                 else:
-                    self.pprint(f"Can't parse hashcat version: {output.decode()}", 'FAIL')
+                    self.pprint(f"Can't parse hashcat version: {output.decode()}", "FAIL")
                     sys.exit(1)
 
-                if self.compare_versions(self.conf['hashcat_ver'], ver) <= 0:
+                if self.compare_versions(self.conf["hashcat_ver"], ver) <= 0:
                     return True
 
-                self.pprint(f'Unsupported hashcat version {ver}, need minimum {self.conf["hashcat_ver"]}', 'FAIL')
+                self.pprint(f"Unsupported hashcat version {ver}, need minimum {self.conf['hashcat_ver']}", "FAIL")
                 sys.exit(1)
 
             tools = []
-            for xt in ['hashcat', 'hashcat.bin']:
+            for xt in ["hashcat", "hashcat.bin"]:
                 t = which(xt)
                 if t and _run_hashcat(t):
                     tools.append(t)
@@ -249,13 +249,13 @@ class HelpCrack():
                 except OSError:
                     return False
 
-                if b'PASS' in output and b'PMKID' in output:
+                if b"PASS" in output and b"PMKID" in output:
                     return True
 
                 return False
 
             tools = []
-            t = which('john')
+            t = which("john")
             if t:
                 if _run_jtr(f"{t} --format=wpapsk --test=0"):
                     tools.append(f"{t} --format=wpapsk")
@@ -268,34 +268,34 @@ class HelpCrack():
 
         def set_format(tool):
             """sets format based on selected tool"""
-            self.conf['cracker'] = tool
-            if 'hashcat' in tool:
-                self.conf['format'] = '22000'
+            self.conf["cracker"] = tool
+            if "hashcat" in tool:
+                self.conf["format"] = "22000"
             else:
-                self.conf['format'] = 'wpapsk'
+                self.conf["format"] = "wpapsk"
 
         tools = run_hashcat() + run_jtr()
 
         if not tools:
-            self.pprint('hashcat or john not found', 'FAIL')
+            self.pprint("hashcat or john not found", "FAIL")
             sys.exit(1)
         if len(tools) == 1:
             set_format(tools[0])
             return tools[0]
 
-        self.pprint('Choose the tool for cracking:')
+        self.pprint("Choose the tool for cracking:")
         for index, ttool in enumerate(tools):
-            print(f'{index}: {ttool}')
-        print('9: Quit')
+            print(f"{index}: {ttool}")
+        print("9: Quit")
         while True:
-            user = input('Index:')
-            if user == '9':
+            user = input("Index:")
+            if user == "9":
                 sys.exit(0)
             try:
                 set_format(tools[int(user)])
                 return tools[int(user)]
             except (ValueError, IndexError):
-                self.pprint('Wrong index', 'WARNING')
+                self.pprint("Wrong index", "WARNING")
 
     @staticmethod
     def m22000john(hashline):
@@ -323,12 +323,12 @@ class HelpCrack():
             if ncorr != 0:
                 if message_pair & 0x40 > 1:
                     ver = f"{ver}, fuzz {ncorr} BE"
-                    dcorr = struct.unpack('>L', corr)[0]
-                    corr = struct.pack('>L', dcorr + ncorr)
+                    dcorr = struct.unpack(">L", corr)[0]
+                    corr = struct.pack(">L", dcorr + ncorr)
                 if message_pair & 0x20 > 1:
                     ver = f"{ver}, fuzz {ncorr} LE"
-                    dcorr = struct.unpack('<L', corr)[0]
-                    corr = struct.pack('<L', dcorr + ncorr)
+                    dcorr = struct.unpack("<L", corr)[0]
+                    corr = struct.pack("<L", dcorr + ncorr)
 
             # JtR struct is missing the ssid field in the beginning
             hccap_john = struct.pack(
@@ -339,20 +339,20 @@ class HelpCrack():
                 keyver, keymic)
 
             if keyver == 1:
-                keyver = 'WPA'
+                keyver = "WPA"
             elif keyver == 2:
-                keyver = 'WPA2'
+                keyver = "WPA2"
             elif keyver == 3:
-                keyver = 'WPA CMAC'
+                keyver = "WPA CMAC"
 
             # prepare translation to base64 alphabet used by JtR
             encode_trans = bytearray.maketrans(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
                                                b"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
-            enc_hccap = binascii.b2a_base64(hccap_john).translate(encode_trans).rstrip(b'=\r\n')
+            enc_hccap = binascii.b2a_base64(hccap_john).translate(encode_trans).rstrip(b"=\r\n")
 
             return f"{ssid.decode('utf-8', errors='ignore')}:$WPAPSK${ssid.decode('utf-8', errors='ignore')}#{enc_hccap.decode('utf-8', errors='ignore')}:{hash_arr[4]}:{hash_arr[3]}:{hash_arr[3]}::{keyver}:{ver}:/dev/null\n"
 
-        hash_arr = hashline.split('*', 8)
+        hash_arr = hashline.split("*", 8)
         if len(hash_arr) != 9 or hash_arr[0] != "WPA":
             return ""
 
@@ -408,7 +408,7 @@ class HelpCrack():
                     self.sleepy()
                     continue
                 netdata = json.loads(response_data)
-                if 'hkey' not in netdata or 'hashes' not in netdata:
+                if "hkey" not in netdata or "hashes" not in netdata:
                     raise ValueError
                 return netdata
             except (TypeError, ValueError) as e:
@@ -425,22 +425,22 @@ class HelpCrack():
         # extract hkey and hashes
         metadata = {}
         try:
-            if 'hkey' in netdata:
-                metadata['hkey'] = netdata['hkey']
+            if "hkey" in netdata:
+                metadata["hkey"] = netdata["hkey"]
 
-            with open(self.conf['hash_file'], 'w', encoding="utf-8") as fd:
-                for h in netdata['hashes']:
-                    if self.conf['format'] == '22000':
+            with open(self.conf["hash_file"], "w", encoding="utf-8") as fd:
+                for h in netdata["hashes"]:
+                    if self.conf["format"] == "22000":
                         fd.write(f"{h}\n")
                     else:
                         fd.write(self.m22000john(h))
         except OSError as e:
             self.pprint("Hash file write failed", "FAIL")
-            self.pprint(f'Exception: {e}', 'FAIL')
+            self.pprint(f"Exception: {e}", "FAIL")
             sys.exit(1)
         except KeyError as e:
-            self.pprint('No hashes found in work package', 'FAIL')
-            self.pprint(f'Exception: {e}', 'FAIL')
+            self.pprint("No hashes found in work package", "FAIL")
+            self.pprint(f"Exception: {e}", "FAIL")
             sys.exit(1)
 
         return metadata
@@ -454,28 +454,28 @@ class HelpCrack():
         dlist = []
         try:
             while True:
-                for d in netdata['dicts']:
-                    gzdictname = d['dpath'].split('/')[-1]
+                for d in netdata["dicts"]:
+                    gzdictname = d["dpath"].split("/")[-1]
                     while True:
-                        if not os.path.exists(gzdictname) or d['dhash'] != self.md5file(gzdictname):
-                            self.pprint(f'Downloading {gzdictname}', 'OKBLUE')
-                            self.download(d['dpath'], gzdictname)
+                        if not os.path.exists(gzdictname) or d["dhash"] != self.md5file(gzdictname):
+                            self.pprint(f"Downloading {gzdictname}", "OKBLUE")
+                            self.download(d["dpath"], gzdictname)
                         else:
                             break
-                    if self.conf['format'] == '22000':
+                    if self.conf["format"] == "22000":
                         dlist.append(gzdictname)
                     else:
-                        dictname = gzdictname.rsplit('.', 1)[0]
+                        dictname = gzdictname.rsplit(".", 1)[0]
                         if not os.path.exists(dictname):
-                            self.pprint(f'Extracting {gzdictname}', 'OKBLUE')
+                            self.pprint(f"Extracting {gzdictname}", "OKBLUE")
                             try:
-                                with gzip.open(gzdictname, 'rb') as gz_file:
-                                    with open(dictname, 'wb') as fd:
-                                        for chunk in iter(lambda: read_chunk(gz_file, self.blocksize), b''):
+                                with gzip.open(gzdictname, "rb") as gz_file:
+                                    with open(dictname, "wb") as fd:
+                                        for chunk in iter(lambda: read_chunk(gz_file, self.blocksize), b""):
                                             fd.write(chunk)
                             except (IOError, OSError, EOFError) as e:
-                                self.pprint(f'{gzdictname} extraction failed', 'FAIL')
-                                self.pprint(f'Exception: {e}', 'FAIL')
+                                self.pprint(f"{gzdictname} extraction failed", "FAIL")
+                                self.pprint(f"Exception: {e}", "FAIL")
                                 self.sleepy()
                                 continue
                         dlist.append(dictname)
@@ -501,26 +501,26 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         try:
             # create dict
             try:
-                if self.conf['format'] == '22000':
-                    netdata['dictname'] += '.gz'
-                    with gzip.open(netdata['dictname'], 'w') as fd:
-                        fd.write(netdata['key'].encode())
+                if self.conf["format"] == "22000":
+                    netdata["dictname"] += ".gz"
+                    with gzip.open(netdata["dictname"], "w") as fd:
+                        fd.write(netdata["key"].encode())
                 else:
-                    with open(netdata['dictname'], 'w', encoding="utf-8") as fd:
-                        fd.write(netdata['key'])
+                    with open(netdata["dictname"], "w", encoding="utf-8") as fd:
+                        fd.write(netdata["key"])
             except OSError as e:
-                self.pprint(f"{netdata['dictname']} creation failed", 'FAIL')
-                self.pprint(f'Exception: {e}', 'FAIL')
+                self.pprint(f"{netdata['dictname']} creation failed", "FAIL")
+                self.pprint(f"Exception: {e}", "FAIL")
                 sys.exit(1)
 
             # clean old keyfile
-            if os.path.exists(self.conf['key_file']):
-                os.unlink(self.conf['key_file'])
+            if os.path.exists(self.conf["key_file"]):
+                os.unlink(self.conf["key_file"])
 
             return netdata
         except TypeError as e:
-            self.pprint("Couldn't prepare challenge", 'FAIL')
-            self.pprint(f'Exception: {e}', 'FAIL')
+            self.pprint("Couldn't prepare challenge", "FAIL")
+            self.pprint(f"Exception: {e}", "FAIL")
             sys.exit(1)
 
     def put_work(self, cand, hkey=None, idtype="bssid"):
@@ -535,26 +535,26 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
 
     def create_resume(self, netdata):
         """create resume file"""
-        with open(self.conf['res_file'], 'w', encoding="utf-8") as fd:
+        with open(self.conf["res_file"], "w", encoding="utf-8") as fd:
             json.dump(netdata, fd)
 
     def resume_check(self):
         """check for resume files"""
         netdata = None
         dictcount = 1
-        if os.path.exists(self.conf['res_file']):
-            with open(self.conf['res_file'], 'r', encoding="utf-8") as fd:
+        if os.path.exists(self.conf["res_file"]):
+            with open(self.conf["res_file"], "r", encoding="utf-8") as fd:
                 try:
                     netdata = json.load(fd)
-                    if not 'hashes' in netdata or not 'hkey' in netdata:
+                    if not "hashes" in netdata or not "hkey" in netdata:
                         raise ValueError
-                    if 'dicts' in netdata:
+                    if "dicts" in netdata:
                         dictcount = len(netdata["dicts"])
-                    self.pprint('Session resume', 'OKBLUE')
+                    self.pprint("Session resume", "OKBLUE")
                 except (TypeError, ValueError, KeyError):
                     netdata = None
-                    self.pprint('Bad resume file contents', 'WARNING')
-                    os.unlink(self.conf['res_file'])
+                    self.pprint("Bad resume file contents", "WARNING")
+                    os.unlink(self.conf["res_file"])
 
         return netdata, dictcount
 
@@ -562,27 +562,27 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         """run external cracker process"""
         fd = None
         if disablestdout:
-            fd = open(os.devnull, 'w') # pylint: disable=consider-using-with,unspecified-encoding
+            fd = open(os.devnull, "w") # pylint: disable=consider-using-with,unspecified-encoding
 
-        if os.path.exists(self.conf['hash_file']):
-            if self.conf['format'] == '22000':
+        if os.path.exists(self.conf["hash_file"]):
+            if self.conf["format"] == "22000":
                 cracker = f"{self.conf['cracker']} -m22000 --advice-disable --logfile-disable --potfile-disable --nonce-error-corrections=8 --session help_crack {self.conf['coptions']} -o{self.conf['key_file']} {self.conf['hash_file']} "
                 cracker += " ".join(dictlist)
 
                 while True:
                     rc = subprocess.call(shlex.split(cracker), stdout=fd)
                     if rc == -2:
-                        self.pprint('Thermal watchdog barked', 'WARNING')
+                        self.pprint("Thermal watchdog barked", "WARNING")
                         self.sleepy()
                         continue
                     if rc >= 2 or rc == -1:
-                        self.pprint(f'hashcat died with code {rc}', 'FAIL')
+                        self.pprint(f"hashcat died with code {rc}", "FAIL")
                         sys.exit(1)
                     break
 
             # TODO: use multiple -w:, when/if availible, see https://github.com/openwall/john/issues/3262
-            if self.conf['format'] == 'wpapsk':
-                dp = 'type ' if os.name == 'nt' else 'cat '
+            if self.conf["format"] == "wpapsk":
+                dp = "type " if os.name == "nt" else "cat "
                 dp += " ".join(dictlist)
                 cracker = f"{self.conf['cracker']} {self.conf['coptions']} --stdin --session=help_crack --pot={self.conf['key_file']} {self.conf['hash_file']}"
 
@@ -600,8 +600,8 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         def parse_hashcat_output(pot):
             """parse hashcat potfile line"""
             try:
-                arr = pot.split(':', 4)
-                return {'k': arr[1][:12], 'v': bytes(arr[4].rstrip('\r\n'), encoding="utf-8", errors='ignore').hex()}
+                arr = pot.split(":", 4)
+                return {"k": arr[1][:12], "v": bytes(arr[4].rstrip("\r\n"), encoding="utf-8", errors="ignore").hex()}
             except (TypeError, ValueError, KeyError, IndexError):
                 pass
 
@@ -612,46 +612,46 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
 
             def jb64decode(jb64):
                 """JtR b64 decode"""
-                encode_trans = bytearray.maketrans(b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-                                                   b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
-                b64 = jb64.translate(encode_trans) + '='
+                encode_trans = bytearray.maketrans(b"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+                                                   b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+                b64 = jb64.translate(encode_trans) + "="
 
                 return binascii.a2b_base64(b64)
 
-            arr = pot.split(':', 1)
+            arr = pot.split(":", 1)
             if len(arr) != 2:
                 return False
 
-            key = bytes(arr[1].rstrip('\r\n'), encoding="utf-8", errors='ignore').hex()
+            key = bytes(arr[1].rstrip("\r\n"), encoding="utf-8", errors="ignore").hex()
 
             # check for handshake results
-            arr1 = arr[0].split('#', 1)
+            arr1 = arr[0].split("#", 1)
             if len(arr1) == 2:
                 try:
                     phccap = jb64decode(arr1[1])
                     bssid = phccap[:6].hex()
-                    return {'k': bssid, 'v': key}
+                    return {"k": bssid, "v": key}
                 except (binascii.Error, binascii.Incomplete):
                     return False
 
             # check for PMKID results
-            arr1 = arr[0].split('*', 3)
+            arr1 = arr[0].split("*", 3)
             if len(arr1) == 4:
-                return {'k': arr1[1], 'v': key}
+                return {"k": arr1[1], "v": key}
 
             return False
 
         res = []
         try:
-            if os.path.exists(self.conf['key_file']):
-                with open(self.conf['key_file'], 'r', encoding='utf-8', errors='ignore') as fd:
+            if os.path.exists(self.conf["key_file"]):
+                with open(self.conf["key_file"], "r", encoding="utf-8", errors="ignore") as fd:
                     for line in fd:
                         # check if we have user potfile and don't write if it's the challenge
-                        if self.conf['potfile'] and not \
+                        if self.conf["potfile"] and not \
                             ("1c7ee5e2f2d0:0026c72e4900:dlink:aaaa1234" in line or
                              "1c7ee5e2f2d0*0026c72e4900*646c696e6b:aaaa1234" in line or
                              "0OOMSwZsHKYh0C19gHglzE:aaaa1234" in line):
-                            with open(self.conf['potfile'], 'a', encoding="utf-8") as fdpot:
+                            with open(self.conf["potfile"], "a", encoding="utf-8") as fdpot:
                                 fdpot.write(line)
 
                         keypair = parse_hashcat_output(line)
@@ -664,11 +664,11 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
                             continue
 
             if res:
-                os.unlink(self.conf['key_file'])
+                os.unlink(self.conf["key_file"])
                 return res
         except IOError as e:
-            self.pprint("Couldn't read pot file", 'FAIL')
-            self.pprint(f"Exception: {e}", 'FAIL')
+            self.pprint("Couldn't read pot file", "FAIL")
+            self.pprint(f"Exception: {e}", "FAIL")
             sys.exit(1)
 
     def run(self):
@@ -677,14 +677,14 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         self.check_tools()
 
         # challenge the cracker
-        self.pprint('Challenge cracker for correct results', 'OKBLUE')
+        self.pprint("Challenge cracker for correct results", "OKBLUE")
         netdata = self.prepare_challenge()
         self.prepare_work(netdata)
-        self.run_cracker([netdata['dictname']], disablestdout=True)
+        self.run_cracker([netdata["dictname"]], disablestdout=True)
         keypair = self.get_key()
 
-        if not keypair or len(keypair) != 2 or keypair[0]['v'] != keypair[1]['v'] != netdata['key']:
-            self.pprint('Challenge solving failed! Check if your cracker runs correctly.', 'FAIL')
+        if not keypair or len(keypair) != 2 or keypair[0]["v"] != keypair[1]["v"] != netdata["key"]:
+            self.pprint("Challenge solving failed! Check if your cracker runs correctly.", "FAIL")
             sys.exit(1)
 
         netdata, dictcount = self.resume_check()
@@ -700,14 +700,14 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
             dictlist = self.prepare_dicts(netdata)
             if dictlist is None:
                 netdata = None
-                self.pprint("Couldn't prepare dictionaries", 'WARNING')
+                self.pprint("Couldn't prepare dictionaries", "WARNING")
                 self.sleepy()
                 continue
 
             # do we have additional user dictionary supplied?
-            if self.conf['additional'] is not None:
-                if self.conf['additional'] not in dictlist:
-                    dictlist.append(self.conf['additional'])
+            if self.conf["additional"] is not None:
+                if self.conf["additional"] not in dictlist:
+                    dictlist.append(self.conf["additional"])
 
             # run cracker and collect results
             cstart = time.time()
@@ -733,8 +733,8 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
                 self.pprint(f"Decrementing dictionary count to {dictcount}, last duration {cdiff}s", "OKBLUE")
 
             # cleanup
-            if os.path.exists(self.conf['res_file']):
-                os.unlink(self.conf['res_file'])
+            if os.path.exists(self.conf["res_file"]):
+                os.unlink(self.conf["res_file"])
             netdata = None
 
 
@@ -753,22 +753,22 @@ if __name__ == "__main__":
             aparser.error(f"The file {arg} does not exist!")
         return arg
 
-    parser = argparse.ArgumentParser(description=f'help_crack, distributed WPA cracker site: {conf["base_url"]}')
-    parser.add_argument('-v', '--version', action='version', version=conf['hc_ver'])
-    parser.add_argument('-co', '--coptions', type=str, help='custom options, that will be supplied to cracker. Those must be passed as -co="--your_option"')
-    parser.add_argument('-pot', '--potfile', type=str, help='preserve cracked results in user supplied pot file')
-    parser.add_argument('-ad', '--additional', type=lambda x: is_valid_file(parser, x), help='additional user dictionary to be checked after downloaded one')
+    parser = argparse.ArgumentParser(description=f"help_crack, distributed WPA cracker site: {conf['base_url']}")
+    parser.add_argument("-v",   "--version",    action="version", version=conf["hc_ver"])
+    parser.add_argument("-co",  "--coptions",   type=str, help="custom options, that will be supplied to cracker. Those must be passed as -co='--your_option'")
+    parser.add_argument("-pot", "--potfile",    type=str, help="preserve cracked results in user supplied pot file")
+    parser.add_argument("-ad",  "--additional", type=lambda x: is_valid_file(parser, x), help="additional user dictionary to be checked after downloaded one")
 
     try:
         args = parser.parse_args()
     except IOError as ex:
         parser.error(str(ex))
 
-    conf['additional'] = args.additional
+    conf["additional"] = args.additional
     if args.coptions:
-        conf['coptions'] = args.coptions
-    if args.potfile and (os.path.basename(args.potfile) not in (conf['res_file'], conf['hash_file'], conf['key_file'])):
-        conf['potfile'] = args.potfile
+        conf["coptions"] = args.coptions
+    if args.potfile and (os.path.basename(args.potfile) not in (conf["res_file"], conf["hash_file"], conf["key_file"])):
+        conf["potfile"] = args.potfile
 
     # set global timeout duration
     socket.setdefaulttimeout(60)
