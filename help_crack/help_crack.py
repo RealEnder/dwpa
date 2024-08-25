@@ -37,7 +37,7 @@ conf = {
     "cracker"       : "",
     "coptions"      : "",
     "rules"         : "",
-    "hc_ver"        : "2.1.0",
+    "hc_ver"        : "2.1.1",
     "hashcat_ver"   : "6.2.6"
 }
 conf["help_crack"]    = f"{conf['base_url']}hc/help_crack.py"
@@ -465,12 +465,9 @@ class HelpCrack():
             while True:
                 for d in netdata["dicts"]:
                     gzdictname = d["dpath"].split("/")[-1]
-                    while True:
-                        if not os.path.exists(gzdictname) or d["dhash"] != self.md5file(gzdictname):
-                            self.pprint(f"Downloading {gzdictname}", "OKBLUE")
-                            self.download(d["dpath"], gzdictname)
-                        else:
-                            break
+                    if not os.path.exists(gzdictname) or d["dhash"] != self.md5file(gzdictname):
+                        self.pprint(f"Downloading {gzdictname}", "OKBLUE")
+                        self.download(d["dpath"], gzdictname)
                     if self.conf["format"] == "22000":
                         dlist.append(gzdictname)
                     else:
@@ -780,7 +777,7 @@ if __name__ == "__main__":
         conf["potfile"] = args.potfile
 
     # set global timeout duration
-    socket.setdefaulttimeout(60)
+    socket.setdefaulttimeout(120)
 
     hc = HelpCrack(conf)
     hc.run()

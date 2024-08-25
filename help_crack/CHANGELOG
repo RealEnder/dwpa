@@ -138,3 +138,7 @@ ver 2.1.0 / 25 Aug 2024
  * introduce dynamic per dict combined rules when
    selected cracker is hashcat
  * fix missing submit bug after cracking job finishes
+
+ver 2.1.1 / 25 Aug 2024
+ * fix for dictionaries download loop
+ * raise connection timeout to 120s

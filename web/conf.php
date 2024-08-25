@@ -26,5 +26,5 @@ define('CAP', '/var/www/wpa-sec/cap/');
 define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
 
 define('SHM', '/tmp/');
-define('MIN_HC_VER', '2.1.0');
+define('MIN_HC_VER', '2.1.1');
 ?>
