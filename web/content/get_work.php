@@ -54,7 +54,7 @@ $bhkey = hex2bin($hkey);
 
 // get current dict
 $stmt = $mysql->stmt_init();
-$stmt->prepare("SELECT d_id, HEX(dhash) as dhash, dpath
+$stmt->prepare("SELECT d_id, HEX(dhash) as dhash, dpath, rules
 FROM dicts d
 WHERE NOT EXISTS (SELECT d_id
               FROM n2d
@@ -80,13 +80,16 @@ if ($dc == 0) {
     die('No nets');
 }
 
-// add hkey and dicts
+// add hkey, dicts and rules
 $resnet = ['hkey' => $hkey, 'dicts' => [], 'hashes' => []];
 $ref = [''];
+$rules = [];
 for ($i=0; $i<$dc; $i++) {
     $resnet['dicts'][] = ['dhash' => strtolower($dicts[$i]['dhash']), 'dpath' => $dicts[$i]['dpath']];
     $ref[] = & $dicts[$i]['d_id'];
+    $rules = array_unique(array_merge($rules, explode("\n", $dicts[$i]['rules'])));
 }
+$resnet['rules'] = base64_encode(implode("\n", $rules));
 
 // get nets and prepare
 $stmt = $mysql->stmt_init();
