@@ -30,11 +30,13 @@ conf = {
     "res_file"      : "help_crack.res",
     "hash_file"     : "help_crack.hash",
     "key_file"      : "help_crack.key",
+    "rules_file"    : "help_crack.rules",
     "additional"    : None,
     "format"        : None,
     "potfile"       : None,
     "cracker"       : "",
     "coptions"      : "",
+    "rules"         : "",
     "hc_ver"        : "2.0.0",
     "hashcat_ver"   : "6.2.6"
 }
@@ -422,7 +424,7 @@ class HelpCrack():
         if netdata is None:
             return False
 
-        # extract hkey and hashes
+        # extract hkey, hashes and rules
         metadata = {}
         try:
             if "hkey" in netdata:
@@ -432,6 +434,13 @@ class HelpCrack():
                 for h in netdata["hashes"]:
                     if self.conf["format"] == "22000":
                         fd.write(f"{h}\n")
+                        # write rules, just for hashcat for now
+                        if "rules" in netdata:
+                            with open(self.conf["rules_file"], "wb") as fdr:
+                                fdr.write(binascii.a2b_base64(netdata["rules"]))
+                                self.conf["rules"] = f"-S -r {self.conf['rules_file']}"
+                        else:
+                            self.conf["rules"] = ""
                     else:
                         fd.write(self.m22000john(h))
         except OSError as e:
@@ -566,7 +575,7 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
 
         if os.path.exists(self.conf["hash_file"]):
             if self.conf["format"] == "22000":
-                cracker = f"{self.conf['cracker']} -m22000 --advice-disable --logfile-disable --potfile-disable --nonce-error-corrections=8 --session help_crack {self.conf['coptions']} -o{self.conf['key_file']} {self.conf['hash_file']} "
+                cracker = f"{self.conf['cracker']} -m22000 --advice-disable --logfile-disable --potfile-disable --nonce-error-corrections=8 --session help_crack {self.conf['rules']} {self.conf['coptions']} -o{self.conf['key_file']} {self.conf['hash_file']} "
                 cracker += " ".join(dictlist)
 
                 while True:
