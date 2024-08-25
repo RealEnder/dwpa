@@ -303,7 +303,6 @@ class HelpCrack():
     def m22000john(hashline):
         """convert m22000 hashcat hashline to JtR wpapsk"""
 
-        @staticmethod
         def pack_jtr(hash_arr, message_pair, ncorr=0):
             """ build JtR hashline with given nonce error correction """
             ssid          = bytes.fromhex(hash_arr[5])

@@ -142,3 +142,6 @@ ver 2.1.0 / 25 Aug 2024
 ver 2.1.1 / 25 Aug 2024
  * fix for dictionaries download loop
  * raise connection timeout to 120s
+
+ver 2.x.x / xx xxx 2024
+ * fix hash convert error for JtR
