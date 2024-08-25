@@ -133,3 +133,8 @@ ver 2.0.0 / 24 Aug 2024
  * drop Python 2 support
  * avoid using python installation to detect arch
  * don't use deprecated python modules
+
+ver 2.1.0 / 25 Aug 2024
+ * introduce dynamic per dict combined rules when
+   selected cracker is hashcat
+ * fix missing submit bug after cracking job finishes
