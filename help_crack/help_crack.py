@@ -722,7 +722,7 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
                         self.pprint(f"Key for bssid {k['k']} is: {bytes.fromhex(k['v']).decode('utf-8')}", "OKGREEN")
                     except UnicodeEncodeError:
                         pass
-                self.put_work(keypair, metadata["hkey"])
+            self.put_work(keypair, metadata["hkey"])
 
             # autotune dictionary count
             if dictcount < 15 and cdiff < 300:  # 5 min
