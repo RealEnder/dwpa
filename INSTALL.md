@@ -167,6 +167,6 @@ Your clients will run `help_crack.py` to fetch uncracked nets and dictionaries. 
 Migration to m22000 storage
 -
 
-- Run `misc/migrate_to_m22000.php` from wpa-sec webroot. The DB user have to have SUPER privileges temporary, after the script finishes, you can revoce them.
+- Run `misc/migrate_to_m22000.php` from wpa-sec webroot. The DB user have to have SUPER privileges temporary, after the script finishes, you can revoke them.
 - Update the php code.
 - Run `misc/enrich_pmkid.php` from wpa-sec webroot. This will update PMKID hashlines and will fill message_pair column.
