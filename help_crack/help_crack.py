@@ -467,6 +467,8 @@ class HelpCrack():
                     if not os.path.exists(gzdictname) or d["dhash"] != self.md5file(gzdictname):
                         self.pprint(f"Downloading {gzdictname}", "OKBLUE")
                         self.download(d["dpath"], gzdictname)
+                        if d["dhash"] != self.md5file(gzdictname):
+                            self.pprint(f"Dictionary {gzdictname} hash mismatch, continue", "WARNING")
                     if self.conf["format"] == "22000":
                         dlist.append(gzdictname)
                     else:
