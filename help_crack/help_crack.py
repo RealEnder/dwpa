@@ -582,6 +582,8 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
                         self.pprint("Thermal watchdog barked", "WARNING")
                         self.sleepy()
                         continue
+                    if rc == 5:
+                        return 5
                     if rc >= 2 or rc == -1:
                         self.pprint(f"hashcat died with code {rc}", "FAIL")
                         sys.exit(1)
@@ -600,6 +602,8 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
 
         if fd:
             fd.close()
+
+        return 0
 
     def get_key(self):
         """read bssid and key pairs from file"""
@@ -718,7 +722,7 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
 
             # run cracker and collect results
             cstart = time.time()
-            self.run_cracker(dictlist)
+            rc = self.run_cracker(dictlist)
             cdiff = int(time.time() - cstart)
 
             # check for cracked keys
@@ -743,6 +747,11 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
             if os.path.exists(self.conf["res_file"]):
                 os.unlink(self.conf["res_file"])
             netdata = None
+
+            # check if user requested exit
+            if rc == 5:
+                self.pprint(f"User exit requested", "OKBLUE")
+                sys.exit(0)
 
 
 def signal_handler(sig, frame): # pylint: disable=unused-argument

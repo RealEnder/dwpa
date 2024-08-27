@@ -145,3 +145,4 @@ ver 2.1.1 / 25 Aug 2024
 
 ver 2.x.x / xx xxx 2024
  * fix hash convert error for JtR
+ * exit gracefully on hashcat's [f]inish
