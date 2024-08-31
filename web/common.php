@@ -669,19 +669,7 @@ function submission($mysql, $file) {
         }
         $submit_stmt->close();
         $n2d_stmt->close();
-
-        // update cracked net stats
-        $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
-        $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1) WHERE pname='cracked_unc'");
-        $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1 AND keyver=100) WHERE pname='cracked_pmkid'");
-        $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1 AND keyver=100) WHERE pname='cracked_pmkid_unc'");
     }
-
-    // update net stats
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets) WHERE pname='nets'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(1) FROM bssids) WHERE pname='nets_unc'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE keyver=100) WHERE pname='pmkid'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE keyver=100) WHERE pname='pmkid_unc'");
 
     return implode("\n", $res);
 }
@@ -923,49 +911,6 @@ function put_work($mysql, $candidates, $suserkey=Null) {
         $hs_stmt->close();
     }
     $n2d_stmt->close();
-
-    // update cracked net stats
-    // TODO: replace this with SELECT n_state, keyver, count(distinct bssid), count(net_id), count(distinct ssid) FROM nets USE INDEX (IDX_nets_keyver_n_state) group by n_state, keyver; + CASE multiple update
-    // TODO: all below have to move to external stats generator
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1) WHERE pname='cracked'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1) WHERE pname='cracked_unc'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(net_id) FROM nets WHERE n_state=1 AND keyver=100) WHERE pname='cracked_pmkid'");
-    $mysql->query("UPDATE stats SET pvalue = (SELECT count(DISTINCT bssid) FROM nets WHERE n_state=1 AND keyver=100) WHERE pname='cracked_pmkid_unc'");
-
-    // pull cracked wordlist
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare("SELECT pass
-FROM (SELECT DISTINCT ssid, pass
-      FROM nets
-      WHERE n_state=1 AND
-      (algo IS NULL OR algo = '')) t
-GROUP BY pass
-ORDER BY count(pass) DESC");
-    $stmt->execute();
-    $stmt->bind_result($key);
-
-    // write compressed wordlist
-    $wpakeys = tempnam(CAP, 'wpakeys');
-    chmod($wpakeys, 0644);
-    $fd = gzopen($wpakeys, 'wb9');
-    while ($stmt->fetch()) {
-        gzwrite($fd, "$key\n");
-    }
-    $keycount = $stmt->num_rows;
-    $stmt->close();
-    gzclose($fd);
-
-    $md5 = hash_file('md5', $wpakeys, True);
-    rename($wpakeys, CRACKED);
-
-    // update wcount for cracked dict
-    $cr = '%'.basename(CRACKED);
-    $sql = 'UPDATE dicts SET wcount = ?, dhash = ? WHERE dpath LIKE ?';
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare($sql);
-    $stmt->bind_param('iss', $keycount, $md5, $cr);
-    $stmt->execute();
-    $stmt->close();
 
     return True;
 }
