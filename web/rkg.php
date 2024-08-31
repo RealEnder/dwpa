@@ -91,7 +91,12 @@ $nets = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
 
 foreach ($nets as $netkey => $net) {
-    if (!ctype_print($net['ssid'])) continue;
+    if (ctype_print($net['ssid'])) {
+        $cleanssid = $net['ssid'];
+    } else {
+        $cleanssid = '';
+    }
+
     $algo = '';
     $ref = [''];
     $candidates = [];
@@ -101,7 +106,7 @@ foreach ($nets as $netkey => $net) {
     $rc  = 0;
     $mac = long2mac($net['bssid']);
 
-    exec(RKG." -q -k -m $mac -s ".escapeshellarg($net['ssid']), $res, $rc);
+    exec(RKG." -q -k -m $mac -s ".escapeshellarg($cleanssid), $res, $rc);
 
     if ($rc == 0) {
         // process rkg output
