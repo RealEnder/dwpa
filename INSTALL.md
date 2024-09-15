@@ -42,19 +42,19 @@ Your binary should be `routerkeygen-cli`.
 Crontab
 -
 
-Create crontab entries for running `rkg.php`, `3wifi.php` and `wigle.php`. Example crontab entry for those can be found in `misc/` directory.
+Create crontab entries for running synchronous jobs:
+
+| Script | Interval | Description |
+| ------ | ------- | ----------- |
+| `maint.php` | 1 hour | Computes statistics, regenerates cracked.txt, cleanup DB |
+| `rkg.php` | 5 min | Runs `routerkeygnen-cli` over converted hashes. This is required to release hashes for cracking to volunteers, running `help_crack.py` |
+| `wigle.php` | 10 min | Retrieves BSSID geolocation of APs by BSSID |
+| `3wifi.php` | 10 min | Lookup candidates through 3wifi API. Currently defunct |
+
+ Example crontab entry for those can be found in [misc](/misc) directory.
 
 Database
 -
-
- - Enable MySQL events scheduler - this will be needed for statistics update
-
-Create file `/etc/mysql/conf.d/mysqld_events.cnf` with contents:
-```
-[mysqld]
-event_scheduler=ON
-```
-Restart MySQL daemon to enable the new configuration.
 
 - Create new MySQL database, eg. `wpa` and user with access to it
 ```
@@ -67,7 +67,7 @@ Query OK, 0 rows affected (0.10 sec)
 mysql> flush privileges;
 Query OK, 0 rows affected (0.09 sec)
 ```
-- Create tables, views and events. Use files from `db/` in dwpa repo
+- Create tables, views and events. Use files from [db](/db) in dwpa repo
 ```
 $ cd db
 $ mysql -u wpa -p wpa < wpa.sql
@@ -90,22 +90,24 @@ create_gz.sh  dict1.txt  dict2.txt
 $ ./create_gz.sh
 Compress dictionaries(*.txt) in current dir and create inserts for dwpa
 Enter base URL for dict with trailing /: https://example.com/dict/
-INSERT INTO dicts (dpath, dhash, dname, wcount, hits) VALUES ('https://example.com/dict/cracked.txt.gz', X'f54e2d10d5f790295c3401f8074df51f', 'cracked', 1, 0);
-INSERT INTO dicts (dpath, dhash, dname, wcount, hits) VALUES ('https://example.com/dict/dict1.txt.gz', X'17e5a375da3670754bf40657a1fc5876', 'dict1', 1, 0);
-INSERT INTO dicts (dpath, dhash, dname, wcount, hits) VALUES ('https://example.com/dict/dict2.txt.gz', X'bd189d3f58169dc7bf58427d273d95c5', 'dict2', 2, 0);
+INSERT INTO dicts (dpath, dhash, dname, rules, wcount, hits) VALUES ('https://example.com/dict/cracked.txt.gz', X'f54e2d10d5f790295c3401f8074df51f', 'cracked', ':', 1, 0);
+INSERT INTO dicts (dpath, dhash, dname, rules, wcount, hits) VALUES ('https://example.com/dict/dict1.txt.gz', X'17e5a375da3670754bf40657a1fc5876', 'dict1', ':', 1, 0);
+INSERT INTO dicts (dpath, dhash, dname, rules, wcount, hits) VALUES ('https://example.com/dict/dict2.txt.gz', X'bd189d3f58169dc7bf58427d273d95c5', 'dict2', ':', 2, 0);
 $ ls
 cracked.txt     create_gz.sh  dict1.txt.gz  dict2.txt.gz
 cracked.txt.gz  dict1.txt     dict2.txt     dict.sql
 $
 ```
-This will create cracked.txt (if needed), compress dictionaries and generate insert scripts (on screen and in dict.sql). Copy all compressed dicts (*.gz) to your server under previously specified location and execute inset script:
+This will create cracked.txt (if needed), compress dictionaries and generate insert scripts (on screen and in dict.sql). Copy all compressed dicts (*.gz) to your server under previously specified location and execute insert script:
 ```
 $ mysql -u wpa -p wpa < dict.sql
 Enter password:
 $
 ```
 > **Note:**
-> Check out `misc/dedup.sh` script to preprocess you dictionaries - for deduplication and sorting.
+> Check out [misc/dedup.sh](/misc/dedup.sh) script to preprocess your dictionaries - for deduplication and sorting.
+
+The column `rules` in `dicts` table contains custom per-dictionary rules in hashcat format, which will be combined and sent to the crackers. By default leave the no-op ":" rule there. Add rules depending on dictionary contents. More information on rule syntax [here](https://hashcat.net/wiki/doku.php?id=rule_based_attack).
 
 Web application configuration
 -
