@@ -437,7 +437,7 @@ class HelpCrack():
                         if "rules" in netdata:
                             with open(self.conf["rules_file"], "wb") as fdr:
                                 fdr.write(binascii.a2b_base64(netdata["rules"]))
-                                self.conf["rules"] = f"-S -r {self.conf['rules_file']}"
+                                self.conf["rules"] = f"-S --loopback -r {self.conf['rules_file']}"
                         else:
                             self.conf["rules"] = ""
                     else:
