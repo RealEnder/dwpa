@@ -477,7 +477,7 @@ function submission($mysql, $file) {
     $m22000file = tempnam(SHM, '22000');
     $res = '';
     $rc  = 0;
-    exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=20000 --max-essids=1 -o $m22000file $file 2>&1", $res, $rc);
+    exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=30000 --max-essids=1 -o $m22000file $file 2>&1", $res, $rc);
 
     if ($rc != 0) {
         @unlink($file);
@@ -1021,6 +1021,7 @@ function decode_mp($mp, $keyver) {
             default:
                 $res = 'UNK';
         }
+        if ($mp & 0b00000010) $res .= ' possible FT';
     } else {
         switch (True) {
             case ($mp & 0b111) == 0:
