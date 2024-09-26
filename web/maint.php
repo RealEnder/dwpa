@@ -54,6 +54,9 @@ $wpakeys = tempnam(CAP, 'wpakeys');
 chmod($wpakeys, 0644);
 $fd = gzopen($wpakeys, 'wb9');
 while ($stmt->fetch()) {
+    if (!ctype_print($key)) {
+        $key = '$HEX[' . bin2hex($key) . ']';
+    }
     gzwrite($fd, "$key\n");
 }
 $keycount = $stmt->num_rows;
