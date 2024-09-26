@@ -1082,6 +1082,9 @@ function write_nets($datas) {
             $pass = "<input class=\"input\" name=\"$hash\">";
             $has_input = True;
         } else {
+            if ($data['pass'] == Null) {
+                $data['pass'] = '';
+            }
             $pass = htmlspecialchars($data['pass']);
         }
         $type = decode_keyver($data['keyver']);
