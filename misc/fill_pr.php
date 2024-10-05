@@ -31,7 +31,7 @@ $stmt_p2s_new->prepare('INSERT IGNORE INTO p2s(pr_id, s_id) VALUES (?, ?)');
 $prc = 0;
 
 foreach ($submissions as $k => $sub) {
-    $prfile = tempnam(SHM, '22000');
+    $prfile = tempnam(SHM, 'pr');
     $res = '';
     $rc  = 0;
     exec(HCXPCAPTOOL." -R $prfile {$sub['localfile']} 2>&1", $res, $rc);

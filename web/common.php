@@ -475,7 +475,7 @@ function submission($mysql, $file) {
 
     // extract WPA-PBKDF2-PMKID+EAPOL hash file from uploaded capture
     $m22000file = tempnam(SHM, '22000');
-    $prfile = tempnam(SHM, '22000');
+    $prfile = tempnam(SHM, 'pr');
     $res = '';
     $rc  = 0;
     exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=30000 --max-essids=1 -o $m22000file -R $prfile $file 2>&1", $res, $rc);
