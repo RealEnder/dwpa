@@ -1,11 +1,6 @@
 TODO
 ====
-* drop deprecated internal hccapx/pmkid storage in favor of m22000 (80%)
-* add geolocated country info based on BSSID (90%)
-* show information on hash feature information (90%)
-* show information on default aldorithms identified (90%)
-* create dictionaries, based on PROBEREQUEST frames (not started)
-* add custom rules for every dictionary (not started)
+* create dictionaries, based on PROBEREQUEST frames (50%)
 * add structure for regex of SSIDs and default passwords (10%)
 * add FAQ section (not started)
 * do heavy work in external process for submissions (10%)
@@ -15,7 +10,6 @@ TODO
 * unify records in stats table (not started)
 * implement js/asm.js based online crack vs random uncracked net
   and online generated, based on SSID wordlist (not started)
-* functionality to remove/hide network from the site (10%)
 
 IMPLEMENTED
 ===========
@@ -40,3 +34,9 @@ IMPLEMENTED
 * add WPA key precalculation infrastructure (RouterKeygenPC, etc.)
 * split cracked dictionary for precalculation PSKs and others
 * log tools output from submission into DB and show it to users - show capture parse result on submit
+* drop deprecated internal hccapx/pmkid storage in favor of m22000
+* add geolocated country info based on BSSID
+* show information on hash feature information
+* show information on default aldorithms identified
+* add custom rules for every dictionary
+* functionality to remove/hide network from the site
