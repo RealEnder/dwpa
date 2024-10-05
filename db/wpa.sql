@@ -231,8 +231,10 @@ CREATE TABLE IF NOT EXISTS `p2s` (
 CREATE TABLE IF NOT EXISTS `prs` (
   `pr_id` bigint NOT NULL AUTO_INCREMENT,
   `ssid` varbinary(32) NOT NULL,
+  `default_ssid` tinyint DEFAULT NULL COMMENT '1 - matches default SSID pattern',
   PRIMARY KEY (`pr_id`),
-  UNIQUE KEY `prs_ssid_IDX` (`ssid`) USING BTREE
+  UNIQUE KEY `prs_ssid_IDX` (`ssid`) USING BTREE,
+  KEY `prs_default_ssid_IDX` (`default_ssid`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 --
