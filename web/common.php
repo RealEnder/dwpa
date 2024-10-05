@@ -475,9 +475,10 @@ function submission($mysql, $file) {
 
     // extract WPA-PBKDF2-PMKID+EAPOL hash file from uploaded capture
     $m22000file = tempnam(SHM, '22000');
+    $prfile = tempnam(SHM, '22000');
     $res = '';
     $rc  = 0;
-    exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=30000 --max-essids=1 -o $m22000file $file 2>&1", $res, $rc);
+    exec(HCXPCAPTOOL." --nonce-error-corrections=8 --eapoltimeout=30000 --max-essids=1 -o $m22000file -R $prfile $file 2>&1", $res, $rc);
 
     if ($rc != 0) {
         @unlink($file);
@@ -514,10 +515,12 @@ function submission($mysql, $file) {
         $userkey = (isset($_COOKIE['key']) && valid_key($_COOKIE['key'])) ? $_COOKIE['key'] : '';
         if ($s_id == False && $userkey == '') {
             @unlink($m22000file);
+            @unlink($prfile);
             return 'This capture file was already submitted.';
         }
     } else {
         @unlink($file);
+        @unlink($prfile);
         return 'No valid handshakes/PMKIDs found in the submitted file.';
     }
 
@@ -643,6 +646,45 @@ function submission($mysql, $file) {
         insert_nets($mysql, $refi);
         $refi = [''];
 
+        // read PROBEREQUEST list and store in the DB
+        if (file_exists($prfile)) {
+            $stmt_pr = $mysql->stmt_init();
+            $stmt_pr->prepare('INSERT IGNORE INTO prs(ssid) VALUES (?)');
+
+            $stmt_p2s = $mysql->stmt_init();
+            $stmt_p2s->prepare('INSERT IGNORE INTO p2s(pr_id, s_id) VALUES ((SELECT pr_id FROM prs WHERE ssid=?), ?)');
+
+            $stmt_p2s_new = $mysql->stmt_init();
+            $stmt_p2s_new->prepare('INSERT IGNORE INTO p2s(pr_id, s_id) VALUES (?, ?)');
+
+            $mysql->begin_transaction();
+
+            $fp = fopen($prfile, 'r');
+            while ($prline = fgets($fp)) {
+                $pr = hc_unhex(rtrim($prline));
+                if ($pr == '') continue;
+
+                $stmt_pr->bind_param('s', $pr);
+                $stmt_pr->execute();
+                $pr_id = $mysql->insert_id;
+
+                if ($pr_id == 0) {
+                    $stmt_p2s->bind_param('si', $pr, $s_id);
+                    $stmt_p2s->execute();
+                } else {
+                    $stmt_p2s_new->bind_param('ii', $pr_id, $s_id);
+                    $stmt_p2s_new->execute();
+                }
+            }
+            fclose($fp);
+
+            $mysql->commit();
+            $stmt_pr->close();
+            $stmt_p2s->close();
+            $stmt_p2s_new->close();
+
+            @unlink($prfile);
+        }
     }
 
     // associate nets to user if we have key submitted
