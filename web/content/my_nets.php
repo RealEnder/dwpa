@@ -21,7 +21,7 @@ FROM nets
 JOIN n2u ON nets.net_id=n2u.net_id
 JOIN users ON users.u_id=n2u.u_id
 LEFT JOIN bssids ON nets.bssid = bssids.bssid
-WHERE users.userkey=UNHEX(?)
+WHERE users.userkey=UNHEX(?) AND n_state<2
 ORDER BY nets.ts DESC, nets.bssid ASC
 LIMIT ?,?');
     $stmt->bind_param('sii', $k, $offset, $limit);

@@ -34,14 +34,14 @@ if (strlen($search) >= 3) {
             $sql = "SELECT HEX(hash) as hash, nets.bssid, ssid, keyver, message_pair, pass, algo, nc, endian, hits, nets.ts, n_state, country
 FROM nets
 LEFT JOIN bssids ON nets.bssid = bssids.bssid
-WHERE nets.$column = ?
+WHERE nets.$column = ? AND n_state<2
 ORDER BY ts DESC";
         } else {
             $sql = "SELECT HEX(hash) AS hash, bssid, ssid, keyver, message_pair, IF(n.u_id IS NULL, IF(pass IS NULL, NULL, 'Found'), pass) AS pass, algo, nc, endian, hits, ts, n_state, country
 FROM (SELECT nets.*, country
       FROM nets
       LEFT JOIN bssids ON nets.bssid = bssids.bssid
-      WHERE nets.$column = ?
+      WHERE nets.$column = ? AND n_state<2
       ORDER BY nets.ts DESC
       LIMIT 20) AS n1
 LEFT JOIN (SELECT n2u.net_id, users.u_id
@@ -62,14 +62,14 @@ ON n.net_id=n1.net_id";
             $sql = "SELECT HEX(hash) as hash, nets.bssid, ssid, keyver, message_pair, pass, algo, nc, endian, hits, nets.ts, n_state, country
 FROM nets
 LEFT JOIN bssids ON nets.bssid = bssids.bssid
-WHERE nets.$column >> 24 = ?
+WHERE nets.$column >> 24 = ? AND n_state<2
 ORDER BY ts DESC";
         } else {
             $sql = "SELECT HEX(hash) as hash, bssid, ssid, keyver, message_pair, IF(n.u_id IS NULL, IF(pass IS NULL, NULL, 'Found'), pass) AS pass, algo, nc, endian, hits, ts, n_state, country
 FROM (SELECT nets.*, country
       FROM nets
       LEFT JOIN bssids ON nets.bssid = bssids.bssid
-      WHERE nets.$column >> 24 = ?
+      WHERE nets.$column >> 24 = ? AND n_state<2
       ORDER BY nets.ts DESC
       LIMIT 20) AS n1
 LEFT JOIN (SELECT n2u.net_id, users.u_id
@@ -93,14 +93,14 @@ ON n.net_id=n1.net_id";
             $sql = "SELECT HEX(hash) as hash, nets.bssid, ssid, keyver, message_pair, pass, algo, nc, endian, hits, nets.ts, n_state, country
 FROM nets
 LEFT JOIN bssids ON nets.bssid = bssids.bssid
-WHERE nets.ssid LIKE ?
+WHERE nets.ssid LIKE ? AND n_state<2
 ORDER BY nets.ts DESC";
         } else {
             $sql = "SELECT HEX(hash) as hash, bssid, ssid, keyver, message_pair, IF(n.u_id IS NULL, IF(pass IS NULL, NULL, 'Found'), pass) AS pass, algo, nc, endian, hits, ts, n_state, country
 FROM (SELECT nets.*, country
       FROM nets
       LEFT JOIN bssids ON nets.bssid = bssids.bssid
-      WHERE nets.ssid LIKE ?
+      WHERE nets.ssid LIKE ? AND n_state<2
       ORDER BY nets.ts DESC
       LIMIT 20) AS n1
 LEFT JOIN (SELECT n2u.net_id, users.u_id

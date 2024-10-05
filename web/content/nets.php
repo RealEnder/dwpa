@@ -18,6 +18,7 @@ if ($k == $bosskey) {
     $result = $mysql->query('SELECT hex(nets.hash) AS hash, nets.bssid, nets.ssid, nets.keyver, nets.message_pair, nets.pass, nets.algo, nets.nc, nets.endian, nets.hits, nets.ts, nets.n_state, bssids.country
 FROM nets
 LEFT JOIN bssids ON nets.bssid = bssids.bssid
+WHERE n_state<2
 ORDER BY ts DESC
 LIMIT 20');
     $datas = $result->fetch_all(MYSQLI_ASSOC);
@@ -26,6 +27,7 @@ LIMIT 20');
         $result = $mysql->query('SELECT hex(hash) AS hash, nets.bssid, ssid, keyver, message_pair, IF(pass IS NULL, NULL, \'Found\') AS pass, algo, nc, endian, hits, nets.ts, n_state, country
 FROM nets
 LEFT JOIN bssids ON nets.bssid = bssids.bssid
+WHERE n_state<2
 ORDER BY ts DESC
 LIMIT 20');
         $datas = $result->fetch_all(MYSQLI_ASSOC);
@@ -35,6 +37,7 @@ LIMIT 20');
 FROM (SELECT nets.*, country
       FROM nets
       LEFT JOIN bssids ON nets.bssid = bssids.bssid
+      WHERE n_state<2
       ORDER BY nets.ts DESC
       LIMIT 20) AS n1
 LEFT JOIN (SELECT n2u.net_id, users.u_id
