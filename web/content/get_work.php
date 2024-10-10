@@ -137,5 +137,23 @@ insert_n2d($mysql, $ref);
 // critical section end
 release_lock('get_work.lock');
 
+// add PRdict if availible
+$stmt = $mysql->stmt_init();
+$stmt->prepare('SELECT 1
+FROM prs, p2s, submissions s, nets n, n2d
+WHERE prs.pr_id = p2s.pr_id
+AND p2s.s_id = s.s_id
+AND s.s_id = n.s_id
+AND n.net_id = n2d.net_id
+AND n2d.hkey = ?
+LIMIT 1');
+$stmt->bind_param('s', $bhkey);
+$stmt->execute();
+$stmt->store_result();
+
+if ($stmt->num_rows == 1) {
+    $resnet['prdict'] = True;
+}
+
 echo json_encode($resnet);
 ?>
