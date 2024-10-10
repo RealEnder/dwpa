@@ -44,6 +44,7 @@ conf["help_crack"]    = f"{conf['base_url']}hc/help_crack.py"
 conf["help_crack_cl"] = f"{conf['base_url']}hc/CHANGELOG"
 conf["get_work_url"]  = f"{conf['base_url']}?get_work"
 conf["put_work_url"]  = f"{conf['base_url']}?put_work"
+conf["prdict_url"]    = f"{conf['base_url']}?prdict"
 
 
 class HelpCrack():
@@ -489,6 +490,18 @@ class HelpCrack():
                 break
         except (TypeError, IndexError):
             return None
+
+        if "prdict" in netdata and netdata["prdict"] and any("cracked.txt" in s["dpath"] for s in netdata["dicts"]):
+            self.pprint(f"Downloading PR dynamic dictionary", "OKBLUE")
+            self.download(f"{self.conf['prdict_url']}={netdata['hkey']}", "prdict.txt.gz")
+            if self.conf["format"] == "22000":
+                dlist.append("prdict.txt.gz")
+            else:
+                with gzip.open("prdict.txt.gz", "rb") as gz_file:
+                    with open("prdict.txt", "wb") as fd:
+                        for chunk in iter(lambda: read_chunk(gz_file, self.blocksize), b""):
+                            fd.write(chunk)
+                dlist.append("prdict.txt")
 
         return dlist
 
