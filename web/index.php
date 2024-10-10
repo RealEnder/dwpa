@@ -143,8 +143,8 @@ if (isset($_POST['remkey'])) {
 
 // CMS
 $content = 'content/';
-$keys = ['home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'stats', 'search', 'get_work', 'put_work', 'api'];
-$keys_if = ['get_work', 'put_work', 'api'];
+$keys = ['home', 'get_key', 'my_nets', 'submit', 'nets', 'dicts', 'prdict', 'stats', 'search', 'get_work', 'put_work', 'api'];
+$keys_if = ['get_work', 'put_work', 'api', 'prdict'];
 
 if (count($_GET) > 0) {
     $key = array_keys($_GET)[0];
