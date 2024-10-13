@@ -495,14 +495,14 @@ class HelpCrack():
             self.pprint("Downloading PR dynamic dictionary", "OKBLUE")
             self.download(f"{self.conf['prdict_url']}={netdata['hkey']}", "prdict.txt.gz")
             if self.conf["format"] == "22000":
-                dlist.append("prdict.txt.gz")
+                dlist.insert(0, "prdict.txt.gz")
             else:
                 try:
                     with gzip.open("prdict.txt.gz", "rb") as gz_file:
                         with open("prdict.txt", "wb") as fd:
                             for chunk in iter(lambda: read_chunk(gz_file, self.blocksize), b""):
                                 fd.write(chunk)
-                    dlist.append("prdict.txt")
+                    dlist.insert(0, "prdict.txt")
                 except (IOError, OSError, EOFError) as e:
                     self.pprint("PR dynamic dictionary extraction failed", "FAIL")
                     self.pprint(f"Exception: {e}", "FAIL")
