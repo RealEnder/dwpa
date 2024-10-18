@@ -915,7 +915,7 @@ function put_work($mysql, $candidates, $suserkey=Null) {
                 $broken_essid = False;
                 $hss = get_handshakes($mysql, $hs_stmt, $net['ssid'], $net['bssid'], $net['mac_sta'], 0);
                 foreach ($hss as $hs) {
-                    $reshs = check_key_m22000($hs['struct'], [Null], $res[3], abs((int) $res[1])*2+128);
+                    $reshs = check_key_m22000($hs['struct'], [''], $res[3], abs((int) $res[1])*2+128);
 
                     if ($reshs) {
                         // we cracked that by PMK, now let's check if essid matches
