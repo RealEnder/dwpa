@@ -37,7 +37,7 @@ conf = {
     "cracker"       : "",
     "coptions"      : "",
     "rules"         : "",
-    "hc_ver"        : "2.1.1",
+    "hc_ver"        : "2.2.0",
     "hashcat_ver"   : "6.2.6"
 }
 conf["help_crack"]    = f"{conf['base_url']}hc/help_crack.py"

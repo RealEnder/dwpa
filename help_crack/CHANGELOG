@@ -143,7 +143,7 @@ ver 2.1.1 / 25 Aug 2024
  * fix for dictionaries download loop
  * raise connection timeout to 120s
 
-ver 2.x.x / xx xxx 2024
+ver 2.2.0 / 21 Oct 2024
  * support for dynamic PROBEREQUEST dictionary
  * fix hash convert error for JtR
  * exit gracefully on hashcat's [f]inish
