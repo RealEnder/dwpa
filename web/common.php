@@ -482,6 +482,7 @@ function submission($mysql, $file) {
 
     if ($rc != 0) {
         @unlink($file);
+        @unlink($prfile);
         return "Capture processing error. Exit code $rc. Please inform developers.";
     }
 
