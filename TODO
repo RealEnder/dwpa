@@ -1,7 +1,6 @@
 TODO
 ====
-* create dictionaries, based on PROBEREQUEST frames (50%)
-* add structure for regex of SSIDs and default passwords (10%)
+* add structure for regex of SSIDs and default passwords (50%)
 * add FAQ section (not started)
 * do heavy work in external process for submissions (10%)
 * restructure home with folding text sections/wizards (not started)
@@ -40,3 +39,4 @@ IMPLEMENTED
 * show information on default aldorithms identified
 * add custom rules for every dictionary
 * functionality to remove/hide network from the site
+* create dictionaries, based on PROBEREQUEST frames
