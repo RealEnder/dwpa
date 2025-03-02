@@ -884,7 +884,7 @@ function put_work($mysql, $candidates, $suserkey=Null) {
                 if (!valid_hex($pair['k'])) {
                     continue 2;
                 }
-                $nets = by_essid($mysql, $byessid_stmt, hex2bin($pair['k']));
+                $nets = by_essid($mysql, $byessid_stmt, $pair['k']);
                 $pair['v'] = hex2bin($pair['v']);
                 break;
             case 'hash':
