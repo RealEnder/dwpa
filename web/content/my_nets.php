@@ -1,6 +1,6 @@
 <?php
-require_once('db.php');
-require_once('common.php');
+require_once('../db.php');
+require_once('../common.php');
 
 // Check if we've got user password submissions
 if ($arr = build_cand($_POST)) {

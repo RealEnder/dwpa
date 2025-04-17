@@ -9,8 +9,8 @@ if ($rec_valid) {
     }
 } else {
     if (isset($_GET['get_key']) && valid_key($_GET['get_key'])) {
-        require_once('db.php');
-        require_once('common.php');
+        require_once('../db.php');
+        require_once('../common.php');
 
         $sql = 'UPDATE users SET userkey = linkkey WHERE linkkey = UNHEX(?)';
         $stmt = $mysql->stmt_init();

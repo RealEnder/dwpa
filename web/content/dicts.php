@@ -5,7 +5,7 @@ The wordlists are compilation from different sources and are stripped from dupli
 <table class="dicts">
 <tr><th>Dictionary</th><th>Word count</th><th>Hits</th></tr>
 <?php
-require_once('db.php');
+require_once('../db.php');
 $result = $mysql->query('SELECT dpath, dname, wcount, hits FROM dicts ORDER BY wcount DESC, dname DESC');
 $datas = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();

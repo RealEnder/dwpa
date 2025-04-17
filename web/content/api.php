@@ -7,8 +7,8 @@ header('Content-Disposition: attachment; filename="wpa-sec.founds.potfile"');
 
 // download founds
 if ($k != '' && $dl == 1) {
-    require_once('db.php');
-    require_once('common.php');
+    require_once('../db.php');
+    require_once('../common.php');
 
     $stmt = $mysql->stmt_init();
     $stmt->prepare('SELECT nets.bssid AS bssid, nets.mac_sta AS mac_sta, nets.ssid AS ssid, nets.pass AS pass

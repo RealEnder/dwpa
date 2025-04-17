@@ -7,9 +7,9 @@ try {
     die();
 }
 
-require_once('conf.php');
-require_once('db.php');
-require_once('common.php');
+require_once('../conf.php');
+require_once('../db.php');
+require_once('../common.php');
 
 if (put_work($mysql, $json)) {
     echo 'OK';
