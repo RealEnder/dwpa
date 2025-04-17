@@ -1,0 +1,16 @@
+{
+    "name": "realender/wpa-sec",
+    "description": "Distributed WPA PSK auditor",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.9",
+        "google/apiclient": "^2.18"
+    },
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Alex Stanev",
+            "email": "alex@stanev.org"
+        }
+    ]
+}
