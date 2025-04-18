@@ -201,7 +201,7 @@ if (in_array($key, $keys_if)) {
 
 <title>Distributed WPA PSK strength auditor</title>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css">
 <link rel="stylesheet" href="style.css" type="text/css" media="screen">
 
 </head>
