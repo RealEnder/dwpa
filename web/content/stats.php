@@ -1,8 +1,8 @@
 <h1>Statistics</h1>
 <br>
 <?php
-require_once('db.php');
-require_once('common.php');
+require_once('../db.php');
+require_once('../common.php');
 
 $result = $mysql->query('SELECT * FROM stats');
 $datas = $result->fetch_all(MYSQLI_ASSOC);

@@ -8,8 +8,8 @@ if (!valid_hash($_GET['prdict'])) {
     die('No work package hash provided');
 }
 
-require_once('db.php');
-require_once('common.php');
+require_once('../db.php');
+require_once('../common.php');
 
 $hkey = hex2bin($_GET['prdict']);
 
