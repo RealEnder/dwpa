@@ -6,14 +6,16 @@ These are the basic steps for local installation of the distributed WPA PSK audi
 Requirements
 -
 
- - 64bit Linux OS - tested with Ubuntu 22.04 64bit
+ - 64bit Linux OS - tested with Ubuntu 22.04 LTS x64
  - MySQL database 8.0 or better
- - PHP 8.1 or better.
+ - PHP 8.1 or better
+ - composer, https://getcomposer.org
  - Apache or other webserver with PHP support, vhost configured with https
  - gcc toolchain
- - hcxpcapngtool tool (min version 6.3.4), part of hcxtools https://github.com/ZerBea/hcxtools
+ - hcxpcapngtool tool (min version 6.3.5), part of hcxtools https://github.com/ZerBea/hcxtools
  - git `sudo apt-get install git`
  - reCAPTCHA API keys for your domain, register here https://www.google.com/recaptcha
+ - gmail account for outbound mails, easy to change to use any SMTP server
  - routerkeygen-cli, part of routerkeygenPC, https://github.com/routerkeygen/routerkeygenPC
  - (optional) Wigle API key, for geolocation, https://wigle.net
  - (optional) 3wifi API key, for already found PSKs, https://3wifi.stascorp.com (currently defunct, don't use)
@@ -21,7 +23,7 @@ Requirements
 Compilation of external tools
 -
 
-- hcxpcaptool
+- hcxpcapngtool
 ```
 $ git clone https://github.com/ZerBea/hcxtools
 $ cd hcxtools
@@ -111,17 +113,18 @@ The column `rules` in `dicts` table contains custom per-dictionary rules in hash
 
 Web application configuration
 -
-- Copy all files from `web` directory from dwpa repo to your webserver root
+- Copy all files from `web` directory from dwpa repo to your webserver
+- Point the webserver root to `public/` directory
+- Run `composer install` in web to pull the required libraries
 - Copy previously built `hcxpcapngtool` binary to a location, where web server process can execute it, eg. in webserver root
-- edit `mail.php` and put your own SMTP configuration
 - Make sure webserver process can write to dictionaries location (to update cracked.txt.gz) and capture file location(`CAP` define from conf.php), where submissions will be written
 - `bosskey` must be 32 byte hexadecimal string, known to you, with which you will be able to see cracked PSKs in clear and search the full database
 
 Assuming:
 
-- your webserver root vhost location is `/var/www/wpa-sec`
+- your webserver root vhost location is `/var/www/wpa-sec/public`
 - your cap files location is `/var/www/wpa-sec/cap`
-- your dictionaries location is `/var/www/wpa-sec/dict`
+- your dictionaries location is `/var/www/wpa-sec/public/dict`
 
 conf.php should look something like this:
 
@@ -147,23 +150,30 @@ $wifi3apikey = '<your 3wifi API key>';
 $wigleapikey = '<your wigle API key>';
 
 // App specific defines
-define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcaptool');
+define('HCXPCAPTOOL', '/var/www/wpa-sec/cap/hcxpcapngtool');
 define('RKG', '/var/www/wpa-sec/cap/routerkeygen-cli');
 
 define('CAP', '/var/www/wpa-sec/cap/');
-define('CRACKED', '/var/www/wpa-sec/dict/cracked.txt.gz');
+define('CRACKED', '/var/www/wpa-sec/public/dict/cracked.txt.gz');
 
 define('SHM', '/tmp/');
 define('MIN_HC_VER', '2.0.0');
 ?>
 ```
 
+Mail configuration
+-
+- Edit `mail.php` lines, commented with `FILL`
+- Register OAuth Client ID. For more detailed steps check [here](https://github.com/PHPMailer/PHPMailer/wiki/Gmail-XOAUTH2-Using-Google-API-Client#configuring-a-google-client-application).
+- Download OAuth credentials json and put it in `web/` diretory under the name `gmail-xoauth2-credentials.json`
+- Run from the CLI `php mail.php`. It will show a link, which you have to open in the browser. Approve the auth request and it will redirect you with token. Take the token (fix URL escaping if needed, eg. `%2F` should be replaced with `/`) and submit it to the script. File with name `gmail-xoauth-token.json` should be created. You will receive a test mail. This have to be done once.
+
 Client application configuration
 -
 
 Your clients will run `help_crack.py` to fetch uncracked nets and dictionaries. You'll need to do the following changes:
 
-- Copy `help_crack.py`, `help_crack.py.version` and `CHANGELOG` files from `dwpa` repo under `hc/` directory of your webserver root
+- Copy `help_crack.py`, `help_crack.py.version` and `CHANGELOG` files from `dwpa` repo under `hc/` directory in `public/`
 - Change `base_url` variable from `help_crack.py` to point to your server URL, eg. `base_url = 'https://example.com/'`, with trailing /
 
 Migration to m22000 storage
