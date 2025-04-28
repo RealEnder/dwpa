@@ -42,7 +42,7 @@ $dictcount = 1;
 if (array_key_exists('dictcount', $json)) {
     $dictcount = filter_var($json['dictcount'],
                             FILTER_VALIDATE_INT,
-                            ['default' => 1, 'min_range' => 1, 'max_range' => 15]);
+                            ['options' => ['default' => 1, 'min_range' => 1, 'max_range' => 15]]);
 }
 
 // critical section begin
