@@ -314,21 +314,17 @@ function hash_m22000($hashline) {
     return hash('md5', $ahl[1].$ahl[2].$ahl[3].$ahl[4].$ahl[5].$ahl[6].$ahl[7], True);
 }
 
-// Create filesystem lock file or wait until we can create one
-// Proceed if the lockfile is older than 1 minute
-// TODO: use flock()
-function create_lock($lockfile) {
-    while (file_exists(SHM . $lockfile) && (time() - filemtime(SHM . $lockfile) <= 60)) {
+// Create lock or wait until we can create one
+function create_lock($key, $ttl=60) {
+    while (apcu_exists($key)) {
         sleep(1);
     }
-    touch(SHM.$lockfile);
+    apcu_store($key, Null, $ttl);
 }
 
-// Release filesystem lock file if exists
-function release_lock($lockfile) {
-    if (file_exists(SHM . $lockfile)) {
-        @unlink(SHM . $lockfile);
-    }
+// Release lock
+function release_lock($key) {
+    apcu_delete($key);
 }
 
 // Get handshakes/PMKIDs by ssid, bssid, mac_sta

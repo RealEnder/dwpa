@@ -8,7 +8,7 @@ Requirements
 
  - 64bit Linux OS - tested with Ubuntu 22.04 LTS x64
  - MySQL database 8.0 or better
- - PHP 8.1 or better
+ - PHP 8.1 or better, with enabled openssl, curl and APCu modules
  - composer, https://getcomposer.org
  - Apache or other webserver with PHP support, vhost configured with https
  - gcc toolchain

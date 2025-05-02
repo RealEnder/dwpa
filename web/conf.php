@@ -27,4 +27,9 @@ define('CRACKED', '/var/www/wpa-sec/public/dict/cracked.txt.gz');
 
 define('SHM', '/tmp/');
 define('MIN_HC_VER', '2.1.1');
+
+// APCu check
+if (!(extension_loaded('apcu') && function_exists('apcu_fetch') && apcu_enabled())) {
+    die("APCu extension not enabled!");
+}
 ?>
