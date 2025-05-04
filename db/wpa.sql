@@ -244,28 +244,6 @@ CREATE TABLE IF NOT EXISTS `prs` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `rkg`
---
-
-CREATE TABLE IF NOT EXISTS `rkg` (
-  `net_id` bigint NOT NULL,
-  `algo` varchar(32) NOT NULL COMMENT 'Identified algo',
-  `pass` varbinary(64) NOT NULL COMMENT 'PSK candidate from rkg',
-  `n_state` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Successful PSK candidate',
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `UNC_rkg_net_id_algo_pass` (`net_id`,`algo`,`pass`) USING BTREE,
-  KEY `IDX_rkg_net_id` (`net_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
-
---
--- RELATIONSHIPS FOR TABLE `rkg`:
---   `net_id`
---       `nets` -> `net_id`
---
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `stats`
 --
 
@@ -353,11 +331,4 @@ ALTER TABLE `nets`
 ALTER TABLE `p2s`
   ADD CONSTRAINT `p2s_prs_FK` FOREIGN KEY (`pr_id`) REFERENCES `prs` (`pr_id`),
   ADD CONSTRAINT `p2s_submissions_FK` FOREIGN KEY (`s_id`) REFERENCES `submissions` (`s_id`);
-
---
--- Constraints for table `rkg`
---
-ALTER TABLE `rkg`
-  ADD CONSTRAINT `FK_rkg_nets_net_id` FOREIGN KEY (`net_id`) REFERENCES `nets` (`net_id`);
-COMMIT;
 

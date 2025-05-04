@@ -8,33 +8,6 @@ require('conf.php');
 require('db.php');
 require('common.php');
 
-function insert_rkg(& $mysql, & $ref) {
-    if (count($ref) < 2) {
-        return;
-    }
-
-    // first remove records from rkg for this handshake
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare('DELETE FROM rkg WHERE net_id=?');
-    $stmt->bind_param('i', $ref[1]); // this is net_id from first row
-    $stmt->execute();
-
-    // insert new ones
-    if (count($ref) < 1000) {
-        $bindvars = 'issi';
-        $sql = 'INSERT IGNORE INTO rkg(net_id, algo, pass, n_state) VALUES'.implode(',', array_fill(0, (count($ref)-1)/strlen($bindvars), '('.implode(',',array_fill(0, strlen($bindvars), '?')).')'));
-
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare($sql);
-
-        $ref[0] = str_repeat($bindvars, (count($ref)-1)/strlen($bindvars));
-
-        call_user_func_array([$stmt, 'bind_param'], $ref);
-        $stmt->execute();
-    }
-    $stmt->close();
-}
-
 function update_nets_algo(& $mysql, & $stmt, $algo, $net_id) {
     if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
@@ -76,16 +49,12 @@ function single_mode_generator($bssid, $ssid) {
     return $res;
 }
 
-$n_state0 = 0;
-$n_state1 = 1;
-
 $submit_stmt = Null;
 $update_stmt = Null;
-$delete_n2d_stmt = Null;
 
 $regenerate_rkg_dict = False;
 
-// fetch unchecked handshakes
+// Fetch unchecked networks
 $result = $mysql->query('SELECT net_id, struct, ssid, bssid, pass, hits FROM nets WHERE algo IS NULL ORDER BY net_id LIMIT 100');
 $nets = $result->fetch_all(MYSQLI_ASSOC);
 $result->free();
@@ -98,9 +67,7 @@ foreach ($nets as $netkey => $net) {
     }
 
     $algo = '';
-    $ref = [''];
     $candidates = [];
-    $found = False;
     $cres = False;
     $res = '';
     $rc  = 0;
@@ -116,29 +83,17 @@ foreach ($nets as $netkey => $net) {
             } else {
                 // fill reference array and verify if this net was cracked
                 $key = key($candidates);
-                $ref[] = & $nets[$netkey]['net_id'];
-                $ref[] = & $candidates[$key][0];
-                $ref[] = & $candidates[$key][1];
-                if ($found) {
-                    $ref[] = & $n_state0;
-                } else {
-                    // first verify if we've already cracked that net
-                    if ($candidates[$key][1] == $net['pass'] || ($cres = check_key_m22000($net['struct'], [$candidates[$key][1]]))) {
-                        $ref[] = & $n_state1;
-                        $algo = $candidates[$key][0];
-                        $found = True;
-                    } else {
-                        $ref[] = & $n_state0;
-                    }
+                if ($candidates[$key][1] == $net['pass'] || ($cres = check_key_m22000($net['struct'], [$candidates[$key][1]]))) {
+                    $algo = $candidates[$key][0];
+                    break;
                 }
             }
         }
+
         // update PSK found if cracked, submitter IP is 127.0.0.1
         if ($cres) {
             submit_by_net_id($mysql, $submit_stmt, $cres[0], $cres[3], $cres[1], $cres[2], 2130706433, $net['net_id']);
         }
-        // fill rkg table with generated candidates
-        insert_rkg($mysql, $ref);
     }
 
     // single mode crack
@@ -148,11 +103,6 @@ foreach ($nets as $netkey => $net) {
             submit_by_net_id($mysql, $submit_stmt, $cres[0], $cres[3], $cres[1], $cres[2], 2130706433, $net['net_id']);
             $algo = 'Single';
         }
-    }
-
-    // delete from n2d if we've found the PSK and we have hits
-    if ($algo != '' && $net['hits'] != 0) {
-        delete_from_n2d($mysql, $delete_n2d_stmt, $net['net_id']);
     }
 
     // set algo name or just empty if not identified
@@ -169,9 +119,6 @@ if ($submit_stmt) {
 }
 if ($update_stmt) {
     $update_stmt->close();
-}
-if ($delete_n2d_stmt) {
-    $delete_n2d_stmt->close();
 }
 
 // regenerate rkg.txt.gz if we have hit
