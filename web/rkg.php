@@ -1,6 +1,6 @@
 <?php
 // run this only via cli
-if(php_sapi_name() !== 'cli') {
+if (php_sapi_name() !== 'cli') {
     die('Run this from cli');
 }
 
@@ -104,7 +104,7 @@ foreach ($nets as $netkey => $net) {
     $cres = False;
     $res = '';
     $rc  = 0;
-    $mac = long2mac($net['bssid']);
+    $mac = implode(':', str_split(long2mac($net['bssid']), 2));
 
     exec(RKG." -q -k -m $mac -s ".escapeshellarg($cleanssid), $res, $rc);
 
