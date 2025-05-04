@@ -788,55 +788,15 @@ function delete_from_n2d(& $mysql, & $stmt, $net_id) {
     return;
 }
 
-// Deletes from rkg, n2u, n2d, and nets by net_id
-// This is used to remove handshakes/PMKIDs with broken essids
-function delete_cascade_by_net_id(& $mysql, $net_id) {
-    $mysql->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
-
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare('DELETE FROM rkg WHERE net_id=?');
-    $stmt->bind_param('i', $net_id);
-    $stmt->execute();
-    $stmt->close();
-
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare('DELETE FROM n2u WHERE net_id=?');
-    $stmt->bind_param('i', $net_id);
-    $stmt->execute();
-    $stmt->close();
-
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare('DELETE FROM n2d WHERE net_id=?');
-    $stmt->bind_param('i', $net_id);
-    $stmt->execute();
-    $stmt->close();
-
-    // check how many bssids with deleted net_id bssid we have
-    $n_count = Null;
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare('SELECT count(*) FROM nets WHERE bssid = (SELECT bssid FROM nets WHERE net_id=?)');
-    $stmt->bind_param('i', $net_id);
-    $stmt->execute();
-    $stmt->bind_result($n_count);
-    $stmt->fetch();
-    $stmt->close();
-
-    // delete from bssids if we have only one such net
-    if ($n_count == 1) {
+// Set network n_state, default broken
+function set_n_state(& $mysql, & $stmt, $net_id, $n_state=2) {
+    if ($stmt == Null) {
         $stmt = $mysql->stmt_init();
-        $stmt->prepare('DELETE FROM bssids WHERE bssid = (SELECT bssid FROM nets WHERE net_id=?)');
-        $stmt->bind_param('i', $net_id);
-        $stmt->execute();
-        $stmt->close();
+        $stmt->prepare('UPDATE nets SET n_state=? WHERE net_id=?');
     }
 
-    $stmt = $mysql->stmt_init();
-    $stmt->prepare('DELETE FROM nets WHERE net_id=?');
-    $stmt->bind_param('i', $net_id);
+    $stmt->bind_param('ii', $n_state, $net_id);
     $stmt->execute();
-    $stmt->close();
-
-    $mysql->commit();
 
     return;
 }
@@ -850,6 +810,7 @@ function put_work($mysql, $candidates, $suserkey=Null) {
         return False;
     }
 
+    $n_state_stmt = Null;
     $bybssid_stmt = Null;
     $byessid_stmt = Null;
     $byhash_stmt  = Null;
@@ -916,12 +877,12 @@ function put_work($mysql, $candidates, $suserkey=Null) {
 
                     if ($reshs) {
                         // we cracked that by PMK, now let's check if essid matches
-                        // if this not pass, we have broken essid and we'll delete this net.
+                        // if this not, we have broken essid and we'll mark this net as broken
                         if ($net['ssid'] === $hs['ssid']) {
                             submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
                             delete_from_n2d($mysql, $n2d_stmt, $hs['net_id']);
                         } else {
-                            delete_cascade_by_net_id($mysql, $hs['net_id']);
+                            set_n_state($mysql, $n_state_stmt, $hs['net_id']);
                         }
                     }
 
@@ -950,6 +911,9 @@ function put_work($mysql, $candidates, $suserkey=Null) {
         $hs_stmt->close();
     }
     $n2d_stmt->close();
+    if ($n_state_stmt) {
+        $n_state_stmt->close();
+    }
 
     return True;
 }
