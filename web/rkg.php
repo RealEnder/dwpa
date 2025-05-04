@@ -49,7 +49,7 @@ function single_mode_generator($bssid, $ssid) {
     $res = [];
 
     // bssid gen
-    for ($i=-1; $i<=1; $i++) {
+    for ($i=-16; $i<=16; $i++) {
         foreach ([12, 10, 8] as $j) {
             $curr = substr(dechex($bssid + $i), -$j);
             $res[] = str_pad(           $curr , $j, '0', STR_PAD_LEFT);
