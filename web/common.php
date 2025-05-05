@@ -359,19 +359,6 @@ function submit_by_hash(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $alg
     return;
 }
 
-// Delete from n2d by hash
-function delete_from_n2d_by_hash(& $mysql, & $stmt, $hash) {
-    if ($stmt == Null) {
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare('DELETE FROM n2d WHERE net_id=(SELECT net_id FROM nets WHERE hash=?)');
-    }
-
-    $stmt->bind_param('s', $hash);
-    $stmt->execute();
-
-    return;
-}
-
 // Look for duplicate handshakes and mark submission array
 function duplicate_nets(& $mysql, & $ref, & $nets) {
     if (count($ref) < 2) {
@@ -701,13 +688,10 @@ function submission($mysql, $file) {
     // update nets cracked by PMK
     if (!empty($pmkarr)) {
         $submit_stmt = Null;
-        $n2d_stmt = Null;
         foreach ($pmkarr as $hash => $val) {
             submit_by_hash($mysql, $submit_stmt, $val['key'], $val['pmk'], $val['nc'], $val['endian'], $val['sip'], $val['algo'], $hash);
-            delete_from_n2d_by_hash($mysql, $n2d_stmt, $hash);
         }
         $submit_stmt->close();
-        $n2d_stmt->close();
     }
 
     return implode("\n", $res);
@@ -775,19 +759,6 @@ function submit_by_net_id(& $mysql, & $stmt, $pass, $pmk, $nc, $endian, $sip, $n
     return;
 }
 
-// Remove records from n2d for cracked handshake
-function delete_from_n2d(& $mysql, & $stmt, $net_id) {
-    if ($stmt == Null) {
-        $stmt = $mysql->stmt_init();
-        $stmt->prepare('DELETE FROM n2d WHERE net_id=?');
-    }
-
-    $stmt->bind_param('i', $net_id);
-    $stmt->execute();
-
-    return;
-}
-
 // Set network n_state, default broken
 function set_n_state(& $mysql, & $stmt, $net_id, $n_state=2) {
     if ($stmt == Null) {
@@ -815,7 +786,6 @@ function put_work($mysql, $candidates, $suserkey=Null) {
     $byessid_stmt = Null;
     $byhash_stmt  = Null;
     $submit_stmt  = Null;
-    $n2d_stmt     = Null;
     $hs_stmt      = Null;
 
     // TODO: make cand pairs unique to avoid one and same calculations
@@ -867,7 +837,6 @@ function put_work($mysql, $candidates, $suserkey=Null) {
                 }
 
                 submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $res[1], $res[2], $iip, $net['net_id']);
-                delete_from_n2d($mysql, $n2d_stmt, $net['net_id']);
 
                 // check for other crackable nets with this PMK
                 $broken_essid = False;
@@ -880,7 +849,6 @@ function put_work($mysql, $candidates, $suserkey=Null) {
                         // if this not, we have broken essid and we'll mark this net as broken
                         if ($net['ssid'] === $hs['ssid']) {
                             submit_by_net_id($mysql, $submit_stmt, $res[0], $res[3], $reshs[1], $reshs[2], $iip, $hs['net_id']);
-                            delete_from_n2d($mysql, $n2d_stmt, $hs['net_id']);
                         } else {
                             set_n_state($mysql, $n_state_stmt, $hs['net_id']);
                         }
@@ -909,10 +877,6 @@ function put_work($mysql, $candidates, $suserkey=Null) {
     $submit_stmt->close();
     if ($hs_stmt) {
         $hs_stmt->close();
-    }
-    $n2d_stmt->close();
-    if ($n_state_stmt) {
-        $n_state_stmt->close();
     }
 
     return True;

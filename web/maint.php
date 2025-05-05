@@ -34,6 +34,7 @@ $mysql->query("UPDATE stats SET pvalue=(SELECT count(1) FROM bssids WHERE lat IS
 // cleanup n2d leftovers
 echo "Cleanup n2d leftovers\n";
 $mysql->query("DELETE FROM n2d WHERE hkey IS NOT NULL AND TIMESTAMPDIFF(HOUR, ts, CURRENT_TIMESTAMP) > 3");
+$mysql->query("DELETE FROM n2d WHERE EXISTS (SELECT 1 FROM nets WHERE nets.net_id = n2d.net_id AND nets.n_state != 0)");
 
 //rebuild cracked dict
 echo "Pull cracked.txt.gz dict\n";
