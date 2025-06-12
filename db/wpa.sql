@@ -100,26 +100,6 @@ CREATE TABLE IF NOT EXISTS `n2d` (
 --       `nets` -> `net_id`
 --
 
---
--- Triggers `n2d`
---
-DELIMITER $$
-CREATE TRIGGER `TRG_n2d` AFTER INSERT ON `n2d` FOR EACH ROW BEGIN
-    UPDATE nets SET hits=hits+1 WHERE nets.net_id=NEW.net_id;
-    UPDATE dicts SET hits=hits+1 WHERE dicts.d_id=NEW.d_id;
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `TRG_n2d_delete` AFTER DELETE ON `n2d` FOR EACH ROW BEGIN
-    IF ((SELECT n_state FROM nets WHERE net_id=OLD.net_id)=0) THEN
-        UPDATE dicts SET hits=hits-1 WHERE d_id=OLD.d_id;
-        UPDATE nets SET hits=hits-1 WHERE net_id=OLD.net_id;
-    END IF;
-END
-$$
-DELIMITER ;
-
 -- --------------------------------------------------------
 
 --

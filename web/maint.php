@@ -33,8 +33,48 @@ $mysql->query("UPDATE stats SET pvalue=(SELECT count(1) FROM bssids WHERE lat IS
 
 // cleanup n2d leftovers
 echo "Cleanup n2d leftovers\n";
-$mysql->query("DELETE FROM n2d WHERE hkey IS NOT NULL AND TIMESTAMPDIFF(HOUR, ts, CURRENT_TIMESTAMP) > 3");
+// first remove cracked and broken
 $mysql->query("DELETE FROM n2d WHERE EXISTS (SELECT 1 FROM nets WHERE nets.net_id = n2d.net_id AND nets.n_state != 0)");
+
+$datenow = date('Y-m-d H:i:s');
+
+$mysql->begin_transaction();
+
+// decrement nets hits against dicts
+$stmt = $mysql->stmt_init();
+$stmt->prepare("WITH cte AS (
+    SELECT net_id, COUNT(*) AS cnt
+    FROM n2d
+    WHERE hkey IS NOT NULL AND ? - INTERVAL 3 HOUR > ts
+    GROUP BY net_id
+)
+UPDATE nets
+JOIN cte USING (net_id)
+SET nets.hits = GREATEST(CAST(nets.hits AS SIGNED) - cte.cnt, 0)
+WHERE n_state=0");
+$stmt->bind_param('s', $datenow);
+$stmt->execute();
+
+// decrement dicts hits against nets
+$stmt = $mysql->stmt_init();
+$stmt->prepare("WITH cte AS (
+    SELECT d_id, COUNT(*) AS cnt
+    FROM n2d
+    WHERE hkey IS NOT NULL AND ? - INTERVAL 3 HOUR > ts
+    GROUP BY d_id
+)
+UPDATE dicts
+JOIN cte USING (d_id)
+SET dicts.hits = GREATEST(CAST(dicts.hits AS SIGNED) - cte.cnt, 0)");
+$stmt->bind_param('s', $datenow);
+$stmt->execute();
+
+$stmt = $mysql->stmt_init();
+$stmt->prepare("DELETE FROM n2d WHERE hkey IS NOT NULL AND TIMESTAMPDIFF(HOUR, ts, ?) > 3");
+$stmt->bind_param('s', $datenow);
+$stmt->execute();
+
+$mysql->commit();
 
 //rebuild cracked dict
 echo "Pull cracked.txt.gz dict\n";

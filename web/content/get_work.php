@@ -47,6 +47,7 @@ if (array_key_exists('dictcount', $json)) {
 
 // critical section begin
 create_lock('get_work.lock');
+$mysql->begin_transaction();
 
 // generate get_work key
 $hkey = gen_key();
@@ -134,8 +135,35 @@ foreach ($nets as $key => $net) {
 // populate in n2d
 insert_n2d($mysql, $ref);
 
+// increment hits for selected nets
+$stmt = $mysql->stmt_init();
+$stmt->prepare("UPDATE nets
+JOIN (
+    SELECT net_id, COUNT(1) AS cnt
+    FROM n2d
+    WHERE hkey = ?
+    GROUP BY net_id
+    ) AS x USING (net_id)
+SET nets.hits = nets.hits + x.cnt");
+$stmt->bind_param('s', $bhkey);
+$stmt->execute();
+
 // critical section end
+$mysql->commit();
 release_lock('get_work.lock');
+
+// increment hits for selected dicts
+$stmt = $mysql->stmt_init();
+$stmt->prepare("UPDATE dicts
+JOIN (
+    SELECT d_id, COUNT(1) AS cnt
+    FROM n2d
+    WHERE hkey = ?
+    GROUP BY d_id
+    ) AS x USING (d_id)
+SET dicts.hits = dicts.hits + x.cnt");
+$stmt->bind_param('s', $bhkey);
+$stmt->execute();
 
 // add PRdict if availible
 $stmt = $mysql->stmt_init();
