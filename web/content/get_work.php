@@ -107,7 +107,8 @@ WHERE ssid = BINARY (SELECT ssid
   net_id NOT IN (SELECT net_id
                  FROM n2d
                  WHERE d_id IN (".implode(',', array_fill(0, $dc, '?')).") AND
-                       n2d.net_id = n.net_id)");
+                       n2d.net_id = n.net_id)
+LIMIT 20");
 $ref[0] = str_repeat('i', $dc);
 call_user_func_array([$stmt, 'bind_param'], $ref);
 $stmt->execute();
