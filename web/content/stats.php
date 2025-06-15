@@ -14,31 +14,28 @@ foreach ($datas as $data) {
 }
 
 // this is for all nets stats
-echo "Total nets: {$stats['nets']} / {$stats['nets_unc']} unique BSSIDs<br>\n";
-echo "Total cracked nets: {$stats['cracked']} / {$stats['cracked_unc']} unique BSSIDs<br>\n";
+echo "Total nets: {$stats['nets']}<br>\n";
+echo "Total cracked nets: {$stats['cracked']}<br>\n";
 if ((int) $stats['nets'] > 0) {
     $srate = round((int) $stats['cracked'] / (int) $stats['nets'] * 100, 2);
-    $srate_unc = round((int) $stats['cracked_unc'] / (int) $stats['nets_unc'] * 100, 2);
-    echo "Total success rate: $srate% / $srate_unc% unique BSSIDs<br>\n";
+    echo "Total success rate: $srate%<br>\n";
 }
 echo '<br>';
 
 // this is for PMKIDs
-echo "Total PMKIDs: {$stats['pmkid']} / {$stats['pmkid_unc']} unique BSSIDs<br>\n";
-echo "Cracked PMKIDs: {$stats['cracked_pmkid']} / {$stats['cracked_pmkid_unc']} unique BSSIDs<br>\n";
+echo "Total PMKIDs: {$stats['pmkid']}<br>\n";
+echo "Cracked PMKIDs: {$stats['cracked_pmkid']}<br>\n";
 if ((int) $stats['pmkid'] > 0) {
     $srate = round((int) $stats['cracked_pmkid'] / (int) $stats['pmkid'] * 100, 2);
-    $srate_unc = round((int) $stats['cracked_pmkid_unc'] / (int) $stats['pmkid_unc'] * 100, 2);
-    echo "PMKID success rate: $srate% / $srate_unc% unique BSSIDs<br>\n";
+    echo "PMKID success rate: $srate%<br>\n";
 }
 echo '<br>';
 
 // this is for rkg stats
-echo "Cracked by known algorithm: {$stats['cracked_rkg']} / {$stats['cracked_rkg_unc']} unique BSSIDs<br>\n";
+echo "Cracked by known algorithm: {$stats['cracked_rkg']}<br>\n";
 if ((int) $stats['cracked'] > 0) {
     $srate = round((int) $stats['cracked_rkg'] / (int) $stats['cracked'] * 100, 2);
-    $srate_unc = round((int) $stats['cracked_rkg_unc'] / (int) $stats['cracked_unc'] * 100, 2);
-    echo "Known algorithm success rate: $srate% / $srate_unc% unique BSSIDs<br>\n";
+    echo "Known algorithm success rate: $srate%<br>\n";
 }
 echo '<br>';
 
