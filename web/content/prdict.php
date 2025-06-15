@@ -40,5 +40,5 @@ unset($ssids);
 
 header('Content-type: application/gzip');
 header('Content-Disposition: attachment; filename=prdict.txt.gz;');
-echo gzencode(implode("\n", $dict), 4);
+echo gzencode(implode("\n", $dict) . "\n", 4);
 ?>
