@@ -465,7 +465,8 @@ class HelpCrack():
             while True:
                 for d in netdata["dicts"]:
                     gzdictname = d["dpath"].split("/")[-1]
-                    if not os.path.exists(gzdictname) or d["dhash"] != self.md5file(gzdictname):
+                    gzdicthash = self.md5file(gzdictname)
+                    if not os.path.exists(gzdictname) or d["dhash"] != gzdicthash:
                         self.pprint(f"Downloading {gzdictname}", "OKBLUE")
                         self.download(d["dpath"], gzdictname)
                         if d["dhash"] != self.md5file(gzdictname):
@@ -474,7 +475,7 @@ class HelpCrack():
                         dlist.append(gzdictname)
                     else:
                         dictname = gzdictname.rsplit(".", 1)[0]
-                        if not os.path.exists(dictname):
+                        if not os.path.exists(dictname) or d["dhash"] != gzdicthash:
                             self.pprint(f"Extracting {gzdictname}", "OKBLUE")
                             try:
                                 with gzip.open(gzdictname, "rb") as gz_file:
