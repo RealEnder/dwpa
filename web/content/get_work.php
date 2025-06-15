@@ -26,6 +26,12 @@ if (version_compare($_GET['get_work'], MIN_HC_VER) < 0 ) {
     die('Version');
 }
 
+// Check PoW
+if (apcu_exists("wpasecpow{$_SERVER['REMOTE_ADDR']}")) {
+    http_response_code(412);
+    die('Wait');
+}
+
 // Parse input
 try {
     $json = json_decode(file_get_contents('php://input'), True, 2, JSON_THROW_ON_ERROR);
@@ -55,7 +61,7 @@ $bhkey = hex2bin($hkey);
 
 // get current dict
 $stmt = $mysql->stmt_init();
-$stmt->prepare("SELECT d_id, HEX(dhash) as dhash, dpath, rules
+$stmt->prepare("SELECT d_id, HEX(dhash) as dhash, dpath, rules, rnd_words
 FROM dicts d
 WHERE NOT EXISTS (SELECT d_id
               FROM n2d
@@ -85,12 +91,17 @@ if ($dc == 0) {
 $resnet = ['hkey' => $hkey, 'dicts' => [], 'hashes' => []];
 $ref = [''];
 $rules = [];
+$rnd_words = [];
 for ($i=0; $i<$dc; $i++) {
     $resnet['dicts'][] = ['dhash' => strtolower($dicts[$i]['dhash']), 'dpath' => $dicts[$i]['dpath']];
     $ref[] = & $dicts[$i]['d_id'];
     $rules = array_unique(array_merge($rules, explode("\n", $dicts[$i]['rules'])));
+    // Don't use all random words for now, so we'll not cripple the performance if we've got crack
+    // $rnd_words = array_merge($rnd_words, explode("\n", $dicts[$i]['rnd_words']));
 }
 $resnet['rules'] = base64_encode(implode("\n", $rules));
+// take random words from the first dict. See above.
+$rnd_words = explode("\n", $dicts[0]['rnd_words']);
 
 // get nets and prepare
 $stmt = $mysql->stmt_init();
@@ -165,6 +176,25 @@ JOIN (
 SET dicts.hits = dicts.hits + x.cnt");
 $stmt->bind_param('s', $bhkey);
 $stmt->execute();
+
+/* Add PoW hash */
+// compute PoW PMK
+$pow_arr = explode('*', $resnet['hashes'][0]);
+$pow_pass = $rnd_words[array_rand($rnd_words)];
+$pmk = openssl_pbkdf2($pow_pass, hex2bin($pow_arr[5]), 32, 4096, 'sha1');
+// generate random BSSID and mac_sta. Don't care for unicast/multicast for now
+$pow_mac_ap  = random_bytes(6);
+$pow_mac_sta = random_bytes(6);
+// compute PoW PMK
+$pow_pmkid   = hash_hmac('sha1', 'PMK Name' . $pow_mac_ap . $pow_mac_sta, $pmk, False);
+$pow_hash = sprintf('WPA*01*%s*%s*%s*%s***01', substr($pow_pmkid, 0, 32), bin2hex($pow_mac_ap), bin2hex($pow_mac_sta), $pow_arr[5]);
+
+// add PoW PMKID and shuffle the array
+$resnet['hashes'][] = $pow_hash;
+shuffle($resnet['hashes']);
+
+// cache PoW with 1h TTL
+apcu_store("wpasecpow{$_SERVER['REMOTE_ADDR']}", $pow_pass, 3600);
 
 // add PRdict if availible
 $stmt = $mysql->stmt_init();

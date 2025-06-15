@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS `dicts` (
   `dpath` varchar(256) NOT NULL,
   `dhash` binary(16) DEFAULT NULL,
   `dname` varchar(128) NOT NULL,
-  `rules` mediumtext CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci COMMENT 'hashcat rules for the dict, \n separated',
+  `rules` mediumtext CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT 'hashcat rules for the dict, \n separated',
+  `rnd_words` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT 'Random words from the dict, to be used for PoW',
   `wcount` int UNSIGNED NOT NULL,
   `hits` int UNSIGNED NOT NULL DEFAULT '0',
   PRIMARY KEY (`d_id`)
