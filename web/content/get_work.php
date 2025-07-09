@@ -59,6 +59,63 @@ $mysql->begin_transaction();
 $hkey = gen_key();
 $bhkey = hex2bin($hkey);
 
+// API key validation and user job prioritization
+$api_key = isset($json['api_key']) ? trim($json['api_key']) : '';
+$user_clause = '';
+
+if ($api_key !== '') {
+    // Validate API key format
+    if (!valid_key($api_key)) {
+        error_log("Invalid API key format received from " . $_SERVER['REMOTE_ADDR']);
+        http_response_code(400);
+        die('Invalid API key');
+    }
+
+    try {
+        // Try to find user's uncracked submissions first
+        $stmt = $mysql->stmt_init();
+        $query = "SELECT net_id 
+                 FROM nets n 
+                 JOIN n2u ON n.net_id = n2u.net_id 
+                 JOIN users ON n2u.u_id = users.u_id 
+                 WHERE users.userkey = UNHEX(?)
+                 AND n.n_state = 0 
+                 AND n.algo = ''
+                 ORDER BY n.hits, n.ts 
+                 LIMIT 1";
+                 
+        if (!$stmt->prepare($query)) {
+            throw new Exception("Failed to prepare user jobs query");
+        }
+        
+        $stmt->bind_param('s', $api_key);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to execute user jobs query"); 
+        }
+        
+        $stmt->store_result();
+        
+        // If user has uncracked submissions, prioritize those
+        if ($stmt->num_rows > 0) {
+            $user_clause = " AND net_id IN (
+                SELECT net_id 
+                FROM n2u 
+                JOIN users ON n2u.u_id = users.u_id 
+                WHERE users.userkey = UNHEX('$api_key')
+            )";
+        }
+        
+        $stmt->close();
+    }
+    catch (Exception $e) {
+        error_log("Database error in API key check: " . $e->getMessage());
+        release_lock('get_work.lock');
+        http_response_code(500);
+        die('Database error');
+    }
+}
+
 // get current dict
 $stmt = $mysql->stmt_init();
 $stmt->prepare("SELECT d_id, HEX(dhash) as dhash, dpath, rules, rnd_words
@@ -70,6 +127,7 @@ WHERE NOT EXISTS (SELECT d_id
                                 FROM nets
                                 WHERE n_state=0 AND
                                       algo=''
+                                      $user_clause
                                 ORDER BY hits, ts
                                 LIMIT 1))
 ORDER BY d.wcount, d.dname

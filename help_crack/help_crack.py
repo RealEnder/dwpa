@@ -52,9 +52,11 @@ class HelpCrack():
     # decompression block size 64k
     blocksize = 1 << 16
     conf = None
+    api_key = None
 
-    def __init__(self, c=None):
+    def __init__(self, c=None, api_key=None):
         self.conf = c
+        self.api_key = api_key
 
     @staticmethod
     def pprint(mess, code="HEADER"):
@@ -397,25 +399,43 @@ class HelpCrack():
 
     def get_work(self, dictcount):
         """get new work package"""
-        dc = {"dictcount": dictcount}
-        dcjson = json.dumps(dc).encode("utf-8")
+        payload = {"dictcount": dictcount}
+        
+        # Handle API key more gracefully
+        if self.api_key:
+            if not re.match(r'^[a-fA-F0-9]{32}$', self.api_key):
+                self.pprint("Warning: API key should be 32 hex characters - skipping", "WARNING") 
+            else:
+                payload["api_key"] = self.api_key
+                self.pprint("Using API key to prioritize your submitted jobs", "OKBLUE")
+
         while True:
             try:
-                response_data = self.get_url(f"{self.conf['get_work_url']}={self.conf['hc_ver']}", dcjson)
+                response_data = self.get_url(f"{self.conf['get_work_url']}={self.conf['hc_ver']}", 
+                                           json.dumps(payload).encode("utf-8"))
+                
                 if response_data == "Version":
-                    self.pprint("Please update help_crack, the API has changed", "FAIL")
+                    self.pprint("API version mismatch - please update help_crack", "FAIL")
                     sys.exit(1)
+                    
+                if response_data == "Invalid API key":
+                    self.pprint("Server rejected the provided API key", "FAIL")
+                    self.api_key = None
+                    continue
+                    
                 if response_data == "No nets":
-                    self.pprint("No suitable nets found", "WARNING")
+                    self.pprint("No work available - waiting for new submissions...", "WARNING")
                     self.sleepy()
                     continue
+                    
                 netdata = json.loads(response_data)
-                if "hkey" not in netdata or "hashes" not in netdata:
-                    raise ValueError
+                if not all(k in netdata for k in ["hkey", "hashes"]):
+                    raise ValueError("Missing required fields in server response")
+                    
                 return netdata
+                
             except (TypeError, ValueError) as e:
-                self.pprint("Server response error", "WARNING")
-                self.pprint(f"Exception: {e}", "WARNING")
+                self.pprint(f"Error parsing server response: {e}", "WARNING")
                 self.sleepy()
                 continue
 
@@ -792,6 +812,7 @@ if __name__ == "__main__":
     parser.add_argument("-co",  "--coptions",   type=str, help="custom options, that will be supplied to cracker. Those must be passed as -co='--your_option'")
     parser.add_argument("-pot", "--potfile",    type=str, help="preserve cracked results in user supplied pot file")
     parser.add_argument("-ad",  "--additional", type=lambda x: is_valid_file(parser, x), help="additional user dictionary to be checked after downloaded one")
+    parser.add_argument("-key", "--api-key",    type=str, help="API key to prioritize jobs submitted by this key")
 
     try:
         args = parser.parse_args()
@@ -807,5 +828,5 @@ if __name__ == "__main__":
     # set global timeout duration
     socket.setdefaulttimeout(120)
 
-    hc = HelpCrack(conf)
+    hc = HelpCrack(conf, args.api_key)
     hc.run()
