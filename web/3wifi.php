@@ -28,7 +28,7 @@ $result->free();
 // create array for 3wifi query
 $wifi3search = [];
 foreach ($bssids as $bssid) {
-    $wifi3search[] = long2mac($bssid['bssid']);
+    $wifi3search[] = bin2hex($bssid['bssid']);
 }
 
 // query 3wifi
@@ -55,7 +55,7 @@ if (count($wifi3search) > 0) {
                 $bssidkey = sprintf('z%03d%s', $i, $d[0]['bssid']);
                 $sub[$bssidkey] = $d[0]['key'];
                 $i++;
-                $stmt->bind_param('i', mac2long($d[0]['bssid']));
+                $stmt->bind_param('s', hex2bin($d[0]['bssid']));
                 $stmt->execute();
             }
             $stmt->close();

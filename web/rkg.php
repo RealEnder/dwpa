@@ -71,7 +71,7 @@ foreach ($nets as $netkey => $net) {
     $cres = False;
     $res = '';
     $rc  = 0;
-    $mac = implode(':', str_split(long2mac($net['bssid']), 2));
+    $mac = implode(':', str_split(bin2hex($net['bssid']), 2));
 
     exec(RKG." -q -k -m $mac -s ".escapeshellarg($cleanssid), $res, $rc);
 

@@ -29,7 +29,7 @@ if (strlen($search) >= 3) {
 
     // search by BSSID or mac_sta
     if (valid_mac($search)) {
-        $bssid = mac2long($search);
+        $bssid = hex2bin($search);
         if ($k == $bosskey) {
             $sql = "SELECT HEX(hash) as hash, nets.bssid, ssid, keyver, message_pair, pass, algo, nc, endian, hits, nets.ts, n_state, country
 FROM nets
@@ -52,12 +52,12 @@ ON n.net_id=n1.net_id";
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         if ($k == $bosskey)
-            $stmt->bind_param('i', $bssid);
+            $stmt->bind_param('s', $bssid);
         else
-            $stmt->bind_param('is', $bssid, $k);
+            $stmt->bind_param('ss', $bssid, $k);
     // search by partial BSSID
     } elseif (valid_mac($search, 3)) {
-        $bssid = mac2long($search);
+        $bssid = hex2bin(substr($search, 0, 8));
         if ($k == $bosskey) {
             $sql = "SELECT HEX(hash) as hash, nets.bssid, ssid, keyver, message_pair, pass, algo, nc, endian, hits, nets.ts, n_state, country
 FROM nets
@@ -80,9 +80,9 @@ ON n.net_id=n1.net_id";
         $stmt = $mysql->stmt_init();
         $stmt->prepare($sql);
         if ($k == $bosskey)
-            $stmt->bind_param('i', $bssid);
+            $stmt->bind_param('s', $bssid);
         else
-            $stmt->bind_param('is', $bssid, $k);
+            $stmt->bind_param('ss', $bssid, $k);
     // search by SSID
     } else {
         $ssid = "$search%";

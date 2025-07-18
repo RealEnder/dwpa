@@ -171,7 +171,7 @@ function check_key_m22000($hashline, $keys, $pmk=False, $nc=128) {
         foreach ($keys as $key) {
             // TODO: find-out why we have Nulls here
             if (is_null($key)) continue;
-            if (str_starts_with($key, '$HEX[')) {
+            if (strncmp($key, '$HEX[', 5) === 0) {
                 $key = hc_unhex($key);
             }
 
@@ -239,7 +239,7 @@ function check_key_m22000($hashline, $keys, $pmk=False, $nc=128) {
         foreach ($keys as $key) {
             // TODO: find-out why we have Nulls here
             if (is_null($key)) continue;
-            if (str_starts_with($key, '$HEX[')) {
+            if (strncmp($key, '$HEX[', 5) === 0) {
                 $key = hc_unhex($key);
             }
 
@@ -292,10 +292,10 @@ function check_key_m22000($hashline, $keys, $pmk=False, $nc=128) {
                 if ($ncarr[0][1] == 0) {
                     $ncarr = [['V', 1], ['V', -1], ['N', 1], ['N', -1]];
                 } else {
-                    $ncarr[0][1]++;
-                    $ncarr[1][1]--;
-                    $ncarr[2][1]++;
-                    $ncarr[3][1]--;
+                    $ncarr[0][1] += 1;
+                    $ncarr[1][1] -= 1;
+                    $ncarr[2][1] += 1;
+                    $ncarr[3][1] -= 1;
                 }
             } while ($ncarr[0][1] <= $halfnc);
 
@@ -704,8 +704,8 @@ function by_bssid(& $mysql, & $stmt, $bssid) {
         $stmt->prepare('SELECT net_id, struct, ssid, bssid, mac_sta FROM nets WHERE bssid = ? AND n_state=0');
     }
 
-    $ibssid = mac2long($bssid);
-    $stmt->bind_param('i', $ibssid);
+    $ibssid = hex2bin($bssid);
+    $stmt->bind_param('s', $ibssid);
     $stmt->execute();
     $result = $stmt->get_result();
     $res = $result->fetch_all(MYSQLI_ASSOC);
@@ -882,15 +882,7 @@ function put_work($mysql, $candidates, $suserkey=Null) {
     return True;
 }
 
-// TODO: Remove mac2long() and long2mac() functions
 // MAC conversions and checks
-function mac2long($mac) {
-    return hexdec(str_replace(':', '', $mac));
-}
-
-function long2mac($lmac) {
-    return sprintf('%012x', $lmac);
-}
 
 function valid_mac($mac, $part=6) {
     return preg_match('/^([a-f0-9]{2}\:?){'.$part.'}$/', strtolower($mac));
@@ -1042,7 +1034,7 @@ function write_nets($datas) {
 <tr><th>CC</th><th>BSSID</th><th>SSID</th><th>Type</th><th>Feat</th><th>WPA key</th><th>Key info</th><th>Get works</th><th>Timestamp</th></tr>
 ';
     foreach ($datas as $data) {
-        $bssid = long2mac($data['bssid']);
+        $bssid = bin2hex($data['bssid']);
         $hash = $data['hash'];
         $ssid = htmlspecialchars($data['ssid']);
         if ($data['n_state'] == 0) {
