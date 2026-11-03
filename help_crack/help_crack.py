@@ -629,6 +629,11 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
         def parse_hashcat_output(pot):
             """parse hashcat potfile line"""
             try:
+                # hashcat 8+ writes the original m22000 hashline
+                if pot.startswith("WPA*"):
+                    arr = pot.split(":", 1)
+                    return {"k": arr[0].split("*")[3], "v": bytes(arr[1].rstrip("\r\n"), encoding="utf-8", errors="ignore").hex()}
+                # hashcat 7 and below
                 arr = pot.split(":", 4)
                 return {"k": arr[1][:12], "v": bytes(arr[4].rstrip("\r\n"), encoding="utf-8", errors="ignore").hex()}
             except (TypeError, ValueError, KeyError, IndexError):
@@ -678,6 +683,7 @@ cc576f593e6dc5e3823a32fbd4af929f51000000000000000000000000000000\
                         # check if we have user potfile and don't write if it's the challenge
                         if self.conf["potfile"] and not \
                             ("1c7ee5e2f2d0:0026c72e4900:dlink:aaaa1234" in line or
+                             "*1c7ee5e2f2d0*0026c72e4900*646c696e6b*" in line or
                              "1c7ee5e2f2d0*0026c72e4900*646c696e6b:aaaa1234" in line or
                              "0OOMSwZsHKYh0C19gHglzE:aaaa1234" in line):
                             with open(self.conf["potfile"], "a", encoding="utf-8") as fdpot:
